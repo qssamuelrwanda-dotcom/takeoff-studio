@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Takeoff Studio · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#EEF2F0;--surface:#fff;--surface2:#F4F7F5;--ink:#16201D;--ink2:#4B5853;--ink3:#7A8782;--line:#D6DDD9;--line2:#E6EBE8;--accent:#0F6B63;--accent-soft:#DDEFEC;--mark:#C98A0B;--danger:#B3261E;--ok:#2E7D4F;--f-ui:"Barlow",system-ui,sans-serif;--f-cond:"Barlow Condensed","Arial Narrow",sans-serif;--f-mono:"JetBrains Mono",ui-monospace,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0D1311;--surface:#161F1C;--surface2:#1C2623;--ink:#E3EAE6;--ink2:#A3AFAA;--ink3:#72807A;--line:#2B3632;--line2:#222C29;--accent:#3FB5A8;--accent-soft:#16332F;--mark:#F0B429;--danger:#F2766B;--ok:#5CC08A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0D1311;--surface:#161F1C;--surface2:#1C2623;--ink:#E3EAE6;--ink2:#A3AFAA;--ink3:#72807A;--line:#2B3632;--line2:#222C29;--accent:#3FB5A8;--accent-soft:#16332F;--mark:#F0B429;--danger:#F2766B;--ok:#5CC08A;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-ui)}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer}[hidden]{display:none!important}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--line)}
+.top::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#0F7A70,#2F6FB8 22%,#8150C0 42%,#C4523B 62%,#C07E14 80%,#2E9460)}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-cond);font-weight:700;font-size:19px;letter-spacing:.02em;text-transform:uppercase}
+.brand svg{width:26px;height:26px;color:var(--accent)}.brand span{color:var(--ink3);font-weight:600}
+.top .sp{flex:1}.who{font-size:13.5px;color:var(--ink2)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink)}
+.btn:hover{background:var(--surface2)}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.sm{padding:4px 9px;font-size:13px}.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px}
+h1{font-family:var(--f-cond);font-size:30px;letter-spacing:.01em;margin:0 0 4px;text-transform:uppercase}
+.sub{color:var(--ink2);margin:0 0 18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card h2{font-family:var(--f-cond);font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--kc,var(--accent))}
+.kpi .k{font-family:var(--f-cond);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.kpi b{display:block;font-family:var(--f-mono);font-weight:500;font-size:28px;line-height:1.2;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--ink2);font-size:12.5px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;margin-bottom:14px}
+@media (max-width:980px){.grid2{grid-template-columns:1fr}}
+.chart svg{width:100%;height:auto;display:block}.legend{display:flex;gap:14px;font-size:12.5px;color:var(--ink2);flex-wrap:wrap}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.feed{max-height:330px;overflow:auto;display:flex;flex-direction:column}
+.ev{display:grid;grid-template-columns:78px 1fr;gap:10px;padding:7px 0;border-top:1px solid var(--line2);font-size:13.5px}.ev:first-child{border-top:0}
+.ev time{font-family:var(--f-mono);font-size:11.5px;color:var(--ink3)}.ev .t{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;margin-right:6px;background:var(--surface2);border:1px solid var(--line)}
+.t.visit{color:var(--ink2)}.t.signup{color:#fff;background:var(--ok);border-color:var(--ok)}.t.session{color:var(--accent)}.t.cloud_save{color:#2F6FB8}.t.share{color:#8150C0}.t.export{color:#C07E14}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.tools input{padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);min-width:220px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{font-family:var(--f-cond);font-weight:600;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+.tbl th.r,.tbl td.r{text-align:right}.tbl th[aria-sort]::after{content:" ↓";color:var(--accent)}.tbl th[aria-sort="ascending"]::after{content:" ↑"}
+.tbl td{padding:9px 8px;border-bottom:1px solid var(--line2);vertical-align:middle}.tbl tr:hover td{background:var(--surface2)}
+.tbl td.n{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+.u b{display:block;font-weight:600}.u small{color:var(--ink3)}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:10px}.pill.on{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.pill.off{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}.pill.idle{background:var(--surface2);color:var(--ink3)}
+.tblwrap{overflow:auto}
+.center{max-width:420px;margin:8vh auto;text-align:left}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}.field label{font-size:13px;color:var(--ink2)}.field input{padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:var(--surface2)}
+.msg{min-height:1.4em;color:var(--ink2);font-size:14px;margin-top:8px}
+.note{font-size:12.5px;color:var(--ink3);margin-top:14px}
+.empty{color:var(--ink3);padding:14px 0}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9z"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9"/></svg>Takeoff Studio <span>· Admin</span></div>
+  <div class="sp"></div>
+  <span class="who" id="who"></span>
+  <a class="btn sm" href="../app/">Open the app</a>
+  <button class="btn sm" id="out" hidden>Sign out</button>
+</header>
+
+<main class="wrap">
+  <section id="login" class="card center" hidden>
+    <h1 style="font-size:24px">Admin sign-in</h1>
+    <p class="sub" style="margin-bottom:14px">Use the email address listed as an administrator in the database script.</p>
+    <div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="email"></div>
+    <div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password"></div>
+    <div class="tools"><button class="btn primary" id="inBtn">Sign in</button><button class="btn" id="linkBtn">Email me a sign-in link</button><button class="btn" id="forgotBtn" style="border:0;background:none;color:var(--accent);padding:7px 4px">Forgot password?</button></div>
+    <p class="msg" id="msg" role="status"></p>
+  </section>
+
+  <section id="newpw" class="card center" hidden>
+    <h1 style="font-size:24px">Set a new password</h1>
+    <p class="sub" style="margin-bottom:14px">For <b id="npEmail"></b></p>
+    <div class="field"><label for="np1">New password</label><input id="np1" type="password" autocomplete="new-password" placeholder="at least 6 characters"></div>
+    <div class="field"><label for="np2">Repeat new password</label><input id="np2" type="password" autocomplete="new-password"></div>
+    <div class="tools"><button class="btn primary" id="npSave">Save password</button></div>
+    <p class="msg" id="npMsg" role="status"></p>
+  </section>
+
+  <section id="denied" class="card center" hidden>
+    <h1 style="font-size:24px">No admin access</h1>
+    <p class="sub"><span id="deniedEmail"></span> is signed in but isn't an administrator. Add the email to <code>ts_admins</code> in the Supabase SQL editor, or sign in with the admin address.</p>
+    <button class="btn" id="out2">Sign out</button>
+  </section>
+
+  <section id="dash" hidden>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <div><h1>Users &amp; usage</h1><p class="sub" style="margin:0" id="asof"></p></div>
+      <div class="tools"><button class="btn sm" id="refresh">Refresh</button><button class="btn sm" id="csv">Export users (CSV)</button></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <div class="card chart"><h2>Last 30 days <span class="legend"><span><i style="background:color-mix(in srgb,var(--accent) 28%,transparent)"></i>Visits</span><span><i style="background:var(--accent)"></i>Active users</span><span><i style="background:var(--mark);border-radius:50%"></i>New sign-ups</span></span></h2><div id="chart"></div></div>
+      <div class="card"><h2>Recent activity <span style="font-size:12px;letter-spacing:0;text-transform:none;color:var(--ink3)" id="feedN"></span></h2><div class="feed" id="feed"></div></div>
+    </div>
+    <div class="card">
+      <h2>Users <span class="tools"><input id="q" type="search" placeholder="Search name or email" aria-label="Search users"></span></h2>
+      <div class="tblwrap"><table class="tbl" id="users"><thead><tr>
+        <th data-s="email">User</th><th data-s="created_at">Joined</th><th data-s="last" aria-sort="descending">Last active</th>
+        <th class="r" data-s="projects">Projects</th><th class="r" data-s="shared_with">Shared with them</th><th class="r" data-s="sessions">Days used</th><th class="r" data-s="exports">Exports</th><th data-s="blocked">Status</th><th></th></tr></thead><tbody></tbody></table></div>
+      <p class="note">"Days used" counts days on which the person opened the app while signed in. Visits from people who are not signed in are counted per device, without any personal data. Suspended users can't open or save cloud projects.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+(()=>{
+const SB_URL='https://fafolvtalqfqerhcorhe.supabase.co',SB_KEY='sb_publishable_nyA9omGVBYL_p-8GcgnxMA_17Aj7gfH';
+const $=s=>document.querySelector(s);const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const show=id=>['login','denied','dash','newpw'].forEach(x=>$('#'+x).hidden=x!==id);let RECOVERY=false;
+if(!window.supabase){document.querySelector('main').innerHTML='<p class="card center">Could not load the sign-in library. Check your connection and reload.</p>';return;}
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,detectSessionInUrl:true}});
+let USERS=[],sortKey='last',sortDir=-1,timer=0,ME='';
+const fmtD=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'–';
+const ago=d=>{if(!d)return'never';const m=Math.round((Date.now()-new Date(d))/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago';};
+const KIND={visit:'Visit',signup:'New sign-up',session:'Opened the app',cloud_save:'Saved to cloud',share:'Shared a project',export:'Exported'};
+
+async function load(){
+  const [st,us,ac]=await Promise.all([sb.rpc('ts_admin_stats'),sb.rpc('ts_admin_users'),sb.rpc('ts_admin_activity',{lim:200})]);
+  if(st.error||us.error){const e=(st.error||us.error).message||'';if(/admin/i.test(e)){show('denied');return;}$('#asof').textContent='Could not load: '+e;return;}
+  show('dash');const S=st.data||{};USERS=(us.data||[]).map(u=>({...u,last:u.last_seen||u.last_sign_in_at||u.created_at}));
+  $('#asof').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' · refreshes every minute';
+  const k=(label,val,sub,col)=>`<div class="kpi" style="--kc:${col}"><span class="k">${label}</span><b>${val??0}</b><small>${sub}</small></div>`;
+  $('#kpis').innerHTML=k('Users',S.users,`+${S.new_7d||0} in the last 7 days`,'#0F7A70')+k('Active users',S.active_7d,`${S.active_30d||0} in the last 30 days`,'#2F6FB8')+k('Visits · 30 days',S.visits_30d,`from ${S.devices_30d||0} devices`,'#8150C0')+k('Cloud projects',S.projects,`${S.shared||0} shared with others`,'#C07E14')+k('Exports · 30 days',S.exports_30d,'Excel and CSV','#2E9460')+(S.blocked?k('Suspended',S.blocked,'accounts','#C4523B'):'');
+  chart(S.daily||[]);feed(ac.data||[]);table();
+}
+function chart(D){if(!D.length){$('#chart').innerHTML='<p class="empty">No data yet.</p>';return;}
+  const W=720,H=230,pl=34,pb=26,pt=10,cw=(W-pl-8)/D.length;const mx=Math.max(4,...D.map(d=>Math.max(d.visits,d.active,d.signups)));const nice=Math.ceil(mx/4)*4;const y=v=>pt+(H-pt-pb)*(1-v/nice);
+  let g='';for(let i=0;i<=4;i++){const v=nice*i/4,yy=y(v);g+=`<line x1="${pl}" x2="${W-8}" y1="${yy}" y2="${yy}" stroke="var(--line2)"/><text x="${pl-6}" y="${yy+4}" font-size="11" text-anchor="end" fill="var(--ink3)" font-family="JetBrains Mono,monospace">${v}</text>`;}
+  D.forEach((d,i)=>{const x=pl+i*cw;const lab=new Date(d.day).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    g+=`<g><title>${lab}: ${d.visits} visits · ${d.active} active users · ${d.signups} sign-ups</title><rect x="${x+cw*0.1}" y="${y(d.visits)}" width="${cw*0.8}" height="${y(0)-y(d.visits)}" rx="2" fill="color-mix(in srgb,var(--accent) 26%,transparent)"/><rect x="${x+cw*0.3}" y="${y(d.active)}" width="${cw*0.4}" height="${y(0)-y(d.active)}" rx="1.5" fill="var(--accent)"/>${d.signups?`<circle cx="${x+cw/2}" cy="${y(d.signups)-5}" r="4" fill="var(--mark)" stroke="var(--surface)" stroke-width="1.5"/>`:''}<rect x="${x}" y="${pt}" width="${cw}" height="${H-pt-pb}" fill="transparent"/></g>`;
+    if(i%5===0||i===D.length-1)g+=`<text x="${x+cw/2}" y="${H-8}" font-size="11" text-anchor="middle" fill="var(--ink3)">${lab}</text>`;});
+  $('#chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visits, active users and sign-ups per day for the last 30 days">${g}</svg>`;}
+function feed(A){$('#feedN').textContent=A.length?`latest ${A.length}`:'';
+  $('#feed').innerHTML=A.map(a=>{const d=a.detail||{};const extra=a.kind==='export'?(d.fmt||'').toUpperCase():a.kind==='share'?(d.role==='viewer'?'as viewer':'as editor'):a.kind==='cloud_save'&&d.elements?d.elements+' elements':a.kind==='visit'&&d.ref?'from '+d.ref:'';
+    return`<div class="ev"><time title="${esc(new Date(a.at).toLocaleString('en-GB'))}">${esc(ago(a.at))}</time><div><span class="t ${esc(a.kind)}">${esc(KIND[a.kind]||a.kind)}</span>${a.email?`<b>${esc(a.email)}</b>`:`<span style="color:var(--ink3)">Visitor · device ${esc((a.device||'').slice(0,6))}</span>`}${extra?` <span style="color:var(--ink3)">· ${esc(extra)}</span>`:''}</div></div>`;}).join('')||'<p class="empty">No activity yet. It appears here as soon as someone opens the app.</p>';}
+function table(){const q=$('#q').value.trim().toLowerCase();
+  const rows=USERS.filter(u=>!q||(u.email||'').toLowerCase().includes(q)||(u.name||'').toLowerCase().includes(q)).sort((a,b)=>{const A=a[sortKey],B=b[sortKey];if(A==null&&B==null)return 0;if(A==null)return 1;if(B==null)return-1;return(typeof A==='string'?A.localeCompare(B):A-B)*sortDir;});
+  $('#users tbody').innerHTML=rows.map(u=>{const recent=u.last&&Date.now()-new Date(u.last)<7*864e5;
+    return`<tr><td class="u"><b>${esc(u.name||(u.email||'').split('@')[0])}</b><small>${esc(u.email)}</small></td><td>${fmtD(u.created_at)}</td><td title="${esc(u.last?new Date(u.last).toLocaleString('en-GB'):'')}">${esc(ago(u.last))}</td>
+      <td class="n r">${u.projects}</td><td class="n r">${u.shared_with}</td><td class="n r">${u.sessions}</td><td class="n r">${u.exports}</td>
+      <td>${u.blocked?'<span class="pill off">Suspended</span>':recent?'<span class="pill on">Active</span>':'<span class="pill idle">Inactive</span>'}</td>
+      <td class="r" style="white-space:nowrap"><button class="btn sm" data-rs="${esc(u.email)}" title="Email this user a link to set a new password">Reset password</button> ${u.email===ME?'<span style="color:var(--ink3);font-size:12.5px">you</span>':`<button class="btn sm ${u.blocked?'':'danger'}" data-b="${u.id}" data-to="${!u.blocked}">${u.blocked?'Restore':'Suspend'}</button>`}</td></tr>`;}).join('')||`<tr><td colspan="9" class="empty">${USERS.length?'No user matches that search.':'No users yet.'}</td></tr>`;
+  document.querySelectorAll('#users th[data-s]').forEach(th=>{if(th.dataset.s===sortKey)th.setAttribute('aria-sort',sortDir<0?'descending':'ascending');else th.removeAttribute('aria-sort');});}
+$('#users thead').addEventListener('click',e=>{const th=e.target.closest('th[data-s]');if(!th)return;const k=th.dataset.s;if(k===sortKey)sortDir=-sortDir;else{sortKey=k;sortDir=['email'].includes(k)?1:-1;}table();});
+$('#users tbody').addEventListener('click',async e=>{const rs=e.target.closest('[data-rs]');if(rs){const em=rs.dataset.rs;if(!confirm(`Email ${em} a link to set a new password?`))return;rs.disabled=true;const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname.replace(/admin\/?$/,'app/')});alert(error?(/rate limit/i.test(error.message)?'Too many emails sent in the last hour. Try again later, or connect your own email sender in Supabase.':'Could not send: '+error.message):`Reset link sent to ${em}.`);rs.disabled=false;return;}
+  const b=e.target.closest('[data-b]');if(!b)return;const to=b.dataset.to==='true';const u=USERS.find(x=>x.id===b.dataset.b);
+  if(!confirm(to?`Suspend ${u.email}? They will be signed out of cloud projects and can't open or save them until restored.`:`Restore access for ${u.email}?`))return;
+  b.disabled=true;const {error}=await sb.rpc('ts_admin_set_blocked',{uid:u.id,b:to});if(error)alert('Could not change the account: '+error.message);load();});
+$('#q').addEventListener('input',table);$('#refresh').onclick=load;
+$('#csv').onclick=()=>{const head=['Name','Email','Joined','Last active','Projects','Shared with them','Days used','Exports','Cloud saves','Status'];
+  const rows=USERS.map(u=>[u.name||'',u.email||'',u.created_at||'',u.last||'',u.projects,u.shared_with,u.sessions,u.exports,u.cloud_saves,u.blocked?'Suspended':'Active']);
+  const csv=[head,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download='takeoff-studio-users.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);};
+const say=m=>$('#msg').textContent=/failed to fetch/i.test(m)?'Can\'t reach the sign-in service. Check your connection.':m;
+$('#inBtn').onclick=async()=>{say('Signing in…');const {error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});if(error)say(error.message==='Invalid login credentials'?'Wrong email or password.':error.message);};
+$('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#inBtn').click();});
+$('#linkBtn').onclick=async()=>{const em=$('#em').value.trim();if(!/^\S+@\S+\.\S+$/.test(em)){say('Type your email first.');return;}const {error}=await sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+location.pathname}});say(error?error.message:`Check ${em} for your sign-in link.`);};
+$('#forgotBtn').onclick=async()=>{const em=$('#em').value.trim();if(!/^\S+@\S+\.\S+$/.test(em)){say('Type your email first, then click Forgot password.');return;}const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});say(error?(/rate limit/i.test(error.message)?'Too many emails were sent in the last hour. Try again later.':error.message):`If ${em} has an account, a link to set a new password is on its way.`);};
+$('#npSave').onclick=async()=>{const a=$('#np1').value,b=$('#np2').value,m=$('#npMsg');if(a.length<6){m.textContent='Use at least 6 characters.';return;}if(a!==b){m.textContent='The two passwords are not the same.';return;}
+  const {error}=await sb.auth.updateUser({password:a});if(error){m.textContent=error.message;return;}RECOVERY=false;m.textContent='';const {data:isA}=await sb.rpc('ts_is_admin');if(isA){await load();timer=setInterval(load,60000);}else show('denied');};
+const signOut=async()=>{await sb.auth.signOut();};$('#out').onclick=signOut;$('#out2').onclick=signOut;
+sb.auth.onAuthStateChange((ev,session)=>{clearInterval(timer);const u=session?.user;if(ev==='PASSWORD_RECOVERY')RECOVERY=true;if(RECOVERY&&u){$('#npEmail').textContent=u.email;$('#who').textContent=u.email;$('#out').hidden=false;show('newpw');return;}ME=u?.email||'';$('#who').textContent=u?u.email:'';$('#out').hidden=!u;$('#deniedEmail').textContent=u?.email||'';
+  if(!u){show('login');return;}setTimeout(async()=>{const {data:isA}=await sb.rpc('ts_is_admin');if(!isA){show('denied');return;}await load();timer=setInterval(load,60000);},0);});
+})();
+</script>
+</body>
+</html>
