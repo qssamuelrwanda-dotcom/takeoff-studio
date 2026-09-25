@@ -589,7 +589,7 @@ const TYPES={
   pipe:{label:'Pipe run',key:'e',mode:'chain'},
   mh:{label:'Manhole',key:'h',mode:'point'},
   pfit:{label:'Valve / pipe fitting',key:'x',mode:'point'},
-  stair:{label:'Staircase flight',key:'i',mode:'chain'},
+  stair:{label:'Staircase',key:'i',mode:'chain'},
   ramp:{label:'Ramp',key:'j',mode:'chain'},
   rail:{label:'Balustrade / handrail',key:'y',mode:'chain'},
   cwall:{label:'Curtain wall',key:'q',mode:'chain'},
@@ -621,10 +621,13 @@ const OPT={
   vkind:{lift:'Lift shaft',stair:'Stair opening',riser:'Service riser / duct',atrium:'Atrium / double-height void'},
   rule:{nrm:'Deduct only if > 1 m² (NRM2)',always:'Always deduct'},
   vrooms:{yes:'Yes, deduct floor & ceiling',no:'No'},
-  stmat:{rc:'In-situ reinforced concrete',pc:'Precast concrete',steel:'Structural steel',timber:'Timber'},
+  stype:{straight:'Straight flight',L:'L-shaped · quarter landing',LW:'L-shaped · winders',U:'U-shaped / dog-leg · half landing',U3:'Three flights · open well (two quarter landings)',spiral:'Spiral / helical'},
+  turn:{right:'Turns right going up',left:'Turns left going up'},
+  stmat:{rc:'In-situ reinforced concrete',pc:'Precast concrete',steel:'Steel · chequer-plate treads',steelpan:'Steel · concrete-filled pan treads',timber:'Timber',ext:'External steps · concrete on hardcore'},
+  whr:{no:'No',yes:'Yes, on the other sides'},
   stfin:{terr:'Terrazzo',cer:'Ceramic tiles',por:'Porcelain tiles',gran:'Granite',tim:'Hardwood timber',none:'No finish (fair-faced)'},
   nos:{yes:'Anti-slip nosings',no:'No nosings'},
-  rails:{'0':'None','1':'One side','2':'Both sides'},
+  rails:{'0':'None','L':'Left side (going up)','R':'Right side (going up)','2':'Both sides','1':'Outer side'},
   bal:{steel:'Mild steel balustrade, painted',ss:'Stainless steel & glass balustrade',timber:'Hardwood timber balustrade',hr:'Wall-mounted handrail only'},
   sof:{yes:'Plaster & paint',no:'Fair-faced, no finish'},
   rpmat:{grade:'Concrete on grade (on fill)',susp:'Suspended reinforced concrete'},
@@ -654,7 +657,7 @@ const FIELDS={
   pipe:[['sys','System','sel'],['mat','Material','sel'],['dia','Diameter','sel'],['vert','Extra vertical length','m']],
   mh:[['mhs','Internal size','sel'],['dep','Depth to invert','m']],
   pfit:[['pk','Valve / fitting','sel'],['sys','System','sel'],['dia','Diameter','sel']],
-  stair:[['stmat','Construction','sel'],['w','Width','m'],['h','Rise (0 = level height)','m'],['rmax','Maximum riser height','m'],['lt','Top landing length','m'],['t','Waist thickness','m'],['ra','Reinforcement allowance','kg/m³'],['stfin','Tread & riser finish','sel'],['nos','Nosings','sel'],['sof','Soffit finish','sel'],['rails','Balustrade','sel'],['bal','Balustrade type','sel']],
+  stair:[['stype','Stair type','sel'],['turn','Turn','sel'],['stmat','Construction','sel'],['w','Width','m'],['h','Rise (0 = level height)','m'],['rmax','Maximum riser height','m'],['g','Going (straight: 0 = fit to drawn length)','m'],['split','Risers in first flight (0 = auto)','nr'],['ld','Half-landing depth (0 = stair width)','m'],['gap','Well gap between flights','m'],['lt','Top landing length','m'],['dia','Outer diameter','m'],['rin','Inner radius (column / open well)','m'],['sa','Angle per tread','°'],['t','Waist thickness','m'],['ra','Reinforcement allowance','kg/m³'],['stfin','Tread & riser finish','sel'],['nos','Nosings','sel'],['sof','Soffit finish','sel'],['rails','Balustrade','sel'],['bal','Balustrade type','sel'],['whr','Wall handrail','sel']],
   ramp:[['rpmat','Construction','sel'],['w','Width','m'],['h','Rise','m'],['t','Slab thickness','m'],['rpfin','Surface finish','sel'],['rails','Balustrade','sel'],['bal','Balustrade type','sel']],
   rail:[['bal','Type','sel'],['h','Height','m']],
   cwall:[['cwsys','System','sel'],['glz','Glazing','sel'],['h','Height (0 = level height)','m'],['mv','Mullion spacing','m'],['tv','Transom spacing (0 = none)','m'],['sp','Opaque spandrel height at slab','m'],['ov','Opening vents','nr']],
@@ -678,7 +681,7 @@ const TD={
   pipe:{sys:'cw',mat:'ppr',dia:'20',vert:0},
   mh:{mhs:'600x450',dep:0.9},
   pfit:{pk:'gate',sys:'cw',dia:'20'},
-  stair:{stmat:'rc',w:1.2,h:0,rmax:0.175,lt:1.2,t:0.15,ra:110,stfin:'terr',nos:'yes',sof:'yes',rails:'1',bal:'steel'},
+  stair:{stype:'straight',turn:'right',stmat:'rc',w:1.2,h:0,rmax:0.175,g:0.275,split:0,ld:0,gap:0.1,lt:0,dia:2,rin:0.1,sa:26,t:0.15,ra:110,stfin:'terr',nos:'yes',sof:'yes',rails:'R',bal:'steel',whr:'no'},
   ramp:{rpmat:'grade',w:1.5,h:0.45,t:0.15,rpfin:'broom',rails:'2',bal:'steel'},
   rail:{bal:'steel',h:1.1},
   cwall:{cwsys:'stick',glz:'dgu',h:0,mv:1.5,tv:1.5,sp:0,ov:0},
@@ -794,9 +797,57 @@ function padGeo(p){const c=p.ps||'rect';
     const slope=2*((w+w2)/2)*Math.hypot((l-l2)/2,h)+2*((l+l2)/2)*Math.hypot((w-w2)/2,h);return{c,Ab,V:Ab*d+Vp,H:d+h,hw:w/2,hl:l/2,w2,l2,slope};}
   return{c,Ab,V:Ab*d,H:d,hw:w/2,hl:l/2};}
 const lvH=e=>+(lvl(e.level)?.h)||3;
-function stairGeo(e){const p=e.p,L=elLen(e),H=+p.h>0?+p.h:lvH(e),lt=Math.min(Math.max(0,+p.lt||0),L*0.8),Lf=Math.max(0.05,L-lt);
-  const n=Math.max(2,Math.ceil(H/Math.max(0.12,+p.rmax||0.175)-1e-9)),r=H/n,nt=n-1,g=Lf/nt,sl=Math.hypot(Lf,H);
-  return{L,H,lt,Lf,n,r,nt,g,sl,ang:Math.atan2(H,Lf),w:+p.w,t:+p.t,rule:2*r+g};}
+const railN=p=>p.rails==='2'?2:(!p.rails||p.rails==='0')?0:1;
+function stairModel(e){
+  const p=e.p,st=p.stype||'straight',H=+p.h>0?+p.h:lvH(e),w=Math.max(0.3,+p.w||1.2),hw=w/2;
+  const n=Math.max(2,Math.ceil(H/Math.max(0.12,+p.rmax||0.175)-1e-9)),r=H/n;
+  const f=frameAt(e,0),sg=st!=='straight'&&p.turn==='left'?-1:1,O=e.pts[0],ux=f.u[0],uy=f.u[1],vx=f.n[0]*sg,vy=f.n[1]*sg;
+  const W=([x,y])=>[O[0]+ux*x+vx*y,O[1]+uy*x+vy*y],Wv=([x,y])=>[ux*x+vx*y,uy*x+vy*y];
+  const M={H,n,r,w,st,sg,W,Wv,treads:[],lands:[],flights:[],IN:[],OUT:[],risers:[],path:[],warn:[]};
+  let g=+p.g||0;const lt=st==='straight'?Math.max(0,+p.lt||0):0;
+  if(st==='straight'&&!(g>0))g=Math.max(0.05,elLen(e)-lt)/(n-1);
+  if(!(g>0))g=0.275;M.g=g;
+  const A=(a,b)=>[a[0]+b[0],a[1]+b[1]],K=(a,k)=>[a[0]*k,a[1]*k];let z=0;
+  const cen=pl=>[pl.reduce((s2,q)=>s2+q[0],0)/pl.length,pl.reduce((s2,q)=>s2+q[1],0)/pl.length];
+  const flight=(S,d,c,end=true)=>{const q=[-d[1],d[0]],fl={S,d,c,z0:z,run:c*g,end};
+    for(let k=0;k<c;k++){const a=A(S,K(d,k*g)),b=A(S,K(d,(k+1)*g));z+=r;const pl=[A(a,K(q,-hw)),A(b,K(q,-hw)),A(b,K(q,hw)),A(a,K(q,hw))];
+      M.treads.push({poly:pl,z,kind:'f',fl:M.flights.length});M.risers.push(w);M.IN.push([...A(a,K(q,hw)),z]);M.OUT.push([...A(a,K(q,-hw)),z]);M.path.push(cen(pl));}
+    const E=A(S,K(d,c*g));if(end){z+=r;M.risers.push(w);M.IN.push([...A(E,K(q,hw)),z]);M.OUT.push([...A(E,K(q,-hw)),z]);}
+    fl.rise=z-fl.z0;fl.sl=Math.hypot(fl.run,fl.rise);fl.E=E;M.flights.push(fl);return E;};
+  const land=(pl,outPts,inPts=[])=>{M.lands.push({poly:pl,z});outPts.forEach(q=>M.OUT.push([...q,z]));inPts.forEach(q=>M.IN.push([...q,z]));M.path.push(cen(pl));};
+  const splitN=(parts)=>{const cs=[];let left=n;const want=Math.round(+p.split||0);for(let i=0;i<parts;i++){let k=i===0&&want>=2?want:Math.round(left/(parts-i));k=Math.max(2,Math.min(k,left-2*(parts-i-1)));cs.push(k);left-=k;}if(left)cs[parts-1]+=left;return cs;};
+  if(st==='spiral'){const R=Math.max(0.5,(+p.dia||2)/2),ri=Math.min(R-0.3,Math.max(0.03,+p.rin||0.1)),da=Math.max(5,Math.min(60,+p.sa||22.5))*Math.PI/180,nt=n-1;M.R=R;M.ri=ri;M.w=R-ri;
+    const P2=(rad,a)=>[rad*Math.cos(a),rad*Math.sin(a)];
+    for(let k=0;k<nt;k++){const a0=k*da,a1=(k+1)*da,pl=[];for(let j=0;j<=4;j++)pl.push(P2(R,a0+(a1-a0)*j/4));for(let j=4;j>=0;j--)pl.push(P2(ri,a0+(a1-a0)*j/4));z+=r;
+      M.treads.push({poly:pl,z,kind:'s'});M.risers.push(R-ri);M.IN.push([...P2(ri,a0),z]);M.OUT.push([...P2(R,a0),z]);M.path.push(P2((R+ri)/2,(a0+a1)/2));}
+    z+=r;M.risers.push(R-ri);M.IN.push([...P2(ri,nt*da),z]);M.OUT.push([...P2(R,nt*da),z]);
+    M.g=(R+ri)/2*da;M.turnDeg=nt*da*180/Math.PI;}
+  else if(st==='straight'){const E=flight([0,0],[1,0],n-1);if(lt>0)land([[E[0],-hw],[E[0]+lt,-hw],[E[0]+lt,hw],[E[0],hw]],[[E[0]+lt,-hw]],[[E[0]+lt,hw]]);}
+  else if(st==='L'){const [n1,n2]=splitN(2);const E=flight([0,0],[1,0],n1-1),L1=E[0];land([[L1,-hw],[L1+w,-hw],[L1+w,hw],[L1,hw]],[[L1+w,-hw]]);flight([L1+hw,hw],[0,1],n2-1);}
+  else if(st==='LW'){const tot=n-4,a=Math.max(0,Math.ceil(tot/2)),b=Math.max(0,tot-a);const E=flight([0,0],[1,0],a,false),L1=E[0],C=[L1,hw],P0=[L1,-hw],Q1=[L1+w,-hw],P3=[L1+w,hw],t60=Math.tan(Math.PI/6);
+    const Aa=[L1+w*t60,-hw],Bb=[L1+w,hw-w*t60];
+    [[C,P0,Aa],[C,Aa,Q1,Bb],[C,Bb,P3]].forEach((pl,i)=>{z+=r;M.treads.push({poly:pl,z,kind:'w'});M.risers.push(d2(pl[0],pl[1]));M.IN.push([...C,z]);M.OUT.push([...pl[1],z]);if(i===1)M.OUT.push([...Q1,z]);M.path.push(cen(pl));});
+    flight([L1+hw,hw],[0,1],b);}
+  else if(st==='U'){const [n1,n2]=splitN(2),gap=Math.max(0,+p.gap||0),ld=Math.max(w*0.8,+p.ld>0?+p.ld:w);const E=flight([0,0],[1,0],n1-1),L1=E[0],Y=hw+gap+w;
+    land([[L1,-hw],[L1+ld,-hw],[L1+ld,Y],[L1,Y]],[[L1+ld,-hw],[L1+ld,Y]]);flight([L1,hw+gap+hw],[-1,0],n2-1);M.gap=gap;}
+  else if(st==='U3'){const [n1,n2,n3]=splitN(3);const E=flight([0,0],[1,0],n1-1),L1=E[0];land([[L1,-hw],[L1+w,-hw],[L1+w,hw],[L1,hw]],[[L1+w,-hw]]);
+    const E2=flight([L1+hw,hw],[0,1],n2-1),Y2=E2[1];land([[L1,Y2],[L1+w,Y2],[L1+w,Y2+w],[L1,Y2+w]],[[L1+w,Y2+w]]);flight([L1,Y2+hw],[-1,0],n3-1);}
+  const fr=M.flights.map(fl=>fl.c+(fl.end?1:0));if(fr.some(k=>k>16))M.warn.push('more than 16 risers in one flight: add a landing');
+  if(st!=='spiral'&&g<0.25)M.warn.push('going under 250 mm');if(st==='spiral'&&M.g<0.22)M.warn.push(`going at the walkline ${Math.round(M.g*1000)} mm: widen the angle per tread or the diameter`);
+  if(r>0.19)M.warn.push('riser over 190 mm');const rule=2*r+M.g;if(st!=='spiral'&&(rule<0.55||rule>0.7))M.warn.push(`2R + G = ${Math.round(rule*1000)} mm (aim 550–700)`);
+  M.planW=M.treads.map(t=>t.poly.map(W)).concat(M.lands.map(l=>l.poly.map(W)));
+  return M;}
+function stairQ(e){const M=stairModel(e),p=e.p,t=+p.t||0.15,r=M.r;
+  const treadA=M.treads.reduce((s2,x)=>s2+area(x.poly),0),landA=M.lands.reduce((s2,x)=>s2+area(x.poly),0),odd=M.treads.filter(x=>x.kind!=='f').reduce((s2,x)=>s2+area(x.poly),0);
+  const len3=pts=>{let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1],pts[i][2]-pts[i-1][2]);return L;};
+  const inR=M.sg===1,rs=p.rails||'0',sides={IN:rs==='2'||(rs==='R'&&inR)||(rs==='L'&&!inR),OUT:rs==='2'||rs==='1'||(rs==='R'&&!inR)||(rs==='L'&&inR)};
+  const railL=(sides.IN?len3(M.IN):0)+(sides.OUT?len3(M.OUT):0),wallL=p.whr==='yes'?(!sides.IN?len3(M.IN):0)+(!sides.OUT?len3(M.OUT):0):0,nOpen=(sides.IN?1:0)+(sides.OUT?1:0);
+  const flSl=M.flights.reduce((s2,fl)=>s2+fl.sl,0),w=M.w;
+  return{M,treadA,landA,odd,railL,wallL,sides,
+    vol:M.flights.reduce((s2,fl)=>s2+w*t*fl.sl+fl.c*M.g*r/2*w,0)+landA*t+odd*(t+r/2),
+    soffit:w*flSl+landA+odd*1.15,riserL:M.risers.reduce((a,b)=>a+b,0),nosL:M.risers.slice(0,M.treads.length).reduce((a,b)=>a+b,0),
+    strings:nOpen*M.flights.reduce((s2,fl)=>s2+fl.run*fl.rise/2+t*fl.sl,0),planA:treadA+landA,
+    solid:M.treads.reduce((s2,x)=>s2+area(x.poly)*x.z,0)+landA*M.H};}
 function rampGeo(e){const L=elLen(e),H=+e.p.h||0;return{L,H,sl:Math.hypot(L,H),ang:Math.atan2(H,L||1),w:+e.p.w,t:+e.p.t,ratio:H>0?L/H:Infinity};}
 const cwH=e=>+e.p.h>0?+e.p.h:lvH(e);
 const midPt=e=>{const A=arcOf(e);return A?A.M.slice():[(e.pts[0][0]+e.pts[1][0])/2,(e.pts[0][1]+e.pts[1][1])/2];};
@@ -978,27 +1029,36 @@ function linesFor(e){
     const BALR={steel:150,ss:360,timber:130,hr:55};
     const bal=(len,o)=>{if(+p.rails===0&&e.type!=='rail')return;const k=p.bal||'steel',hr=k==='hr';add('2.4',o,'bal_'+k+(e.type==='rail'?'f':''),hr?`Handrail Ø50 mm on wall brackets at 1.0 m centres${e.type==='rail'?'':', to stairs and ramps (measured on slope)'}`:`${OPT.bal[k]}, ${e.type==='rail'?fmtN(+p.h,2)+' m high, to balconies, landings and voids':'1.1 m high, with handrail, to stairs and ramps (measured on slope)'}, including fixings`,'m',len,BALR[k]||150);};
     if(e.type==='rail')bal(elLen(e),60);
-    else if(e.type==='stair'){const G=stairGeo(e),W=mm(G.w),n=G.n,rs=+p.rails||0;
-      if(p.stmat==='rc'){const v=G.w*(G.t*G.sl+G.nt*G.g*G.r/2+G.t*G.lt);
-        add('2.4',10,'stc','Reinforced in-situ concrete C30/37 in stair flights and landings','m³',v,215);
-        add('2.4',11,'stfs','Formwork to soffits of stair flights (sloping) and landings','m²',G.w*(G.sl+G.lt),58);
-        add('2.4',12,'stfr','Formwork to riser faces of stairs, 150–200 mm high','m',n*G.w,22);
-        add('2.4',13,'stfo','Formwork to open sides of stair flights and landings (strings)','m²',rs*(G.Lf*G.H/2+G.t*(G.sl+G.lt)),48);
+    else if(e.type==='stair'){const Q=stairQ(e),M=Q.M,W=mm(M.w),n=M.n,mt=p.stmat||'rc',nf=M.flights.length;
+      if(mt==='rc'){const v=Q.vol;
+        add('2.4',10,'stc','Reinforced in-situ concrete C30/37 in stair flights, winders and landings','m³',v,215);
+        add('2.4',11,'stfs','Formwork to soffits of stair flights (sloping), winders and landings','m²',Q.soffit,58);
+        add('2.4',12,'stfr','Formwork to riser faces of stairs, 150–200 mm high','m',Q.riserL,22);
+        add('2.4',13,'stfo','Formwork to open sides of stair flights and landings (strings)','m²',Q.strings,48);
+        if(M.st==='spiral'||M.st==='LW')add('2.4',15,'stfw_'+M.st,M.st==='spiral'?'Extra over formwork for helical / spiral stair soffits and strings':'Extra over formwork for winder treads','m²',M.st==='spiral'?Q.soffit:Q.odd,35);
         add('2.4',14,`ra_stairs_${+p.ra||0}`,`High-yield bar reinforcement B500B to stairs (allowance ${+p.ra||0} kg/m³)`,'t',v*(+p.ra||0)/1000,1900);
-        if(p.sof!=='no')add('2.4',40,'stsof','Plaster and emulsion paint to soffits of stair flights and landings','m²',G.w*(G.sl+G.lt),24);}
-      else{const R={pc:[420,95,'Precast concrete stair flight','including bearings, dowels and grouting',120,'Precast concrete landing slab, including bearings'],steel:[600,160,'Structural steel stair flight, steel stringers and chequer-plate treads, primed and painted','including fixings',260,'Steel landing, chequer plate on steel framing, primed and painted'],timber:[400,140,'Hardwood timber staircase flight, closed strings','including fixings',180,'Hardwood timber landing on timber framing']}[p.stmat]||[420,95,'Stair flight','',120,'Landing'];
-        add('2.4',10,`st${p.stmat}_${n}_${W}`,`${R[2]}, ${W} mm wide, ${n} risers of ${mm(G.r)} mm, goings ${mm(G.g)} mm, ${R[3]}`,'nr',1,Math.round(R[0]+n*G.w*R[1]));
-        add('2.4',11,`st${p.stmat}l`,R[5],'m²',G.w*G.lt,R[4]);}
-      if((p.stmat==='rc'||p.stmat==='pc')&&p.stfin!=='none'){const FR={terr:110,cer:68,por:78,gran:140,tim:98}[p.stfin]||80;
-        add('2.4',30,'stfin_'+p.stfin,`${OPT.stfin[p.stfin]} to stair treads and landings`,'m²',G.w*(G.nt*G.g+G.lt),FR);
-        add('2.4',31,'strfin_'+p.stfin,`${OPT.stfin[p.stfin]} to stair risers, 150–200 mm high`,'m',n*G.w,Math.round(FR*0.3));
-        if(p.nos!=='no')add('2.4',32,'stnos','Aluminium anti-slip stair nosings, screwed and plugged','m',G.nt*G.w,24);}
-      bal(rs*(G.sl+G.lt),50);}
+        if(p.sof!=='no')add('2.4',40,'stsof','Plaster and emulsion paint to soffits of stair flights and landings','m²',Q.soffit,24);}
+      else if(mt==='ext'){add('2.4',10,'hc150s','Hardcore filling under external steps, compacted in layers','m²',Q.planA,12);
+        add('2.4',11,'stext','In-situ concrete C25/30 in external steps and landings on hardcore, including A142 mesh','m³',Q.solid,185);
+        add('2.4',12,'stfr','Formwork to riser faces of stairs, 150–200 mm high','m',Q.riserL,22);
+        add('2.4',13,'stfo','Formwork to open sides of stair flights and landings (strings)','m²',Q.strings,48);}
+      else if(M.st==='spiral'){const R={steel:[2400,160,'Spiral staircase, steel, with centre column and chequer-plate treads, primed and painted'],steelpan:[2800,180,'Spiral staircase, steel, with centre column and concrete-filled pan treads'],pc:[3200,190,'Precast concrete spiral staircase units on steel centre column'],timber:[3000,170,'Spiral staircase, hardwood timber treads on steel centre column']}[mt]||[2400,160,'Spiral staircase'];
+        add('2.4',10,`stsp_${mt}_${Math.round(M.R*200)}_${n}`,`${R[2]}, Ø${mm(2*M.R)} mm, ${n} risers, rise ${fmtN(M.H,2)} m, including fixings`,'nr',1,Math.round(R[0]+n*R[1]*M.R));}
+      else{const R={pc:[420,95,'Precast concrete stair flight','including bearings, dowels and grouting',120,'Precast concrete landing slab, including bearings'],steel:[600,160,'Structural steel stair flight, steel stringers and chequer-plate treads, primed and painted','including fixings',260,'Steel landing, chequer plate on steel framing, primed and painted'],steelpan:[650,170,'Steel stair flight, stringers with concrete-filled pan treads, primed and painted','including fixings',280,'Steel landing with concrete-filled pan on steel framing'],timber:[400,140,'Hardwood timber staircase flight, closed strings','including fixings',180,'Hardwood timber landing on timber framing']}[mt]||[420,95,'Stair flight','',120,'Landing'];
+        M.flights.forEach(fl=>{const k=fl.c+(fl.end?1:0);if(k<1)return;add('2.4',10,`st${mt}_${k}_${W}`,`${R[2]}, ${W} mm wide, ${k} risers of ${mm(M.r)} mm, goings ${mm(M.g)} mm, ${R[3]}`,'nr',1,Math.round(R[0]+k*M.w*R[1]));});
+        if(M.st==='LW')add('2.4',10.5,`stw${mt}`,`Extra over ${mt==='pc'?'precast':mt==='timber'?'timber':'steel'} stair for kite winder treads at quarter turn`,'nr',3,mt==='timber'?160:220);
+        add('2.4',11,`st${mt}l`,R[5],'m²',Q.landA,R[4]);}
+      if(['rc','pc','ext','steelpan'].includes(mt)&&p.stfin!=='none'&&!(M.st==='spiral'&&mt!=='rc')){const FR={terr:110,cer:68,por:78,gran:140,tim:98}[p.stfin]||80;
+        add('2.4',30,'stfin_'+p.stfin,`${OPT.stfin[p.stfin]} to stair treads, winders and landings`,'m²',Q.treadA+Q.landA,FR);
+        add('2.4',31,'strfin_'+p.stfin,`${OPT.stfin[p.stfin]} to stair risers, 150–200 mm high`,'m',Q.riserL,Math.round(FR*0.3));
+        if(p.nos!=='no')add('2.4',32,'stnos','Aluminium anti-slip stair nosings, screwed and plugged','m',Q.nosL,24);}
+      if(!(M.st==='spiral'&&mt!=='rc'))bal(Q.railL,50);
+      if(Q.wallL>0)add('2.4',55,'bal_hrw','Handrail Ø50 mm on wall brackets at 1.0 m centres, to stairs (measured on slope)','m',Q.wallL,55);}
     else{const G=rampGeo(e),A=G.w*G.sl;
       if(p.rpmat==='susp'){const v=A*G.t;add('2.4',20,'rpc','Reinforced in-situ concrete C30/37 in suspended ramps','m³',v,205);add('2.4',21,'rpfs','Formwork to soffits of sloping ramp slabs','m²',A,55);add('2.4',22,'rpfe','Formwork to edges of ramp slabs','m',2*G.sl,18);add('2.4',23,'ra_ramps_100','High-yield bar reinforcement B500B to ramps (allowance 100 kg/m³)','t',v*0.1,1900);}
       else{add('2.4',20,'hc150','Hardcore bed 150 mm thick under ramps, compacted in layers','m²',A,9);add('2.4',21,'rpgc','In-situ concrete C25/30 in ramps on grade','m³',A*G.t,175);add('2.4',22,'mesh','A142 steel fabric reinforcement to ramps, 200 mm laps','m²',A,7);add('2.4',23,'rpfe','Formwork to edges of ramp slabs','m',2*G.sl,16);}
       const RF={broom:['rpfbr','Broom finish to concrete ramp surface',4],tiles:['rpft','Anti-slip ceramic tiles R11 on adhesive to ramps',72],paving:['rpfp','Concrete paving blocks 80 mm on sand bed to ramps',38]}[p.rpfin];if(RF)add('2.4',30,RF[0],RF[1],'m²',A,RF[2]);
-      bal((+p.rails||0)*G.sl,50);}
+      bal((railN(p))*G.sl,50);}
   }else if(e.type==='cwall'){
     const L=elLen(e),H=cwH(e),A=L*H,As=L*Math.min(Math.max(0,+p.sp||0),H);
     const base={stick:520,unit:720,ssg:820}[p.cwsys]||520,ex={dgu:0,sol:40,tgu:90}[p.glz]||0;
@@ -1264,7 +1324,8 @@ function wireSets(el,obj,commit){
 function fieldOn(t,k,o){
   if(t==='wall'&&k==='rh')return o.kind==='external'&&o.material!=='drywall';if(t==='wall'&&k==='fh')return P?.finMode==='walls'||o.material==='drywall'||(+o.fh>0);
   if(t==='room'&&k==='wt')return o.wall==='tilesPart';
-  if(t==='stair'){if(k==='t'||k==='ra'||k==='sof')return o.stmat==='rc';if(k==='stfin'||k==='nos')return o.stmat==='rc'||o.stmat==='pc';if(k==='bal')return o.rails!=='0';}
+  if(t==='stair'){const y=o.stype||'straight';if(k==='turn')return y!=='straight';if(k==='split')return['L','LW','U','U3'].includes(y);if(k==='ld'||k==='gap')return y==='U'||y==='U3'&&k==='gap';if(k==='lt'||k==='g')return y!=='spiral'&&(k==='g'||y==='straight');
+    if(k==='dia'||k==='rin'||k==='sa')return y==='spiral';if(k==='t'||k==='ra'||k==='sof')return o.stmat==='rc';if(k==='stfin'||k==='nos')return['rc','pc','ext','steelpan'].includes(o.stmat);if(k==='bal')return o.rails!=='0';}
   if(t==='ramp'&&k==='bal')return o.rails!=='0';
   if(t==='column'){const c=o.cs||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='d')return c!=='circle';if(k==='t'||k==='rot')return c==='L';}
   if(t==='strip'){const c=o.ss||'rect';if(k==='w2')return c!=='rect';if(k==='d2')return c==='stepped';}
@@ -1308,7 +1369,7 @@ function onField(t,obj,k){if((t==='pipe'||t==='pfit')&&k==='sys'){const d=SYS[ob
 function fieldHTML(t,obj,prefix){
   return `<div class="fields">`+FIELDS[t].filter(([k])=>fieldOn(t,k,obj)).map(([k,label,kind])=>{
     const id=`${prefix}-${k}`;
-    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','sys','mat','mhs','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
+    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','sys','mat','mhs','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh','stype','turn','whr','rails'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
     if(kind==='txt')return`<div class="field wide"><label for="${id}">${label}</label><input id="${id}" data-k="${k}" value="${esc(obj[k])}"></div>`;
     return`<div class="field"><label for="${id}">${label}</label><div class="unitwrap"><input id="${id}" type="number" step="${kind==='°'?1:0.01}" min="0" data-k="${k}" data-num value="${obj[k]}"><span>${kind}</span></div></div>`;
   }).join('')+`</div>`;
@@ -1332,8 +1393,7 @@ function elemDims0(e){const p=e.p;switch(e.type){
   case'void':{const s=hostSlab(e);const a=area(e.pts);return`${fmtN(a)} m² · ${OPT.vkind[p.vkind]}`+(!s?' · not over a slab':voidCounts(e)?` · deducts ${fmtN(a*s.p.t,3)} m³ concrete`:' · ≤ 1 m², not deducted');}
   case'roof':return`${fmtN(area(e.pts))} m² on plan · ${OPT.type[p.type]}`;
   case'door':case'window':return`${mm(p.w)} × ${mm(p.h)} mm`;
-  case'stair':{const g=stairGeo(e);const warn=[];if(g.g<0.25)warn.push('going under 250 mm: lengthen the flight or add a landing');if(g.r>0.19)warn.push('riser over 190 mm');if(g.rule<0.55||g.rule>0.7)warn.push(`2R + G = ${mm(g.rule)} mm (aim 550–700)`);
-    return`${OPT.stmat[p.stmat]} · ${mm(g.w)} mm wide · ${g.n} risers × ${mm(g.r)} mm, ${g.nt} goings × ${mm(g.g)} mm · rise ${fmtN(g.H)} m${g.lt?` · top landing ${fmtN(g.lt)} m`:''}${warn.length?' · ⚠ '+warn.join('; '):''}`;}
+  case'stair':{const M=stairModel(e),fr=M.flights.map(fl=>fl.c+(fl.end?1:0));return`${OPT.stype[M.st]||'Straight'} · ${OPT.stmat[p.stmat]} · ${mm(M.w)} mm wide · ${M.n} risers × ${mm(M.r)} mm · going ${mm(M.g)} mm${M.st==='spiral'?` at walkline · Ø${mm(2*M.R)} mm, turns ${Math.round(M.turnDeg)}°`:''}${fr.length>1?' · flights of '+fr.join(' + ')+' risers'+(M.st==='LW'?' + 3 winders':''):''} · rise ${fmtN(M.H)} m${M.warn.length?' · ⚠ '+M.warn.join('; '):''}`;}
   case'ramp':{const g=rampGeo(e);return`${fmtN(g.L)} m long · ${mm(g.w)} mm wide · rise ${fmtN(g.H)} m${g.H>0?` · gradient 1:${fmtN(g.ratio,1)}`:''}${g.H>0&&g.ratio<12?' · ⚠ steeper than 1:12':''} · ${OPT.rpmat[p.rpmat]}`;}
   case'rail':return`${fmtN(elLen(e))} m · ${fmtN(+p.h)} m high · ${OPT.bal[p.bal]}`;
   case'cwall':{const L=elLen(e),H=cwH(e),nm=Math.max(1,Math.round(L/Math.max(0.3,+p.mv||1.5)));return`${fmtN(L)} × ${fmtN(H)} m = ${fmtN(L*H)} m² · ${nm} bay${nm===1?'':'s'} of ${fmtN(L/nm)} m · ${OPT.cwsys[p.cwsys]} · ${OPT.glz[p.glz]}`;}
@@ -1377,7 +1437,7 @@ function renderProps(){
   if(TYPES[t]){
     const m=TYPES[t].mode;
     el.innerHTML=`<h3>New ${TYPES[t].label.toLowerCase()} <span class="sub">settings for next ${m==='chain'?'segments':'placement'}</span></h3>
-      ${(m==='chain'||m==='poly')?`<div style="margin-bottom:10px;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap"><span class="hint" style="margin:0">Draw as</span><span class="seg"><button data-shape="line" aria-pressed="${S.shape==='line'}">${m==='chain'?'Polyline':'Polygon'}</button><button data-shape="rect" aria-pressed="${S.shape==='rect'}">Rectangle</button>${ARCT.includes(t)?`<button data-shape="arc" aria-pressed="${S.shape==='arc'}">Arc</button>`:''}${t==='room'?`<button data-shape="pick" aria-pressed="${S.shape==='pick'}">Inside walls</button>`:''}</span></div>`:''}
+      ${(m==='chain'||m==='poly')&&t!=='stair'?`<div style="margin-bottom:10px;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap"><span class="hint" style="margin:0">Draw as</span><span class="seg"><button data-shape="line" aria-pressed="${S.shape==='line'}">${m==='chain'?'Polyline':'Polygon'}</button><button data-shape="rect" aria-pressed="${S.shape==='rect'}">Rectangle</button>${ARCT.includes(t)?`<button data-shape="arc" aria-pressed="${S.shape==='arc'}">Arc</button>`:''}${t==='room'?`<button data-shape="pick" aria-pressed="${S.shape==='pick'}">Inside walls</button>`:''}</span></div>`:''}
       ${t==='room'?finModeHTML('finm2'):''}${t==='pipe'||t==='pfit'?pipeFitHTML():''}
       ${fieldHTML(t,TD[t],'td')}${rebarHTML(t,TD[t],'td')}
       <p class="hint">${toolHelp(t)}</p>
@@ -1400,7 +1460,7 @@ function renderProps(){
   el.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>{const k=b.dataset.eye;if(S.hideT.has(k))S.hideT.delete(k);else S.hideT.add(k);visChanged();});
   el.querySelector('#visAll')?.addEventListener('click',showAll);el.querySelector('#visCol')?.addEventListener('click',()=>{S.set='colors';setView('settings');});
 }
-function toolHelp(t){const m=TYPES[t]?.mode;if(t==='void')return'Draw the opening over a slab (lift shaft, stair, riser). Its area comes off the slab concrete, formwork, mesh and rebar, and off the room finishes below it. Edge formwork is measured around it. '+(S.shape==='rect'?'Click two opposite corners.':'Click each corner, then Enter to close.');
+function toolHelp(t){const m=TYPES[t]?.mode;if(t==='stair')return'Click the foot of the stair (centre of the first riser), then click in the direction it climbs. Pick the stair type below: straight, L with a landing or winders, U / dog-leg, open well or spiral. For a spiral, the first click is the centre. Risers come from the level height, and the going and flights are worked out for you.';if(t==='void')return'Draw the opening over a slab (lift shaft, stair, riser). Its area comes off the slab concrete, formwork, mesh and rebar, and off the room finishes below it. Edge formwork is measured around it. '+(S.shape==='rect'?'Click two opposite corners.':'Click each corner, then Enter to close.');
   if(m==='chain'&&S.shape==='arc')return'Click the start of the arc, then its end, then any point the curve passes through. Or after the end point, type a radius in metres and press <kbd>Enter</kbd> (the curve bulges towards the cursor). Arcs chain on from the last end. Any straight wall can also be bent later: select it and drag the round handle in its middle.';
   if(m==='chain')return S.shape==='rect'?'Click two opposite corners to draw four segments.':'Click to start, click each next point. Type a length in metres and press <kbd>Enter</kbd> to place a point along the cursor direction. <kbd>Esc</kbd> or right-click to stop. Hold <kbd>Shift</kbd> for ortho.';
   if(t==='room'&&S.shape==='pick')return'Click anywhere inside a space enclosed by walls. The room outline is traced along the wall faces, with doors and windows on its perimeter found automatically.';
@@ -1555,7 +1615,14 @@ function drawPlanNow(){
       if(pg.c==='circle'){const [sx,sy]=w2s([x,y]);ctx.beginPath();ctx.arc(sx,sy,e.p.dia/2*z,0,Math.PI*2);ctx.stroke();}
       else{const o=R4(+e.p.w,+e.p.l);poly(o);ctx.stroke();if(pg.w2){const iN=R4(pg.w2,pg.l2);poly(iN);ctx.setLineDash([3,3]);ctx.stroke();if(pg.c==='sloped'){ctx.setLineDash([]);ctx.lineWidth=0.8;ctx.beginPath();for(let k=0;k<4;k++){ctx.moveTo(...w2s(o[k]));ctx.lineTo(...w2s(iN[k]));}ctx.stroke();}}}
       ctx.setLineDash([]);}
-    else if(ty==='stair'||ty==='ramp'){const C=colE(e),L=elLen(e);if(L<1e-3)continue;const st=ty==='stair',G=st?stairGeo(e):rampGeo(e),f=frameAt(e,0),[ux,uy]=f.u,[nx,ny]=f.n,a=e.pts[0],hw=G.w/2,at=(s2,o2)=>w2s([a[0]+ux*s2+nx*o2,a[1]+uy*s2+ny*o2]);
+    else if(ty==='stair'){const C=colE(e),M=stairModel(e);const col=sel?TH.mark:C;
+      for(const l of M.lands){poly(l.poly.map(M.W));ctx.fillStyle=hatch(C,0.16,6);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=sel?2:1.2;ctx.stroke();}
+      for(const t of M.treads){poly(t.poly.map(M.W));ctx.globalAlpha=0.5;ctx.fillStyle=TH.paper;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=col;ctx.lineWidth=sel?1.6:0.9;ctx.stroke();}
+      if(M.st==='spiral'){const [cx,cy]=w2s(e.pts[0]);ctx.beginPath();ctx.arc(cx,cy,Math.max(2,M.ri*z),0,Math.PI*2);ctx.fillStyle=col;ctx.fill();}
+      const pw=M.path.map(M.W).map(w2s);if(pw.length>1){ctx.beginPath();ctx.moveTo(...pw[0]);pw.slice(1).forEach(q=>ctx.lineTo(...q));const p1=pw.at(-1),p0=pw.at(-2),an=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]),hl=8;ctx.moveTo(...p1);ctx.lineTo(p1[0]-hl*Math.cos(an-0.45),p1[1]-hl*Math.sin(an-0.45));ctx.moveTo(...p1);ctx.lineTo(p1[0]-hl*Math.cos(an+0.45),p1[1]-hl*Math.sin(an+0.45));ctx.strokeStyle=col;ctx.lineWidth=1.3;ctx.stroke();
+        ctx.beginPath();ctx.arc(pw[0][0],pw[0][1],3,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+        if(z>16){ctx.font='600 11px "Barlow Condensed",sans-serif';const txt=`UP ${M.n}R`;const tw=ctx.measureText(txt).width+6;ctx.fillStyle=TH.paper;ctx.fillRect(pw[0][0]-tw/2,pw[0][1]+6,tw,14);ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(txt,pw[0][0],pw[0][1]+17);}}}
+    else if(ty==='ramp'){const C=colE(e),L=elLen(e);if(L<1e-3)continue;const st=false,G=st?stairGeo(e):rampGeo(e),f=frameAt(e,0),[ux,uy]=f.u,[nx,ny]=f.n,a=e.pts[0],hw=G.w/2,at=(s2,o2)=>w2s([a[0]+ux*s2+nx*o2,a[1]+uy*s2+ny*o2]);
       poly(elQuad(e,G.w,false));ctx.fillStyle=hatch(C,0.18,6);ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.4;ctx.stroke();
       ctx.beginPath();if(st){for(let i=1;i<=G.nt;i++){const s2=i*G.g;ctx.moveTo(...at(s2,hw));ctx.lineTo(...at(s2,-hw));}}ctx.lineWidth=1;ctx.stroke();
       const end=st?G.Lf:L,p0=at(0.15,0),p1=at(Math.max(0.2,end-0.12),0);ctx.beginPath();ctx.moveTo(...p0);ctx.lineTo(...p1);const an=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]),hl=8;ctx.moveTo(...p1);ctx.lineTo(p1[0]-hl*Math.cos(an-0.45),p1[1]-hl*Math.sin(an-0.45));ctx.moveTo(...p1);ctx.lineTo(p1[0]-hl*Math.cos(an+0.45),p1[1]-hl*Math.sin(an+0.45));ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=1.4;ctx.stroke();
@@ -1903,7 +1970,8 @@ function hitAll(pt){
   for(const e of els.filter(e=>e.type==='sanitary'||e.type==='mh')){const [x,y]=e.pts[0];const h=e.type==='mh'?e.p.mhs.split('x').map(v=>(+v/1000+0.3)/2):(FIT[e.p.fx]||FIT.wc).sz.map(v=>v/2);const r2=Math.max(...h)+tol;if(Math.abs(pt[0]-x)<r2&&Math.abs(pt[1]-y)<r2)out.push(e);}
   {const hs=[];for(const e of els.filter(x=>x.type==='pipe')){const r=projEl(pt,e);if(r.d<0.06+tol)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
   for(const e of els.filter(e=>e.type==='column'||e.type==='pad')){const [x,y]=e.pts[0];const ex=e.type==='pad'?padGeo(e.p):colSec(e);const hw=ex.hw+tol,hd=(e.type==='pad'?ex.hl:ex.hd)+tol;if(Math.abs(pt[0]-x)<hw&&Math.abs(pt[1]-y)<hd)out.push(e);}
-  for(const ty of ['rail','cwall','louvre','wall','fwall','gbeam','beam','strip','stair','ramp']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:ty==='cwall'?0.12:ty==='louvre'?0.16:ty==='rail'?0.08:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
+  for(const e of els.filter(x=>x.type==='stair')){const M=stairModel(e);if(M.planW.some(pl=>inPoly(pt,pl)))out.push(e);}
+  for(const ty of ['rail','cwall','louvre','wall','fwall','gbeam','beam','strip','ramp']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:ty==='cwall'?0.12:ty==='louvre'?0.16:ty==='rail'?0.08:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
   for(const ty of ['void','room','slab','roof'])els.filter(e=>e.type===ty&&inPoly(pt,e.pts)).sort((a,b)=>area(a.pts)-area(b.pts)).forEach(e=>out.push(e));
   gridHit(pt).forEach(g=>out.push(g));
   return out;
@@ -2016,7 +2084,7 @@ function toolClick(pt){
     const at=+clamp(f.r.t*f.r.L,wd/2,f.r.L-wd/2).toFixed(3);
     const p=TDc(t);if(t==='door'&&TD.door.kind==='internal'&&f.w.p.kind==='external')p.kind='external';
     mutate(()=>P.elements.push({id:uid(),type:t,level:S.level,host:f.w.id,at,p}));return;}
-  if((m==='chain'||m==='poly')&&S.shape==='rect'){
+  if((m==='chain'||m==='poly')&&S.shape==='rect'&&t!=='stair'){
     if(!S.draft){S.draft={pts:[pt]};drawPlan();return;}
     const a=S.draft.pts[0];S.draft=null;if(Math.abs(a[0]-pt[0])<0.01||Math.abs(a[1]-pt[1])<0.01){drawPlan();return;}
     const r=[[a[0],a[1]],[pt[0],a[1]],[pt[0],pt[1]],[a[0],pt[1]]];
@@ -2026,6 +2094,7 @@ function toolClick(pt){
     const a=S.draft.pts.at(-1);if(!S.draft.end){if(d2(a,pt)<0.05)return;S.draft.end=pt;drawPlan();return;}
     const b=S.draft.end;const sg=typeof pt==='number'?pt:sagFrom3(a,b,pt);const el={id:uid(),type:t,level:S.level,pts:[a,b],p:TDc(t)};if(sg)el.arc=sg;
     mutate(()=>P.elements.push(el));S.draft={pts:[b]};const A=arcOf(el);if(A)toast(`Arc ${TYPES[t].label.toLowerCase()}: R ${fmtN(A.R,2)} m, ${fmtN(A.L,2)} m long.`);drawPlan();return;}
+  if(m==='chain'&&t==='stair'){if(!S.draft){S.draft={pts:[pt]};drawPlan();return;}const a=S.draft.pts[0];if(d2(a,pt)<0.05)return;const el={id:uid(),type:t,level:S.level,pts:[a,pt],p:TDc(t)};S.draft=null;mutate(()=>P.elements.push(el));const M=stairModel(el);toast(`${OPT.stype[M.st]}: ${M.n} risers of ${mm(M.r)} mm${M.warn.length?' · ⚠ '+M.warn[0]:''}. Change type, width or going in the panel.`);S.sel=el.id;renderProps();drawPlan();return;}
   if(m==='chain'){if(!S.draft){S.draft={pts:[pt]};}else{const a=S.draft.pts.at(-1);if(d2(a,pt)>0.01){mutate(()=>P.elements.push({id:uid(),type:t,level:S.level,pts:[a,pt],p:TDc(t)}));S.draft.pts.push(pt);}}drawPlan();return;}
   if(m==='poly'){if(S.draft&&S.draft.pts.length>=3&&d2(pt,S.draft.pts[0])<10/S.cam.z){finishDraft();return;}
     if(!S.draft)S.draft={pts:[]};const last=S.draft.pts.at(-1);if(!last||d2(last,pt)>0.005)S.draft.pts.push(pt);drawPlan();}
@@ -2201,12 +2270,22 @@ function build3D(){
       else if(e.type==='sanitary'){const F=FIT[p.fx]||FIT.wc;const [x,y]=e.pts[0];box(F.sz[0],F.h,F.sz[1],x,el0+F.h/2+0.02,y,-(+p.rot||0)*Math.PI/180,p.fx==='tank'?0x2B3A40:(isHex(e.c)||isHex(P.colors?.sanitary)?c3(e):0xF3F6F7),e.id);}
       else if(e.type==='pfit'){const S2=SYS[p.sys]||SYS.cw;const [x,y]=e.pts[0];const yy=p.sys==='ud'?+P.sub.egl+S2.h:el0+S2.h;const s0=Math.max(0.08,+p.dia/1000*2.2);box(s0,s0,s0,x,yy,y,0,c3(e,parseInt(S2.col.slice(1),16)),e.id);}
       else if(e.type==='mh'){const [x,y]=e.pts[0],sz=p.mhs.split('x').map(v=>+v/1000+0.3);box(sz[0],+p.dep+0.2,sz[1],x,+P.sub.egl-(+p.dep+0.2)/2+0.02,y,0,c3(e,0x8E969A),e.id);}
-      else if(e.type==='stair'||e.type==='ramp'){const L=elLen(e);if(L<1e-3)continue;const st=e.type==='stair',G=st?stairGeo(e):rampGeo(e),f=frameAt(e,0),[ux,uy]=f.u,[nx,ny]=f.n,a=e.pts[0],rot=-Math.atan2(uy,ux),cc=c3(e,st?0xB9B2A6:0xB5B9B0);
+      else if(e.type==='stair'){const M=stairModel(e),mt=p.stmat||'rc',heavy=['rc','pc','ext'].includes(mt),t=+p.t||0.15,cc=c3(e,mt==='timber'?0xB08A5E:heavy?0xB9B2A6:0x7E8A92),r=M.r;
+        for(const tr of M.treads){const wp=tr.poly.map(M.W);const th=mt==='ext'?tr.z:heavy?(tr.kind==='f'?r:r+t):0.05;extrude(wp,Math.max(0.03,th),el0+tr.z,cc,e.id);}
+        for(const l of M.lands)extrude(l.poly.map(M.W),mt==='ext'?M.H:heavy?t:0.08,el0+l.z,cc,e.id);
+        for(const fl of M.flights){if(!fl.c||mt==='ext')continue;const ang=Math.atan2(fl.rise,fl.run||1e-3),dW=M.Wv(fl.d),rotY=-Math.atan2(dW[1],dW[0]),q=[-fl.d[1],fl.d[0]];
+          if(heavy){const c=M.W([fl.S[0]+fl.d[0]*(fl.run/2+Math.sin(ang)*t/2),fl.S[1]+fl.d[1]*(fl.run/2+Math.sin(ang)*t/2)]);obox(c[0],el0+fl.z0+fl.rise/2-Math.cos(ang)*t/2,c[1],fl.sl,t,M.w,rotY,ang,cc,e.id);}
+          else for(const sd of [-1,1]){const c=M.W([fl.S[0]+fl.d[0]*fl.run/2+q[0]*sd*(M.w/2),fl.S[1]+fl.d[1]*fl.run/2+q[1]*sd*(M.w/2)]);obox(c[0],el0+fl.z0+fl.rise/2-0.08,c[1],fl.sl,0.28,0.025,rotY,ang,0x55606A,e.id);}}
+        if(M.st==='spiral'){const m=addMesh(new THREE.CylinderGeometry(Math.max(0.04,M.ri),Math.max(0.04,M.ri),M.H+1,16),0x55606A,e.id,{noEdge:true});m.position.set(e.pts[0][0],el0+(M.H+1)/2,e.pts[0][1]);}
+        const Q=stairQ(e),rc2=c3(e,0x4E5A66),hh=p.bal==='hr'?0.9:1.0;
+        const rail=(pts,posts)=>{const w3=pts.map(q=>{const [X,Y]=M.W(q);return[X,el0+q[2]+hh,Y];});for(let i=1;i<w3.length;i++)rod(w3[i-1],w3[i],0.025,rc2,e.id);if(posts)w3.forEach((q,i)=>{if(i%3===0||i===w3.length-1)rod([q[0],q[1]-hh,q[2]],q,0.016,rc2,e.id);});};
+        if(Q.sides.IN&&!(M.st==='spiral'&&mt!=='rc'&&false))rail(M.IN,p.bal!=='hr');if(Q.sides.OUT||M.st==='spiral')rail(M.OUT,p.bal!=='hr');}
+      else if(e.type==='ramp'){const L=elLen(e);if(L<1e-3)continue;const st=false,G=st?stairGeo(e):rampGeo(e),f=frameAt(e,0),[ux,uy]=f.u,[nx,ny]=f.n,a=e.pts[0],rot=-Math.atan2(uy,ux),cc=c3(e,st?0xB9B2A6:0xB5B9B0);
         const at=(s2,o2=0)=>[a[0]+ux*s2+nx*o2,a[1]+uy*s2+ny*o2];const run=st?G.Lf:L;const ang=Math.atan2(G.H,run),sl=Math.hypot(run,G.H),t=+p.t||0.15;
         {const m=at(run/2+Math.sin(ang)*t/2);obox(m[0],el0+G.H/2-Math.cos(ang)*t/2,m[1],sl,t,G.w,rot,ang,cc,e.id);}
         if(st){for(let i=0;i<G.nt;i++){const c=at((i+0.5)*G.g);box(G.g,G.r,G.w,c[0],el0+(i+0.5)*G.r,c[1],rot,cc,e.id);}
           if(G.lt>0){const c=at(G.Lf+G.lt/2);box(G.lt,t,G.w,c[0],el0+G.H-t/2,c[1],rot,cc,e.id);}}
-        const rs=+p.rails||0,rc=c3(e,0x4E5A66);for(let k=0;k<rs;k++){const off=(k?-1:1)*(G.w/2-0.05),hh=p.bal==='hr'?0.9:1.0,s0=at(0,off),s1=at(run,off),s2=at(L,off);
+        const rs=railN(p),rc=c3(e,0x4E5A66);for(let k=0;k<rs;k++){const off=(k?-1:1)*(G.w/2-0.05),hh=p.bal==='hr'?0.9:1.0,s0=at(0,off),s1=at(run,off),s2=at(L,off);
           rod([s0[0],el0+hh,s0[1]],[s1[0],el0+G.H+hh,s1[1]],0.025,rc,e.id);if(st&&G.lt>0)rod([s1[0],el0+G.H+hh,s1[1]],[s2[0],el0+G.H+hh,s2[1]],0.025,rc,e.id);
           if(p.bal!=='hr'){const np=Math.max(1,Math.round(run/1.2));for(let j=0;j<=np;j++){const q=at(run*j/np,off),y0=el0+G.H*j/np;rod([q[0],y0,q[1]],[q[0],y0+hh,q[1]],0.018,rc,e.id);}}}}
       else if(e.type==='cwall'){const L=elLen(e);if(L<1e-3)continue;const H=cwH(e),fr=c3(e,0x3F4A52),sp=Math.min(Math.max(0,+p.sp||0),H);
@@ -3363,7 +3442,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-stairs';
+const APP_VER='2026.09.26-stairs2';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
