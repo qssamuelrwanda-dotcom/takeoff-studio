@@ -1,23 +1,35 @@
-# Takeoff Studio
+# Takeoff Studio — website
 
-Browser-based quantity take-off: trace PDFs or model a building, see it in 3D, and produce an NRM Bill of Quantities, bar schedule and bill of materials.
-
-Single static file, no build step. Hosted on Vercel; every push to `main` publishes automatically.
-
-| File | Purpose |
+| Path | What it is |
 |---|---|
-| `index.html` | The whole app |
-| `version.json` | Current version. Open copies of the app check it and offer "Reload now" when it changes |
-| `vercel.json` | Stops browsers caching old copies of the app |
-| `supabase-setup.sql` | Database tables, privacy rules and live updates for accounts. Run once in Supabase → SQL Editor |
+| `index.html` + `assets/` | Landing page (your home page) |
+| `app/index.html` | The Takeoff Studio app, served at `/app/` |
+| `app/version.json` | Current app version. Open copies show "A new version is available" when it changes |
+| `admin/index.html` | Your private admin dashboard at `/admin/` (users, activity, suspend/restore) |
+| `supabase-setup.sql` | Database tables, privacy rules, usage tracking and admin reports. Run in Supabase → SQL Editor |
+| `vercel.json` | Caching rules so users always get the latest app |
 
-## Publishing an update
-1. Replace `index.html` with the new build.
-2. Replace `version.json` with the one shipped alongside it; its `version` must match `APP_VER` inside `index.html`.
-3. Commit to `main`. Vercel redeploys in about a minute, and users see the update banner.
+## First-time setup (once)
+1. **Supabase → SQL Editor → New query**: paste all of `supabase-setup.sql` → **Run**.
+   The admin email is set near the end of the file (section 5). Change it if you'll sign in with another address.
+2. **GitHub**: create repository `takeoff-studio`, then upload the *contents* of this folder (keep the `app`, `admin` and `assets` folders).
+3. **Vercel**: Add New → Project → import `takeoff-studio` → Deploy (no settings to change).
+4. **Supabase → Authentication → URL Configuration**:
+   Site URL = `https://YOUR-SITE.vercel.app/app/`
+   Redirect URLs → add `https://YOUR-SITE.vercel.app/**`
+5. Open `https://YOUR-SITE.vercel.app/app/`, create your account with the admin email and confirm it from your inbox.
+   Then open `/admin/` and sign in.
 
-Users' projects are saved in their own browser (key `takeoffstudio.project.v1`) and survive updates.
+## Publishing an update (every time)
+1. In GitHub open the repository → go into the `app` folder → **Add file → Upload files**.
+2. Drag in the new `index.html` and `version.json` → **Commit changes**.
+3. Vercel publishes within about a minute. Users see "A new version is available — Reload now".
+If an update also includes a new `supabase-setup.sql`, run it again in Supabase (it is safe to re-run).
 
-## Accounts (Supabase)
-Project `fafolvtalqfqerhcorhe`. The app holds only the public *publishable* key. Never put the secret or service_role key in this repository.
-Authentication → URL Configuration: Site URL and Redirect URLs must list the live address of this app.
+## Adding another administrator
+Supabase → SQL Editor: `insert into public.app_admins(email) values ('name@example.com');`
+
+## Before you invite users
+- Replace `your-email@example.com` in `index.html` (privacy section) with your contact address.
+- Connect your own email sender in Supabase → Authentication → Emails → SMTP (e.g. Resend or Brevo);
+  the built-in sender only allows a few emails per hour.
