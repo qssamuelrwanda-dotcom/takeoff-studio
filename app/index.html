@@ -95,6 +95,7 @@ button{cursor:pointer}
 .cty-pick{display:inline-flex;align-items:center;gap:8px;justify-content:flex-start;width:100%}
 .pd-wrap{overflow:auto;max-height:70vh}.pd th{white-space:nowrap;font-size:11.5px;line-height:1.25;vertical-align:bottom;position:sticky;top:0;background:var(--surface);z-index:2}.pd .pd-sticky{position:sticky;left:0;background:var(--surface);z-index:1;min-width:210px}.pd th.pd-sticky{z-index:3}
 .pd td input{width:88px;font-family:var(--f-mono);font-size:12px;padding:3px 5px;text-align:right}.pd .pd-on{background:color-mix(in srgb,var(--accent) 9%,transparent)}.pd input.pd-ov{background:color-mix(in srgb,var(--mark) 22%,var(--surface));font-weight:600}
+.ra-why{margin:0 16px 12px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--surface2);border-radius:4px;line-height:1.5}
 .pj-dlg{width:min(640px,100%)}.pj-top{display:flex;gap:8px;margin:4px 0 10px}.pj-top input{flex:1;min-width:0;padding:7px 10px}
 .pj-row{grid-template-columns:minmax(0,1fr) auto}.pj-row .pj-acts{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}.pj-name b{overflow-wrap:anywhere}.pj-name input{width:100%;padding:5px 8px}
 .pj-list{max-height:52vh;overflow:auto}.pj-empty{color:var(--ink3);margin:10px 2px}.pj-foot{font-size:12px;color:var(--ink3);margin:10px 0 0}.btn.danger{background:#c2372c;border-color:#c2372c;color:#fff}
@@ -2628,8 +2629,8 @@ function labourFor(it){const k=it.key,d=it.desc,u=it.unit,R=[],a=(c,q)=>R.push([
 function raBuild(it){
   const fac=+P.factor||1,acc=new Map();
   const addRes=(code,t,n,u,p)=>{if(!bankRes(code))P.bank.res.push({c:code,t,n,u,p:Math.round(p*100)/100});};
-  mapMats({key:it.key,q:1,desc:it.desc,unit:it.unit,r:it.r,els:[]},(cat,key,name,spec,unit,qty,waste,price)=>{if(!(qty>1e-12))return;const code='M:'+key;addRes(code,'mat',name+(spec?' · '+spec:''),unit,price*fac);acc.set(code,(acc.get(code)||0)+qty*(1+waste/100));},
-    kg=>{addRes('M:bindwire','mat','Binding wire 1.6 mm','kg',2.5*fac);acc.set('M:bindwire',(acc.get('M:bindwire')||0)+kg/1000*10);});
+  mapMats({key:it.key,q:1,desc:it.desc,unit:it.unit,r:it.r,els:[]},(cat,key,name,spec,unit,qty,waste,price)=>{if(!(qty>1e-12))return;const code='M:'+key;addRes(code,'mat',name+(spec?' · '+spec:''),unit,cat==='sup'?price*fac:catPrice(price,cat));acc.set(code,(acc.get(code)||0)+qty*(1+waste/100));},
+    kg=>{addRes('M:bindwire','mat','Binding wire 1.6 mm','kg',catPrice(2.5,'reb'));acc.set('M:bindwire',(acc.get('M:bindwire')||0)+kg/1000*10);});
   const lines=[...acc].map(([c,q])=>({c,q:+q.toFixed(4)}));
   for(const [c,q] of labourFor(it)){if(bankRes(c))lines.push({c,q});}
   return lines;}
@@ -2701,6 +2702,23 @@ function raHTML(){
   const q=(S.raQ||'').toLowerCase();const a=P.ra[key]||{lines:[],ohp:15,use:false};const c=raCalc(a);
   const base=it.manual?(+(P.extra.find(x=>x.id===it.xid)||{}).r||0):(P.rates[key]!=null?+P.rates[key]:baseRate(it));
   const list=items.filter(i=>!q||(i.ref+' '+i.desc).toLowerCase().includes(q)).map(i=>{const b=P.ra[i.key];const on=b&&b.lines&&b.lines.length;return`<button class="ra-li${i.key===key?' on':''}" data-rak="${esc(i.key)}"><span class="mono">${i.ref}</span><span>${esc(i.desc.length>74?i.desc.slice(0,72)+'…':i.desc)}</span>${on?`<i class="${b.use?'use':''}">${b.use?'in bill':'draft'}</i>`:''}</button>`;}).join('');
+  if(!(a.lines&&a.lines.length)){const A=autoLines(it),src=it.manual?'manual':P.rates[key]!=null?'typed':(curCtry()&&P.autoRates!==false&&autoRate(it)!=null)?'auto':'default',ohp=P.ohp??15,cn=curCtry()?CTRY[P.country].n:'';
+    const rowsOf=(t,label)=>{const ls=A.L.filter(x=>x.t===t);if(!ls.length)return'';const sub=ls.reduce((s2,x)=>s2+x.q*x.p,0);return`<tr class="sec"><td colspan="5">${label}</td></tr>`+ls.map(x=>`<tr class="item"><td class="desc">${esc(x.n)}${bankRes(x.c)?'':' <span class="hint">(price from the country database)</span>'}</td><td class="unit">${esc(x.u)}</td><td class="q r">${x.q<0.01?x.q.toFixed(4):fmtN(x.q,3)}</td><td class="q r">${fmtN(x.p)}</td><td class="amt r">${fmtN(x.q*x.p)}</td></tr>`).join('')+`<tr class="sub"><td colspan="4">Subtotal · ${label}</td><td class="amt r">${fmtN(sub)}</td></tr>`;};
+    const fac=+P.factor||1,ref=it.manual?0:(+it.rate||0);
+    const why=src==='auto'?`<b>Where this rate comes from:</b> built up automatically from ${esc(cn)} prices in the data bank: materials with waste, labour and plant, plus ${ohp}% overheads &amp; profit.`
+      :src==='typed'?`<b>You typed this rate</b> in the bill (${fmtN(it.r)}). The build-up below is for comparison only.`
+      :src==='manual'?`<b>This is an item you added</b>, priced at the rate you entered.`
+      :`<b>This rate is a complete supply-and-fix rate:</b> reference rate ${fmtN(ref)} € × rate factor ${fmtN(fac,fac>=100?1:3)} = ${fmtN(it.r)} ${esc(P.currency)}. ${A.sup?'Items bought in complete (windows, doors, curtain walling, gates, sanitary fittings) are priced this way.':curCtry()?'There are not enough coefficients to build it up from the data bank.':'Pick a country to build rates up from local prices.'}`;
+    const direct=A.tot,oh=direct*ohp/100;
+    const table=A.L.length&&!A.sup?`<div style="overflow-x:auto"><table class="bill ra"><thead><tr><th>Resource</th><th>Unit</th><th class="r">Qty per ${esc(it.unit)}</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead><tbody>${rowsOf('mat','Materials')}${rowsOf('lab','Labour')}${rowsOf('plt','Plant')}
+      <tr class="sub"><td colspan="4">Direct cost per ${esc(it.unit)}</td><td class="amt r">${fmtN(direct)}</td></tr><tr class="sub"><td colspan="4">Overheads &amp; profit ${ohp}%</td><td class="amt r">${fmtN(oh)}</td></tr>
+      <tr class="sub ra-total"><td colspan="4">${src==='auto'?'Bill rate':'Built-up rate'} per ${esc(it.unit)}</td><td class="amt r">${fmtN(direct+oh)}</td></tr></tbody></table></div>`:'';
+    return`<div class="ra-grid"><aside class="sheet ra-side"><input id="raQ" placeholder="Search bill items" value="${esc(S.raQ||'')}" aria-label="Search bill items"><div class="ra-list">${list||'<p class="hint">No match.</p>'}</div></aside>
+    <div class="sheet ra-main"><div class="ra-head"><span class="mono">${it.ref} · per ${esc(it.unit)} · bill quantity ${fmtQ(it.q,it.unit)} · bill rate ${fmtN(it.r)} ${esc(P.currency)}</span><h2>${esc(it.desc)}</h2></div>
+    <p class="ra-why">${why}</p>
+    <div class="ra-actions"><button class="btn sm primary" id="raBuild">${A.L.length&&!A.sup?'Edit as my own analysis':'Build an analysis from coefficients'}</button></div>
+    ${table}
+    <p class="note">${table?'Quantities per unit come from the Bill of Materials coefficients (waste included) and typical labour and plant outputs. Prices come from this project&rsquo;s data bank. ':''}Click the button above to copy this into your own analysis, change quantities or add resources, and use it as the bill rate.</p></div></div>`;}
   const grp=(t,label)=>{const ls=(a.lines||[]).map((l,i)=>({l,i,r:bankRes(l.c)})).filter(x=>(x.r?x.r.t:'mat')===t);
     return`<tr class="sec"><td colspan="6">${label}</td></tr>`+ls.map(({l,i,r})=>`<tr class="item"><td class="desc">${esc(r?r.n:l.c+' (not in the data bank)')}</td><td class="unit">${esc(r?r.u:'')}</td><td class="rt r"><input type="number" step="0.001" min="0" data-raq="${i}" value="${l.q}" aria-label="Quantity per unit"></td><td class="q r">${fmtN(r?+r.p:0)}</td><td class="amt r">${fmtN((+l.q||0)*(r?+r.p:0))}</td><td><button class="xdel" data-rad="${i}" aria-label="Remove line">×</button></td></tr>`).join('')+
     `<tr class="addrow"><td colspan="6"><select data-raadd="${t}" aria-label="Add ${label}"><option value="">+ Add ${label.toLowerCase()} from the data bank…</option>${P.bank.res.filter(r=>r.t===t).map(r=>`<option value="${esc(r.c)}">${esc(r.n)} · ${fmtN(+r.p)} / ${esc(r.u)}</option>`).join('')}</select></td></tr><tr class="sub"><td colspan="4">Subtotal · ${label}</td><td class="amt r">${fmtN(c[t]||0)}</td><td></td></tr>`;};
@@ -2720,7 +2738,7 @@ function wireRA(pane){
   pane.querySelectorAll('[data-raq]').forEach(i=>i.addEventListener('change',()=>mutate(()=>{getA().lines[+i.dataset.raq].q=Math.max(0,parseFloat(i.value)||0);})));
   pane.querySelectorAll('[data-rad]').forEach(b=>b.onclick=()=>mutate(()=>{const a=getA();a.lines.splice(+b.dataset.rad,1);if(!a.lines.length)a.use=false;}));
   pane.querySelectorAll('[data-raadd]').forEach(sl=>sl.addEventListener('change',()=>{if(!sl.value)return;mutate(()=>getA().lines.push({c:sl.value,q:1}));}));
-  const bb=pane.querySelector('#raBuild');if(bb)bb.onclick=()=>{const it=allItems().find(i=>i.key===key);if(!it)return;const go=()=>mutate(()=>{const a=getA();a.lines=raBuild(it);});if(P.ra[key]&&P.ra[key].lines&&P.ra[key].lines.length)confirmBox('Replace this analysis?','The current resource lines are replaced by ones built from the coefficients.','Replace',go);else go();};
+  const bb=pane.querySelector('#raBuild');if(bb)bb.onclick=()=>{const it=allItems().find(i=>i.key===key);if(!it)return;const go=()=>mutate(()=>{const a=getA();const fresh=!a.lines.length;a.lines=raBuild(it);if(fresh){a.use=true;a.ohp=P.ohp??15;}});if(P.ra[key]&&P.ra[key].lines&&P.ra[key].lines.length)confirmBox('Replace this analysis?','The current resource lines are replaced by ones built from the coefficients.','Replace',go);else go();};
   const cl=pane.querySelector('#raClear');if(cl)cl.onclick=()=>mutate(()=>{delete P.ra[key];});
   const u=pane.querySelector('#raUse');if(u)u.onchange=()=>mutate(()=>{getA().use=u.checked;});
   const o=pane.querySelector('#raOhp');if(o)o.onchange=()=>mutate(()=>{getA().ohp=Math.max(0,parseFloat(o.value)||0);});
@@ -3182,12 +3200,13 @@ function bankFor(c,old){const f=cFactor(c),base=BASERES(),codes=new Set(base.map
 function applyCountry(c){const C=CTRY[c];if(!C)return;mutate(()=>{P.country=c;P.currency=C.cur;P.factor=cFactor(c);P.bank=bankFor(c,P.bank);if(P.autoRates==null)P.autoRates=true;});try{localStorage.setItem('takeoffstudio.lastcountry',c);}catch(e){}toast(`Priced for ${C.n}: ${C.cur}, ${C.n} prices from the database.`);}
 function projectFor(c){const C=CTRY[c]||CTRY.xx,p=emptyProject();p.country=C.c;p.currency=C.cur;p.factor=cFactor(C.c);p.bank=bankFor(C.c);p.autoRates=true;try{localStorage.setItem('takeoffstudio.lastcountry',C.c);}catch(e){}return p;}
 let AUTO=new Map();
-function autoRate(it){if(AUTO.has(it.key))return AUTO.get(it.key);let tot=0,any=false,sup=false;
-  mapMats({key:it.key,q:1,desc:it.desc,unit:it.unit,r:baseRate(it),els:[]},(cat,key,name,spec,unit,qty,waste,price)=>{if(!(qty>1e-12))return;if(cat==='sup'){sup=true;return;}const r=bankRes('M:'+key);tot+=qty*(1+waste/100)*(r?+r.p:catPrice(price,cat));any=true;},
-    kg=>{const r=bankRes('M:bindwire');tot+=kg/1000*10*(r?+r.p:catPrice(2.5,'reb'));});
-  const LF=labourFor(it),generic=LF.length===1&&LF[0][0]==='L:labourer'&&[0.3,0.2,1].includes(LF[0][1]);if(!generic&&LF.length)any=true;
-  for(const [c,q] of LF){const r=bankRes(c);if(r)tot+=q*(+r.p);}
-  const v=(!any||sup||!(tot>0))?null:Math.round(tot*(1+(P.ohp??15)/100)*100)/100;AUTO.set(it.key,v);return v;}
+function autoLines(it){const L=[];let sup=false;const put=(c,t,n,u,p,q)=>{const x=L.find(y=>y.c===c);if(x)x.q+=q;else L.push({c,t,n,u,p,q});};
+  mapMats({key:it.key,q:1,desc:it.desc,unit:it.unit,r:baseRate(it),els:[]},(cat,key,name,spec,unit,qty,waste,price)=>{if(!(qty>1e-12))return;if(cat==='sup'){sup=true;return;}const c='M:'+key,r=bankRes(c);put(c,'mat',r?r.n:name+(spec?' · '+spec:''),r?r.u:unit,r?+r.p:Math.round(catPrice(price,cat)*100)/100,qty*(1+waste/100));},
+    kg=>{const r=bankRes('M:bindwire');put('M:bindwire','mat',r?r.n:'Binding wire 1.6 mm','kg',r?+r.p:Math.round(catPrice(2.5,'reb')*100)/100,kg/1000*10);});
+  const LF=labourFor(it),generic=LF.length===1&&LF[0][0]==='L:labourer'&&[0.3,0.2,1].includes(LF[0][1]);
+  for(const [c,q] of LF){const r=bankRes(c);if(r)put(c,r.t,r.n,r.u,+r.p,q);}
+  const tot=L.reduce((a,x)=>a+x.q*x.p,0);return{L,sup,tot,ok:!sup&&tot>0&&(L.some(x=>x.t==='mat')||(!generic&&LF.length>0))};}
+function autoRate(it){if(AUTO.has(it.key))return AUTO.get(it.key);const A=autoLines(it);const v=A.ok?Math.round(A.tot*(1+(P.ohp??15)/100)*100)/100:null;AUTO.set(it.key,v);return v;}
 function pickCountry(cur,title,sub,onPick){
   const s=document.createElement('div');s.className='scrim';const regs=[...new Set(COUNTRIES.map(x=>x[5]))];
   s.innerHTML=`<div class="dialog cty-dlg" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2><p>${sub}</p><input type="search" class="cty-q" placeholder="Search countries or currency" aria-label="Search countries"><div class="cty-list"></div><div class="row"><button class="btn" data-c>Cancel</button></div></div>`;
@@ -3586,7 +3605,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-countries';
+const APP_VER='2026.09.26-ra';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
