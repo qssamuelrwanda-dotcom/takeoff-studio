@@ -137,6 +137,7 @@ button{cursor:pointer}
 .vis-hd{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font:600 11.5px/1 var(--f-cond);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
 .ms-chips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 10px}.ms-chip{border:1px solid var(--line);background:var(--surface2);border-radius:14px;padding:3px 10px;font-size:12.5px}.ms-chip b{font-family:var(--f-mono);font-weight:600;margin-left:3px;color:var(--accent)}.ms-chip:hover{border-color:var(--accent)}
 .ms-edit{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:10px;background:var(--surface2)}
+.qa{margin:10px 0;padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--surface2)}.qa-h{margin:0 0 6px;font-family:var(--f-cond);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}.qa-row{display:flex;flex-wrap:wrap;gap:5px}.qa-b b{font-family:var(--f-mono);margin-left:3px;color:var(--accent)}
 .ms-move{display:flex;align-items:center;gap:6px;margin-top:8px}.ms-move input{width:70px;padding:4px 6px;font-family:var(--f-mono);font-size:12.5px}.ms-move select{flex:1;padding:4px}
 .cm-ctl{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:6px;padding:3px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}.cm-tog{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:13px;cursor:pointer}
 .cm-ctl select,.cm-ctl input{padding:3px 6px;font-size:12.5px}.cm-ctl #cmArea{width:90px;font-family:var(--f-mono)}.cm-ctl #cmLab{width:110px}
@@ -1272,11 +1273,11 @@ function renderProps(){
     el.innerHTML=`<h3>${esc(elemTitle(e))} <span class="sub">${esc(lvl(e.level)?.name||'')}</span></h3>
       ${fieldHTML(e.type,e.p,'sel')}${curveHTML(e)}${rebarHTML(e.type,e.p,'sel',e)}
       <p class="hint mono" style="font-size:12px">${esc(elemDims(e))}</p>
-      ${e.type==='pipe'||e.type==='pfit'?pipeFitHTML():''}${colorRowHTML(colE(e),isHex(e.c),'eCol')}${cornersHTML(e)}
+      ${e.type==='pipe'||e.type==='pfit'?pipeFitHTML():''}${qaHTML([e],true)}${colorRowHTML(colE(e),isHex(e.c),'eCol')}${cornersHTML(e)}
       <table class="qty"><tbody>${ls.map(l=>`<tr><td>${esc(l.desc)}</td><td class="n">${fmtQ(roundQ(l.qty,l.unit),l.unit)}</td><td class="u">${l.unit}</td></tr>`).join('')||'<tr><td class="hint">No measurable quantities.</td></tr>'}</tbody></table>
       <div class="row"><button class="btn sm" id="selHide" title="Hide this element (it still counts in the bill)">${EYEOFF} Hide</button><button class="btn sm" id="selDel">Delete <kbd style="font-size:10px">Del</kbd></button>${e.pts&&e.type!=='door'?'<button class="btn sm" id="selDup">Duplicate</button>':''}<button class="btn sm" id="selDone">Deselect</button></div>`;
     el.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('change',()=>{const k=inp.dataset.k;const v=inp.dataset.num!=null?Math.max(0,parseFloat(inp.value)||0):inp.value;mutate(()=>{e.p[k]=v;onField(e.type,e.p,k);if((e.type==='door'||e.type==='window')){clampOpening(e);}});}));
-    wireSets(el,e.p,fn=>mutate(fn));wirePipeFit(el);wireCurve(el,e);wireColorRow(el,'eCol',[e]);
+    wireSets(el,e.p,fn=>mutate(fn));wirePipeFit(el);wireQA(el,[e]);wireCurve(el,e);wireColorRow(el,'eCol',[e]);
     el.querySelectorAll('[data-vx]').forEach(inp=>{inp.addEventListener('change',()=>{const i=+inp.dataset.vx,ax=+inp.dataset.ax,v=parseFloat(inp.value);if(!isFinite(v))return;
         mutate(()=>{const old=e.pts[i].slice();e.pts[i][ax]=v;if(LINET.includes(e.type))onLevel(e.level).forEach(o=>{if(o!==e&&o.pts&&LINET.includes(o.type))o.pts.forEach((q,j)=>{if(d2(q,old)<1e-4)o.pts[j]=e.pts[i].slice();});});if(e.type==='wall')openingsOf(e).forEach(clampOpening);});});
       inp.addEventListener('focus',()=>{S.vsel={id:e.id,i:+inp.dataset.vx};drawPlan();});});
@@ -1719,11 +1720,51 @@ function copyToLevel(ids,lv){const map={};const src=ids.map(byId).filter(Boolean
   for(const e of P.elements.filter(o=>o.host&&map[o.host])){const c=JSON.parse(JSON.stringify(e));c.id=uid();c.level=lv;c.host=map[e.host];out.push(c);}
   if(out.length)mutate(()=>P.elements.push(...out));return out.length;}
 function selQty(els){const m=new Map();for(const e of els)for(const l of linesFor(e)){const k=l.desc+'|'+l.unit;const x=m.get(k)||{desc:l.desc,unit:l.unit,q:0};x.q+=l.qty;m.set(k,x);}return[...m.values()];}
+/* ---------- quick add: columns on pads, beams between columns, etc. ---------- */
+function linkPairs(pts,tol=0.15){const out=[],deg=pts.map(()=>0),key=(i,j)=>i<j?i+','+j:j+','+i,seen=new Set();
+  const push=(i,j)=>{const k=key(i,j);if(seen.has(k))return;seen.add(k);out.push([i,j]);deg[i]++;deg[j]++;};
+  for(let i=0;i<pts.length;i++){const a=pts[i];let bx=null,by=null;
+    for(let j=0;j<pts.length;j++){if(i===j)continue;const b=pts[j],dx=b[0]-a[0],dy=b[1]-a[1];
+      if(Math.abs(dy)<=tol&&dx>1e-3&&(!bx||dx<bx[0]))bx=[dx,j];
+      if(Math.abs(dx)<=tol&&dy>1e-3&&(!by||dy<by[0]))by=[dy,j];}
+    if(bx)push(i,bx[1]);if(by)push(i,by[1]);}
+  for(let i=0;i<pts.length;i++)if(!deg[i]){let bj=-1,bd=1e9;for(let j=0;j<pts.length;j++)if(j!==i){const d=d2(pts[i],pts[j]);if(d<bd){bd=d;bj=j;}}if(bj>=0)push(i,bj);}
+  return out;}
+const uniqPts=els=>{const o=[];els.forEach(e=>{const p=e.pts[0];if(!o.some(q=>d2(q,p)<0.05))o.push(p.slice());});return o;};
+function qaCommit(add){if(add.length)mutate(()=>add.forEach(e=>P.elements.push(e)));return add.map(e=>e.id);}
+function qaLink(src,type){const add=[];const byLv={};src.forEach(e=>(byLv[e.level]=byLv[e.level]||[]).push(e));
+  {for(const lv in byLv){const pts=uniqPts(byLv[lv]);if(pts.length<2)continue;
+    for(const [i,j] of linkPairs(pts)){const seg={pts:[pts[i],pts[j]]};if(onLevel(lv).some(x=>x.type===type&&x.pts&&x.pts.length===2&&sameSeg(x,seg)))continue;
+      add.push({id:uid(),type,level:lv,pts:[pts[i].slice(),pts[j].slice()],p:TDc(type)});}}}
+  return qaCommit(add);}
+function qaPoint(src,type,lvOf){const add=[];
+  for(const s0 of src){const lv=lvOf(s0),p=s0.pts[0];if(onLevel(lv).some(x=>x.type===type&&x.pts&&d2(x.pts[0],p)<0.05)||add.some(x=>x.level===lv&&d2(x.pts[0],p)<0.05))continue;
+    add.push({id:uid(),type,level:lv,pts:[p.slice()],p:TDc(type)});}
+  return qaCommit(add);}
+const QA={
+  colOnPad:{label:'Columns on these pads',src:'pad',min:1,run:src=>qaPoint(src,'column',e=>e.level),what:'column'},
+  gbPads:{label:'Ground beams between pads',src:'pad',min:2,run:src=>qaLink(src,'gbeam'),what:'ground beam'},
+  bmCols:{label:'Beams between columns',src:'column',min:2,run:src=>qaLink(src,'beam'),what:'beam'},
+  padCols:{label:'Pad footings under columns',src:'column',min:1,run:src=>qaPoint(src,'pad',()=>levelsSorted()[0].id),what:'pad footing'}};
+function qaHTML(els,single){const n=t=>els.filter(e=>e.type===t).length;const lvN=t=>single?onLevel(els[0].level).filter(x=>x.type===t).length:0;
+  const b=[];for(const k in QA){const q=QA[k];const c=n(q.src);const lab=single?q.label.replace('these pads','this pad').replace('under columns','under this column'):q.label;if(c>=q.min)b.push(`<button class="btn sm qa-b" data-qa="${k}">${esc(lab)}${c>1?` <b>${c}</b>`:''}</button>`);
+    if(single&&c&&q.src===els[0].type&&lvN(q.src)>1)b.push(`<button class="btn sm qa-b" data-qa="${k}" data-all="1">${esc(q.label.replace('these','all').replace(/between (columns|pads)/,'between all $1'))} <span class="hint">all ${lvN(q.src)} on level</span></button>`);}
+  if(!b.length)return'';
+  return`<div class="qa"><h4 class="qa-h">Quick add</h4><div class="qa-row">${b.join('')}</div><p class="hint" style="margin:6px 0 0">New elements use the size set in each tool, skip anything already there and are selected afterwards so you can change their size together. Beams join the nearest ${single?'':'selected '}neighbours along each grid line.</p></div>`;}
+function wireQA(el,els){el.querySelectorAll('[data-qa]').forEach(b=>b.onclick=()=>{const q=QA[b.dataset.qa];
+  const src=b.dataset.all?onLevel(els[0].level).filter(x=>x.type===q.src):els.filter(x=>x.type===q.src);
+  const made=q.run(src);
+  if(!made.length){toast(`Nothing to add: every ${q.what} is already there.`);return;}
+  const lv=byId(made[0])?.level;if(lv&&lv!==S.level){S.level=lv;renderLevels();}
+  setSel(made);renderProps();drawPlan();queue3D();
+  toast(`Added ${made.length} ${q.what}${made.length===1?'':'s'}${lv&&lv!==els[0].level?' on '+(lvl(lv)?.name||''):''}. They are selected: edit their size together in the panel.`);});}
+
 function multiHTML(els){const byT={};els.forEach(e=>byT[e.type]=(byT[e.type]||0)+1);const types=Object.keys(byT);const one=types.length===1?types[0]:null;const others=levelsSorted().filter(l=>l.id!==S.level);
   const qs=selQty(els);
   return`<h3>${els.length} selected <span class="sub">${esc(lvl(S.level)?.name||'')}</span></h3>
   <div class="ms-chips">${types.map(t=>`<button class="ms-chip" data-only="${t}" title="Keep only these">${esc(TYPES[t]?.label||t)} <b>${byT[t]}</b></button>`).join('')}</div>
   ${one&&FIELDS[one]?`<div class="ms-edit"><p class="hint" style="margin:0 0 6px">Edit all ${byT[one]} together. A change applies to every selected ${esc(TYPES[one].label.toLowerCase())}.</p>${fieldHTML(one,els[0].p,'ms')}</div>`:types.length>1?'<p class="hint">Pick one type above to edit them all together.</p>':''}
+  ${qaHTML(els,false)}
   ${colorRowHTML(colE(els[0]),els.every(x=>isHex(x.c)),'msCol')}
   <table class="qty"><tbody>${qs.slice(0,14).map(l=>`<tr><td>${esc(l.desc)}</td><td class="n">${fmtQ(roundQ(l.q,l.unit),l.unit)}</td><td class="u">${l.unit}</td></tr>`).join('')||'<tr><td class="hint">No measurable quantities.</td></tr>'}${qs.length>14?`<tr><td class="hint" colspan="3">+ ${qs.length-14} more lines</td></tr>`:''}</tbody></table>
   <div class="row" style="justify-content:flex-start;flex-wrap:wrap"><button class="btn sm" id="msHide">${EYEOFF} Hide</button><button class="btn sm" id="msIso">${EYE} Show only these</button><button class="btn sm" id="msDel">Delete ${els.length}</button><button class="btn sm" id="msNone">Deselect</button></div>
@@ -1734,7 +1775,7 @@ function wireMulti(el,els){const ids=els.map(e=>e.id);const one=[...new Set(els.
   el.querySelectorAll('[data-only]').forEach(b=>b.onclick=()=>{setSel(els.filter(e=>e.type===b.dataset.only).map(e=>e.id));renderProps();drawPlan();queue3D();});
   if(one)el.querySelectorAll('.ms-edit [data-k]').forEach(inp=>inp.addEventListener('change',()=>{const k=inp.dataset.k;const v=inp.dataset.num!=null?Math.max(0,parseFloat(inp.value)||0):inp.value;
     mutate(()=>{els.forEach(e=>{const cur=byId(e.id);if(!cur)return;cur.p[k]=v;onField(cur.type,cur.p,k);if(cur.type==='door'||cur.type==='window')clampOpening(cur);});});toast(`Updated ${els.length} ${TYPES[one].label.toLowerCase()}s.`);}));
-  wireColorRow(el,'msCol',els);el.querySelector('#msHide').onclick=()=>hideIds(ids);el.querySelector('#msIso').onclick=()=>isolateIds(ids);
+  wireColorRow(el,'msCol',els);wireQA(el,els);el.querySelector('#msHide').onclick=()=>hideIds(ids);el.querySelector('#msIso').onclick=()=>isolateIds(ids);
   el.querySelector('#msDel').onclick=()=>confirmBox(`Delete ${ids.length} elements?`,'Doors and windows in deleted walls go too. You can undo this.','Delete',()=>deleteIds(ids));
   el.querySelector('#msNone').onclick=()=>{setSel([]);renderProps();drawPlan();queue3D();};
   el.querySelector('#msMove').onclick=()=>{const dx=parseFloat(el.querySelector('#msDx').value)||0,dy=parseFloat(el.querySelector('#msDy').value)||0;if(!dx&&!dy)return;mutate(()=>ids.map(byId).forEach(e=>{if(e&&e.pts&&!e.host)e.pts=e.pts.map(([x,y])=>[+(x+dx).toFixed(4),+(y+dy).toFixed(4)]);}));toast(`Moved ${ids.length} elements.`);};
@@ -3206,7 +3247,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-projects';
+const APP_VER='2026.09.26-quickadd';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
