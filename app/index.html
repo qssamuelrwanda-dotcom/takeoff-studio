@@ -88,6 +88,9 @@ button{cursor:pointer}
 .tdot{width:8px;height:8px;border-radius:50%;background:var(--ink3);display:inline-block;flex:none}
 #bTeam[data-st="synced"] .tdot,.tdot[data-st="synced"]{background:var(--ok)}#bTeam[data-st="pending"] .tdot,#bTeam[data-st="saving"] .tdot,#bTeam[data-st="syncing"] .tdot,.tdot[data-st="pending"],.tdot[data-st="saving"]{background:var(--mark)}
 #bTeam[data-st="error"] .tdot,.tdot[data-st="error"]{background:var(--danger)}#bTeam[data-st="view"] .tdot,.tdot[data-st="view"]{background:var(--accent)}
+.pj-dlg{width:min(640px,100%)}.pj-top{display:flex;gap:8px;margin:4px 0 10px}.pj-top input{flex:1;min-width:0;padding:7px 10px}
+.pj-row{grid-template-columns:minmax(0,1fr) auto}.pj-row .pj-acts{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}.pj-name b{overflow-wrap:anywhere}.pj-name input{width:100%;padding:5px 8px}
+.pj-list{max-height:52vh;overflow:auto}.pj-empty{color:var(--ink3);margin:10px 2px}.pj-foot{font-size:12px;color:var(--ink3);margin:10px 0 0}.btn.danger{background:#c2372c;border-color:#c2372c;color:#fff}
 .team-dlg{width:min(560px,100%);max-height:86vh;overflow:auto}.tm-status{display:flex;gap:8px;align-items:baseline}.tm-h{font-family:var(--f-cond);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin:12px 0 6px}
 .tm-list{display:flex;flex-direction:column;gap:4px}.tm-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--line2);border-radius:6px}.tm-row.on{border-color:var(--accent);background:var(--accent-soft)}
 .tm-row small,.tm-person small{display:block;color:var(--ink3);font-size:11.5px}.tm-people{display:flex;flex-direction:column;gap:6px}.tm-person{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:8px;align-items:center}.tm-person img{width:28px;height:28px;border-radius:50%;border:2px solid #888;grid-row:span 2}
@@ -423,6 +426,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
       <svg class="logo" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 21 14 25 24 21V9L14 5 4 9z"/><path d="M4 9l10 4 10-4M14 13v12"/><path d="M8 11.2v4.2M11 12.4v4.2" stroke-width="1.2"/></svg>
       <span class="wordmark">Takeoff Studio</span>
       <input id="projName" aria-label="Project name" spellcheck="false">
+      <button class="btn icon" id="bProjects" title="My projects" aria-label="My projects"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 4.5v8h13v-7H7.5L6 4H2z"/><path d="M1.5 6.5h13"/></svg></button>
     </div>
     <nav class="views" role="tablist" aria-label="View">
       <button role="tab" data-view="plan">Plan</button>
@@ -442,6 +446,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
       <button class="btn icon" id="bRedo" title="Redo (Ctrl+Y)" aria-label="Redo"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 3l3 3-3 3"/><path d="M14 6H6.5a4 4 0 0 0 0 8H10"/></svg></button>
       <button class="btn" id="bFile" aria-haspopup="true" aria-expanded="false">Project <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 6 4 4 4-4"/></svg></button>
       <div class="menu" id="fileMenu" hidden>
+        <button data-act="projects">My projects… <small>saved here</small></button>
         <button data-act="settings">Project settings…</button>
         <hr>
         <button data-act="new">New empty project</button>
@@ -718,7 +723,7 @@ function fixState(){if(!lvl(S.level))S.level=levelsSorted()[0]?.id;if(S.sel&&!by
 
 let saveT=0;
 function changed(){
-  clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE,JSON.stringify(P));}catch(e){}},400);
+  clearTimeout(saveT);saveT=setTimeout(libSave,400);
   TO=takeoff();
   renderKPIs();renderLevels();renderProps();renderSub();renderUnder();updateRailCounts();drawPlan();queue3D();
   if(S.view==='boq'||S.view==='settings')renderBoQ();
@@ -2800,14 +2805,15 @@ $('#bFile').onclick=e=>{e.stopPropagation();const m=$('#fileMenu');m.hidden=!m.h
 document.addEventListener('click',e=>{if(!e.target.closest('#fileMenu'))$('#fileMenu').hidden=true;});
 $('#fileMenu').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$('#fileMenu').hidden=true;const a=b.dataset.act;
   if(a==='settings'){S.set='general';setView('settings');}
-  if(a==='new')confirmBox('Start a new project?','The current model is replaced. Save it first if you want to keep it.','Start new',()=>loadProject(emptyProject()));
-  if(a==='sample')confirmBox('Load the sample house?','The current model is replaced by the two-storey sample.','Load sample',()=>loadProject(sampleProject()));
+  if(a==='projects')openProjects();
+  if(a==='new')libNew(emptyProject(),'New project started. The previous one is kept in My projects.');
+  if(a==='sample')libNew(sampleProject(),'Sample house opened as a new project.');
   if(a==='open')$('#fProject').click();
   if(a==='save')saveFile(slug()+'.takeoff.json',JSON.stringify(P,null,1));
   if(a==='xlsx')openXlsxDialog();if(a==='pdf')openPdfDialog();if(a==='csv')exportCsv();if(a==='copy')copyBoQ();});
-$('#fProject').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!Array.isArray(j.levels)||!Array.isArray(j.elements))throw 0;loadProject(j);toast('Opened '+f.name);}catch(err){toast('That file is not a Takeoff Studio project.');}});
+$('#fProject').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!Array.isArray(j.levels)||!Array.isArray(j.elements))throw 0;libNew(j,'Opened '+f.name+' as a new project in My projects.');}catch(err){toast('That file is not a Takeoff Studio project.');}});
 $('#projName').addEventListener('change',e=>mutate(()=>P.name=e.target.value||'Untitled project'));
-$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
+$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bProjects').onclick=()=>openProjects();
 
 function loadProject(p,keepUndo){
   if(typeof TEAM!=='undefined'&&TEAM.pid){leaveTeam(true);toast('Stopped syncing the team project. This one is local.');}
@@ -2816,6 +2822,71 @@ function loadProject(p,keepUndo){
   for(const k in UL)delete UL[k];
   S.level=levelsSorted()[0]?.id;S.sel=null;S.hl=null;S.draft=null;T3.fitted=false;
   changed();requestAnimationFrame(()=>fitPlan(false));
+}
+
+/* ---------- My projects (saved in this browser) ---------- */
+const PIDX='takeoffstudio.projects.v1',PCUR='takeoffstudio.cur',PKEY=id=>'takeoffstudio.p.'+id;
+const LIB={cur:null,warned:false,ok:(()=>{try{localStorage.setItem('takeoffstudio.t','1');localStorage.removeItem('takeoffstudio.t');return true;}catch(e){return false;}})()};
+function libList(){try{const a=JSON.parse(localStorage.getItem(PIDX)||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}}
+function libSetList(a){try{localStorage.setItem(PIDX,JSON.stringify(a));}catch(e){}}
+function libGet(id){try{const p=JSON.parse(localStorage.getItem(PKEY(id))||'null');return p&&Array.isArray(p.levels)&&Array.isArray(p.elements)?p:null;}catch(e){return null;}}
+function libMeta(p,id,old){return{id,name:p.name||'Untitled project',created:old?.created||Date.now(),updated:Date.now(),n:(p.elements||[]).length,lv:(p.levels||[]).length};}
+function libPut(id,p,keepTime){if(!LIB.ok)return false;const json=JSON.stringify(p);try{localStorage.setItem(PKEY(id),json);}catch(e){if(!LIB.warned){LIB.warned=true;toast('Browser storage is full. Save this project as a file (Project → Save project file) or delete old projects in My projects.');}return false;}
+  LIB.warned=false;const a=libList();const i=a.findIndex(x=>x.id===id);const m=libMeta(p,id,a[i]);if(keepTime&&a[i])m.updated=a[i].updated;if(i<0)a.unshift(m);else a[i]=m;libSetList(a);return true;}
+function libSave(){if(LIB.cur&&P)libPut(LIB.cur,P);}
+function libSetCur(id){LIB.cur=id;try{localStorage.setItem(PCUR,id);}catch(e){}}
+function libNewId(){return Date.now().toString(36)+uid();}
+function libOpen(id){if(id===LIB.cur)return true;clearTimeout(saveT);libSave();const p=libGet(id);if(!p){toast('That project could not be read.');return false;}libSetCur(id);loadProject(p);toast('Opened '+(p.name||'project'));return true;}
+function libNew(p,msg){clearTimeout(saveT);libSave();libSetCur(libNewId());loadProject(p);libSave();if(msg)toast(msg);}
+function libInit(){let cur=null;try{cur=localStorage.getItem(PCUR);}catch(e){}
+  let p=cur&&libGet(cur);
+  if(!p){const a=libList().sort((x,y)=>(y.updated||0)-(x.updated||0));for(const x of a){p=libGet(x.id);if(p){cur=x.id;break;}}}
+  if(!p){let old=null;try{old=JSON.parse(localStorage.getItem(STORE)||'null');}catch(e){}p=old&&old.levels?.length?old:sampleProject();cur=libNewId();}
+  libSetCur(cur);loadProject(p);libSave();}
+function libBytes(){let n=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('takeoffstudio.'))n+=(k.length+(localStorage.getItem(k)||'').length)*2;}}catch(e){}return n;}
+addEventListener('pagehide',()=>{clearTimeout(saveT);libSave();});
+function openProjects(){
+  clearTimeout(saveT);libSave();
+  const s=document.createElement('div');s.className='scrim';
+  s.innerHTML=`<div class="dialog team-dlg pj-dlg" role="dialog" aria-modal="true" aria-label="My projects"><h2>My projects</h2><p>Every project is saved automatically in this browser on this computer. To use one on another computer, download it and open the file there.</p>
+    <div class="pj-top"><input type="search" placeholder="Search projects" aria-label="Search projects" data-q><button class="btn primary" data-new>New project</button></div>
+    <div class="tm-list pj-list"></div><p class="pj-foot"></p>
+    <div class="row"><button class="btn" data-file>Open project file…</button><button class="btn" data-c>Close</button></div></div>`;
+  document.body.appendChild(s);const close=()=>s.remove();
+  s.querySelector('[data-c]').onclick=close;s.addEventListener('click',e=>{if(e.target===s)close();});
+  s.addEventListener('keydown',e=>{if(e.key==='Escape'){if(e.target.matches('.pj-name input'))return;close();}e.stopPropagation();});
+  s.querySelector('[data-new]').onclick=()=>{close();libNew(emptyProject(),'New project started. The previous one is kept in My projects.');};
+  s.querySelector('[data-file]').onclick=()=>{close();$('#fProject').click();};
+  const q=s.querySelector('[data-q]');q.oninput=()=>draw();
+  let armed=null;
+  const ago=ts=>{if(!ts)return'';const m=Math.round((Date.now()-ts)/60000);if(m<1)return'just now';if(m<60)return m+' min ago';if(m<1440)return Math.round(m/60)+' h ago';const d=Math.round(m/1440);return d<14?d+' d ago':new Date(ts).toLocaleDateString();};
+  const draw=()=>{
+    const all=libList().sort((x,y)=>(x.id===LIB.cur?-1:y.id===LIB.cur?1:(y.updated||0)-(x.updated||0)));
+    const t=q.value.trim().toLowerCase();const a=t?all.filter(x=>(x.name||'').toLowerCase().includes(t)):all;
+    const list=s.querySelector('.pj-list');
+    list.innerHTML=a.length?a.map(x=>`<div class="tm-row pj-row${x.id===LIB.cur?' on':''}" data-id="${esc(x.id)}">
+      <div class="pj-name"><b>${esc(x.name)}</b><small>${x.n} element${x.n===1?'':'s'} · ${x.lv} level${x.lv===1?'':'s'} · edited ${ago(x.updated)}</small></div>
+      ${x.id===LIB.cur?'<span class="badge">Open now</span>':'<button class="btn sm primary" data-a="open">Open</button>'}
+      <div class="pj-acts"><button class="btn sm" data-a="ren" title="Rename">Rename</button><button class="btn sm" data-a="dup" title="Make a copy">Copy</button><button class="btn sm needs-dl" data-a="dl" title="Download as a file">Download</button><button class="btn sm${armed===x.id?' danger':''}" data-a="del" title="Delete">${armed===x.id?'Delete?':'Delete'}</button></div></div>`).join(''):`<p class="pj-empty">${t?'No projects match that search.':'No projects yet.'}</p>`;
+    const kb=libBytes()/1024;s.querySelector('.pj-foot').textContent=`${all.length} project${all.length===1?'':'s'} · about ${kb<1024?Math.max(1,Math.round(kb))+' KB':(kb/1024).toFixed(1)+' MB'} of browser storage used (browsers allow about 5 MB).`;
+    list.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>act(b.dataset.a,b.closest('[data-id]').dataset.id,b));
+  };
+  const act=(a,id,b)=>{
+    if(a!=='del')armed=null;
+    const data=()=>id===LIB.cur?P:libGet(id);
+    if(a==='open'){if(libOpen(id))close();return;}
+    if(a==='dup'){const p=data();if(!p){toast('That project could not be read.');return;}const c=JSON.parse(JSON.stringify(p));c.name=(p.name||'Project')+' (copy)';if(libPut(libNewId(),c))toast('Copied '+(p.name||'project'));draw();return;}
+    if(a==='dl'){const p=data();if(!p)return;const n=(p.name||'project').replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').slice(0,60);saveFile(n+'.takeoff.json',JSON.stringify(p,null,1));return;}
+    if(a==='del'){if(armed!==id){armed=id;draw();return;}armed=null;
+      try{localStorage.removeItem(PKEY(id));}catch(e){}libSetList(libList().filter(x=>x.id!==id));
+      if(id===LIB.cur){const rest=libList().sort((x,y)=>(y.updated||0)-(x.updated||0));LIB.cur=null;const nx=rest.find(x=>libGet(x.id));if(nx){libSetCur(nx.id);loadProject(libGet(nx.id));}else libNew(emptyProject());}
+      toast('Project deleted');draw();return;}
+    if(a==='ren'){const cell=b.closest('.pj-row').querySelector('.pj-name');const cur=libList().find(x=>x.id===id)?.name||'';
+      cell.innerHTML=`<input value="${esc(cur)}" aria-label="Project name">`;const inp=cell.querySelector('input');inp.focus();inp.select();let done=false;
+      const commit=ok=>{if(done)return;done=true;const v=inp.value.trim();if(ok&&v&&v!==cur){if(id===LIB.cur)mutate(()=>P.name=v);else{const p=libGet(id);if(p){p.name=v;libPut(id,p,true);}}}draw();};
+      inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();commit(true);}if(e.key==='Escape'){e.preventDefault();commit(false);}};inp.onblur=()=>commit(true);return;}
+  };
+  draw();setTimeout(()=>q.focus(),20);
 }
 
 /* ---------- team collaboration (published page only) ---------- */
@@ -3092,7 +3163,7 @@ function settingsBody(id){
   case'bank':return bankHTML();
   case'team':return card('Team &amp; sharing',`<div class="tm-body">${teamDialogBody()}</div>`);
   case'files':return card('This project',`<div class="file-grid"><button class="btn" data-fact="save">Save project file (.json)</button><button class="btn" data-fact="open">Open project file…</button><button class="btn primary needs-dl" data-fact="xlsx">Export all reports to Excel</button><button class="btn needs-dl" data-fact="csv">Export BoQ as CSV</button><button class="btn" data-fact="copy">Copy BoQ to clipboard</button></div>`,'Project files hold the model, rates, data bank, rate analyses and cover. PDF drawings are not included.')+
-    card('Start again',`<div class="file-grid"><button class="btn" data-fact="new">New empty project</button><button class="btn" data-fact="sample">Load sample house</button></div>`,'Both replace the current model on screen. Save it first if you want to keep it.');}
+    card('Projects',`<div class="file-grid"><button class="btn primary" data-fact="projects">My projects…</button><button class="btn" data-fact="new">New empty project</button><button class="btn" data-fact="sample">Load sample house</button></div>`,'Every project is saved automatically in this browser. New projects never replace old ones; find them all under My projects.');}
   return'';}
 function renderSettings(){
   const pane=$('#boqPane');const sig=focusSig(document.activeElement);const sc=pane.scrollTop;const id=SETT[S.set]?S.set:'general';S.set=id;
@@ -3128,19 +3199,18 @@ const mq=matchMedia('(prefers-color-scheme: dark)');const retheme=()=>{readTheme
 mq.addEventListener?.('change',retheme);new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 try{S.bomGroup=localStorage.getItem('takeoffstudio.bomg')||'cat';S.boqTab=localStorage.getItem('takeoffstudio.rep')||'bill';S.set=localStorage.getItem('takeoffstudio.set')||'general';}catch(e){S.bomGroup='cat';S.boqTab='bill';S.set='general';}
 renderRail();syncToggles();updateHint();init3D();
-let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE)||'null');}catch(e){}
-loadProject(saved&&saved.levels?.length?saved:sampleProject());
+libInit();
 let v0='split';try{v0=localStorage.getItem('takeoffstudio.view')||'split';}catch(e){}
 if(matchMedia('(max-width:900px)').matches&&v0==='split')v0='plan';
 setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.25-free2';
+const APP_VER='2026.09.26-projects';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
-    b.querySelector('[data-r]').onclick=()=>{try{localStorage.setItem(STORE,JSON.stringify(P));}catch(e){}location.reload();};b.querySelector('[data-l]').onclick=()=>b.remove();document.body.appendChild(b);}).catch(()=>{});};
+    b.querySelector('[data-r]').onclick=()=>{clearTimeout(saveT);libSave();location.reload();};b.querySelector('[data-l]').onclick=()=>b.remove();document.body.appendChild(b);}).catch(()=>{});};
   setTimeout(check,4000);setInterval(check,10*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});})();
 })();
 </script>
