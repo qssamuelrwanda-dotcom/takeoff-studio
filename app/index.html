@@ -544,7 +544,7 @@ function inPoly(pt,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){con
 function projSeg(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9;let t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2;t=clamp(t,0,1);const q=[a[0]+t*dx,a[1]+t*dy];return{t,q,d:d2(p,q),L:Math.sqrt(L2)};}
 
 /* ---------- curved (arc) line elements: chord a→b plus signed bulge e.arc (sagitta, m) ---------- */
-const ARCT=['wall','fwall','strip','beam','gbeam','cwall','louvre','rail'];
+const ARCT=['wall','fwall','strip','beam','gbeam','cwall','louvre','rail','fence'];
 function arcOf(e){const sg=+(e&&e.arc)||0;if(!e||!e.pts||e.pts.length<2||Math.abs(sg)<1e-3||!ARCT.includes(e.type))return null;const [a,b]=e.pts;const c=d2(a,b);if(c<1e-6)return null;
   const ux=(b[0]-a[0])/c,uy=(b[1]-a[1])/c,nx=-uy,ny=ux,m=[(a[0]+b[0])/2,(a[1]+b[1])/2];const R=(c*c/4+sg*sg)/(2*Math.abs(sg));const M=[m[0]+nx*sg,m[1]+ny*sg];const sn=Math.sign(sg);const C=[M[0]-nx*sn*R,M[1]-ny*sn*R];
   const fa=Math.atan2(a[1]-C[1],a[0]-C[0]),fm=Math.atan2(M[1]-C[1],M[0]-C[0]);let d=fm-fa;while(d>Math.PI)d-=2*Math.PI;while(d<=-Math.PI)d+=2*Math.PI;const D=2*d;return{C,R,fa,D,L:R*Math.abs(D),s:sg,M,c};}
@@ -594,6 +594,7 @@ const TYPES={
   rail:{label:'Balustrade / handrail',key:'y',mode:'chain'},
   cwall:{label:'Curtain wall',key:'q',mode:'chain'},
   louvre:{label:'Louvre panel',key:'z',mode:'chain'},
+  fence:{label:'Fence / boundary wall',key:'',mode:'chain'},
 };
 const OPT={
   kind:{external:'External',internal:'Internal'},
@@ -637,6 +638,13 @@ const OPT={
   lvmat:{alu:'Aluminium, powder coated',steel:'Galvanised steel',timber:'Hardwood timber',glass:'Glass blades'},
   lvblade:{fixed:'Fixed blades',adj:'Adjustable / operable blades'},
   mesh:{yes:'Bird / insect mesh behind',no:'No mesh'},
+  ftype:{chain:'Chain-link, PVC coated, on steel posts',mesh:'Welded mesh panels (2D / 358 security)',palisade:'Steel palisade (W / D pales)',railing:'Vertical bar railings, steel',closeboard:'Timber close-board',picket:'Timber picket / paling',postrail:'Timber post and rail',wire:'Post and strained wire (plain / barbed)',precast:'Precast concrete panels between posts',glass:'Frameless glass (pool / balcony)',hoarding:'Site hoarding, plywood on timber frame',bwall:'Boundary wall, masonry',wallrail:'Dwarf wall with railing on top'},
+  ftop:{none:'None',barbed:'Barbed wire, 3 strands on cranked arms',razor:'Razor wire coil Ø450',electric:'Electric fence, 4 strands on insulators',spikes:'Anti-climb spikes / rotating spikes'},
+  fcoat:{galv:'Hot-dip galvanised',pc:'Galvanised + polyester powder coated',paint:'Primed and painted',stain:'Timber preservative stain',none:'No finish'},
+  vgk:{swing:'Double swing gates',slide:'Sliding gate, manual',motor:'Sliding gate, motorised'},
+  bmat:{block:'Concrete blockwork',brick:'Clay brickwork',stone:'Natural stone masonry'},
+  bfin:{render2:'Render + paint both sides',render1:'Render + paint one side',fair:'Fair-faced, pointed'},
+  cop:{yes:'Precast concrete coping',no:'No coping'},
   type:{'pitched-tiles':'Pitched · concrete tiles','pitched-sheets':'Pitched · steel sheets','flat-membrane':'Flat · membrane'},
 };
 const FIELDS={
@@ -662,6 +670,7 @@ const FIELDS={
   rail:[['bal','Type','sel'],['h','Height','m']],
   cwall:[['cwsys','System','sel'],['glz','Glazing','sel'],['h','Height (0 = level height)','m'],['mv','Mullion spacing','m'],['tv','Transom spacing (0 = none)','m'],['sp','Opaque spandrel height at slab','m'],['ov','Opening vents','nr']],
   louvre:[['lvmat','Material','sel'],['lvblade','Blades','sel'],['h','Height','m'],['sill','Bottom above floor','m'],['mesh','Mesh','sel']],
+  fence:[['ftype','Fence type','sel'],['h','Height','m'],['dh','Dwarf wall height','m'],['sp','Post / pier spacing (0 = none)','m'],['fcoat','Finish','sel'],['ftop','Top protection','sel'],['bmat','Wall material','sel'],['t','Wall thickness','m'],['bfin','Wall finish','sel'],['cop','Coping','sel'],['fw','Footing width','m'],['fd','Footing depth','m'],['exc','Footing bottom below ground','m'],['pg','Pedestrian gates','nr'],['vg','Vehicle gates','nr'],['vgw','Vehicle gate width','m'],['vgk','Vehicle gate type','sel']],
 };
 const TD={
   wall:{kind:'external',material:'blockwork',t:0.2,h:2.8,fh:0,rh:0,rm:'bars',ra:90,vd:12,vs:0.2,hd:10,hs:0.2,ly:2,td:8,tn:4,trd:12,trn:2,cv:0.03,lap:40},
@@ -686,6 +695,7 @@ const TD={
   rail:{bal:'steel',h:1.1},
   cwall:{cwsys:'stick',glz:'dgu',h:0,mv:1.5,tv:1.5,sp:0,ov:0},
   louvre:{lvmat:'alu',lvblade:'fixed',h:1.2,sill:0,mesh:'yes'},
+  fence:{ftype:'mesh',h:1.8,dh:0.6,sp:2.5,fcoat:'pc',ftop:'none',bmat:'block',t:0.2,bfin:'render2',cop:'yes',fw:0.6,fd:0.25,exc:0.6,pg:0,vg:0,vgw:4,vgk:'swing'},
 };
 /* reinforcement inputs */
 const TDc=t=>JSON.parse(JSON.stringify(TD[t]));
@@ -717,6 +727,7 @@ const ECOLS=[
   ['Walls',[['wall:blockwork','Blockwork wall','#BDB2A4'],['wall:brick','Brick wall','#C47A5E'],['wall:concrete','Concrete wall','#96A2A6'],['wall:drywall','Drywall partition','#DCD4BC']]],
   ['Stairs & ramps',[['stair','Staircase','#7A5FA8'],['ramp','Ramp','#9A7CC0'],['rail','Balustrade','#4E5A66']]],
   ['Facade',[['cwall','Curtain wall','#2E86B8'],['louvre','Louvre','#6B8E7A']]],
+  ['External works',[['fence','Fence / boundary wall','#4F7A3A']]],
   ['Openings',[['door','Door','#A0703C'],['window','Window','#3C8DB5']]],
   ['Finishes',[['room','Rooms','']]],
   ['Services',[['sanitary','Sanitary fitting','#2F7FD1'],['pipe','Pipe runs',''],['pfit','Valves & fittings','']]],
@@ -850,6 +861,9 @@ function stairQ(e){const M=stairModel(e),p=e.p,t=+p.t||0.15,r=M.r;
     solid:M.treads.reduce((s2,x)=>s2+area(x.poly)*x.z,0)+landA*M.H};}
 function rampGeo(e){const L=elLen(e),H=+e.p.h||0;return{L,H,sl:Math.hypot(L,H),ang:Math.atan2(H,L||1),w:+e.p.w,t:+e.p.t,ratio:H>0?L/H:Infinity};}
 const cwH=e=>+e.p.h>0?+e.p.h:lvH(e);
+const FENCE={chain:[18,9],mesh:[30,18],palisade:[45,25],railing:[70,45],closeboard:[35,20],picket:[28,12],postrail:[20,8],wire:[6,3],precast:[50,25],glass:[180,120],hoarding:[25,15]};
+function fenceQ(e){const p=e.p,L=elLen(e),y=p.ftype||'mesh',pg=Math.max(0,Math.round(+p.pg||0)),vg=Math.max(0,Math.round(+p.vg||0)),gw=pg*1.0+vg*Math.max(1,+p.vgw||4);
+  const Ln=Math.max(0,L-gw),sp=+p.sp||0,posts=sp>0?Math.ceil(L/sp)+1:0;return{L,Ln,y,pg,vg,posts,h:+p.h||1.8,mas:y==='bwall'||y==='wallrail'};}
 const midPt=e=>{const A=arcOf(e);return A?A.M.slice():[(e.pts[0][0]+e.pts[1][0])/2,(e.pts[0][1]+e.pts[1][1])/2];};
 function gSlabT(level,pt){const s=onLevel(level).filter(x=>x.type==='slab'&&inPoly(pt,x.pts))[0];return s?+s.p.t:0;}
 function stripUnder(fw){const m=midPt(fw);return onLevel(fw.level).find(s=>s.type==='strip'&&projEl(m,s).d<s.p.w/2)||null;}
@@ -1067,6 +1081,27 @@ function linesFor(e){
     add('2.5',52,'cwov','Opening vents in curtain walling, top-hung, including handles and restrictors','nr',Math.round(+p.ov||0),650);
     add('2.5',53,'cwfs','Fire stopping and acoustic seal between curtain walling and slab edge','m',L,38);
     add('2.5',54,'cwhc','Perimeter seals and flashings at head and cill of curtain walling','m',2*L,28);
+  }else if(e.type==='fence'){
+    const F=fenceQ(e),h=F.h,H=mm(h),y=F.y,tim=['closeboard','picket','postrail','hoarding'].includes(y),c0=p.fcoat||'galv',coat=tim?(['stain','paint','none'].includes(c0)?c0:'stain'):(['galv','pc','paint'].includes(c0)?c0:'galv'),ck=['bwall','glass','precast','wire'].includes(y)?'':'_'+coat;
+    if(F.mas){const T=mm(+p.t),wh=y==='wallrail'?+p.dh:h,fw=+p.fw||0.6,fd=+p.fd||0.25,ex=Math.max(fd,+p.exc||0.6),L=F.Ln,Lf=F.L;
+      add('8.4',10,'bwexc','Excavate trench for boundary wall foundations, depth ≤ 1.0 m, including disposal','m³',Lf*fw*ex,26);
+      add('8.4',11,'bwfc','In-situ concrete C20/25 in strip foundations to boundary walls','m³',Lf*fw*fd,165);
+      const key={block:'fwb',brick:'fwk',stone:'fws'}[p.bmat||'block']+T,nm=OPT.bmat[p.bmat||'block'];
+      add('8.4',12,key,`${nm} ${T} mm thick in boundary walls, below and above ground, in cement–sand mortar (1:4)`,'m²',Lf*(ex-fd)+L*wh,p.bmat==='stone'?95:p.bmat==='brick'?72:48);
+      add('8.4',13,'dpc'+T,`Bitumen damp-proof course ${T} mm wide`,'m',Lf,4);
+      if(F.posts)add('8.4',14,'bwpier'+T,`Extra over boundary walls for attached piers ${mm(+p.t+0.24)} × ${mm(+p.t+0.24)} mm`,'m',F.posts*wh,38);
+      if(p.cop!=='no')add('8.4',15,'bwcop'+T,`Precast concrete coping ${mm(+p.t+0.1)} mm wide, twice weathered and throated, bedded`,'m',L,26);
+      const rs=p.bfin==='render2'?2:p.bfin==='render1'?1:0;if(rs){add('8.4',16,'rend','15 mm cement–sand render (1:4) to boundary walls','m²',rs*L*wh,17);add('8.4',17,'pext','Masonry paint, two coats, to rendered boundary walls','m²',rs*L*wh,6);}
+      else add('8.4',16,'bwpoint','Flush pointing to fair-faced boundary walls, both sides','m²',2*L*wh,5);
+      if(y==='wallrail')add('8.4',20,`fn_railing_${H}${ck}`,`Vertical bar railings, steel, ${H} mm high on top of dwarf wall, ${OPT.fcoat[coat].toLowerCase()}, bolted to wall`,'m',L,Math.round(70+45*h));}
+    else{const R=FENCE[y]||[30,18],sp=+p.sp||0;
+      add('8.4',20,`fn_${y}_${H}${ck}`,`${OPT.ftype[y]}, ${H} mm high${sp>0&&y!=='glass'?`, posts at ${fmtN(sp,2)} m centres`:''}${ck?', '+OPT.fcoat[coat].toLowerCase():''}, including fixings`,'m',F.Ln,Math.round(R[0]+R[1]*h+(coat==='pc'&&ck?6:0)));
+      if(F.posts&&!['glass'].includes(y)){add('8.4',21,'fpostx','Excavate for fence posts and gate posts and set in C20/25 concrete bases 300 × 300 × 600 mm','nr',F.posts,14);add('8.4',22,'fpostc','In-situ concrete C20/25 in fence post bases','m³',F.posts*0.054,160);}
+      if(y==='glass')add('8.4',21,'fglassb','Base channel / spigots for frameless glass fencing, cast into or fixed to concrete','m',F.Ln,45);}
+    const TP={barbed:['fn_top_barb','Barbed wire, 3 strands on cranked arms to top of fence / wall',7],razor:['fn_top_razor','Razor wire coil Ø450 mm on top of fence / wall, clipped to straining wires',14],electric:['fn_top_elec','Electric security fence, 4 strands on insulated brackets to top of fence / wall, including share of energiser and earthing',24],spikes:['fn_top_spike','Anti-climb rotating spikes to top of fence / wall',32]}[p.ftop];
+    if(TP)add('8.4',30,TP[0],TP[1],'m',F.Ln,TP[2]);
+    if(F.pg)add('8.4',40,`gt_ped_${H}`,`Pedestrian gate 1.0 m wide × ${H} mm high to match fence, with gate posts, hinges and lock`,'nr',F.pg,Math.round(280+160*h));
+    if(F.vg){const gw=Math.max(1,+p.vgw||4),k=p.vgk||'swing';add('8.4',41,`gt_${k}_${mm(gw)}_${H}`,`${OPT.vgk[k]}, ${fmtN(gw,2)} m opening × ${H} mm high to match fence, with gate posts${k==='swing'?', hinges, drop bolts and lock':', track, guide rollers'+(k==='motor'?', motor, controls and safety sensors':'')}`,'nr',F.vg,Math.round((k==='swing'?140:180)*gw*h+(k==='motor'?2600:k==='slide'?400:0)));}
   }else if(e.type==='louvre'){
     const A=elLen(e)*(+p.h||0),R={alu:[260,420],steel:[230,380],timber:[210,360],glass:[300,450]}[p.lvmat]||[260,420];
     add('2.6',60,`lv_${p.lvmat}_${p.lvblade}`,`Louvres, ${OPT.lvmat[p.lvmat].toLowerCase()}, ${OPT.lvblade[p.lvblade].toLowerCase()}, including frame, fixings and flashings`,'m²',A,p.lvblade==='adj'?R[1]:R[0]);
@@ -1206,6 +1241,7 @@ const ICON={
   pipe:'<path d="M3 16h7a3 3 0 0 0 3-3V8a3 3 0 0 1 3-3h3" stroke-width="2.2"/><path d="M3 14v4M19 3v4" stroke-width="1"/>',
   pfit:'<path d="M2 11h4M16 11h4"/><path d="M6 7v8l10-8v8z"/><path d="M11 11V5M8.5 5h5" stroke-width="1"/>',
   mh:'<rect x="4" y="4" width="14" height="14" rx="1"/><path d="M4 4l14 14M18 4L4 18" stroke-width="1"/>',
+  fence:'<path d="M4 5v14M11 5v14M18 5v14"/><path d="M2 9h18M2 15h18" stroke-width="1.1"/><path d="M4 5l-1 1.5M11 5l-1 1.5M18 5l-1 1.5" stroke-width="1"/>',
   fwall:'<path d="M2 12.5h18" stroke-dasharray="2 1.5" stroke-width="1"/><path d="M8 4h6v11H8z"/><path d="M5 15h12v3H5z"/><path d="M8 7.5h6M8 11h6" stroke-width="1"/>',
   pad:'<path d="M4 14h14v4H4z"/><path d="M9 14V5h4v9" stroke-width="1"/>',
   stair:'<path d="M3 19h4v-4h4v-4h4V7h4V3"/><path d="M3 19 19 3" stroke-width="1" stroke-dasharray="2 2"/>',
@@ -1217,7 +1253,7 @@ const ICON={
   calibrate:'<path d="M3 11h16"/><path d="M3 7v8M19 7v8" /><path d="M6 9l-3 2 3 2M16 9l3 2-3 2" stroke-width="1"/>',
   align:'<path d="M11 2v18M2 11h18"/><path d="M8 5l3-3 3 3M8 17l3 3 3-3M5 8l-3 3 3 3M17 8l3 3-3 3" stroke-width="1"/>',
 };
-const SHORT={stair:'Stair',ramp:'Ramp',rail:'Rail',cwall:'Curtain',louvre:'Louvre',grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
+const SHORT={fence:'Fence',stair:'Stair',ramp:'Ramp',rail:'Rail',cwall:'Curtain',louvre:'Louvre',grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
 const TT=t=>[t,TYPES[t].label,TYPES[t].key];
 const TOOLS=[['','',[['select','Select / move','v'],['grid','Structural grid line','l']]],
   ['1','Substructure',['strip','pad','gbeam','fwall'].map(TT)],
@@ -1229,8 +1265,9 @@ const TOOLS=[['','',[['select','Select / move','v'],['grid','Structural grid lin
   ['2.6','Openings',['door','window','louvre'].map(TT)],
   ['3','Finishes',['room'].map(TT)],
   ['5','Services',['sanitary','pipe','pfit','mh'].map(TT)],
+  ['8','External',['fence'].map(TT)],
   ['','Drawing',[['measure','Measure distance','m'],['calibrate','Calibrate drawing scale','k'],['align','Move drawing underlay','']]]];
-const GCOL={'':'#0F7A70',Substructure:'#9A6230',Frame:'#2F6FB8',Floors:'#4B7C8C',Roof:'#C4523B',Stairs:'#7A5FA8',Walls:'#C07E14',Openings:'#1C93AE',Finishes:'#8150C0',Services:'#2E9460',Drawing:'#657583'};
+const GCOL={'':'#0F7A70',Substructure:'#9A6230',Frame:'#2F6FB8',Floors:'#4B7C8C',Roof:'#C4523B',Stairs:'#7A5FA8',Walls:'#C07E14',Openings:'#1C93AE',Finishes:'#8150C0',Services:'#2E9460',External:'#4F7A3A',Drawing:'#657583'};
 function renderRail(){
   $('#rail').innerHTML=TOOLS.map(([code,name,ts])=>`<div class="rgrp" style="--gc:${GCOL[name]||GCOL['']}">${name?`<span class="grp" title="${esc(name)}">${code?`<b>${code}</b>`:''}${name}</span>`:''}<div class="rtools">`+ts.map(([id,label,k])=>`<button class="tool" data-tool="${id}" title="${esc(label)}${k?' · shortcut '+k.toUpperCase():''}" aria-label="${esc(label)}" aria-pressed="${S.tool===id}"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">${ICON[id]}</svg><span class="tl">${SHORT[id]}</span>${k?`<kbd>${k.toUpperCase()}</kbd>`:''}${TYPES[id]?`<i class="cnt" data-cnt="${id}" hidden></i>`:''}</button>`).join('')+`</div></div>`).join('');
   updateRailCounts();
@@ -1327,6 +1364,7 @@ function fieldOn(t,k,o){
   if(t==='stair'){const y=o.stype||'straight';if(k==='turn')return y!=='straight';if(k==='split')return['L','LW','U','U3'].includes(y);if(k==='ld'||k==='gap')return y==='U'||y==='U3'&&k==='gap';if(k==='lt'||k==='g')return y!=='spiral'&&(k==='g'||y==='straight');
     if(k==='dia'||k==='rin'||k==='sa')return y==='spiral';if(k==='t'||k==='ra'||k==='sof')return o.stmat==='rc';if(k==='stfin'||k==='nos')return['rc','pc','ext','steelpan'].includes(o.stmat);if(k==='bal')return o.rails!=='0';}
   if(t==='ramp'&&k==='bal')return o.rails!=='0';
+  if(t==='fence'){const y=o.ftype||'mesh',mas=y==='bwall'||y==='wallrail';if(['bmat','t','bfin','cop','fw','fd','exc'].includes(k))return mas;if(k==='dh')return y==='wallrail';if(k==='fcoat')return!['bwall','glass','precast','wire'].includes(y);if(k==='vgw'||k==='vgk')return +o.vg>0;}
   if(t==='column'){const c=o.cs||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='d')return c!=='circle';if(k==='t'||k==='rot')return c==='L';}
   if(t==='strip'){const c=o.ss||'rect';if(k==='w2')return c!=='rect';if(k==='d2')return c==='stepped';}
   if(t==='pad'){const c=o.ps||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='l')return c!=='circle';if(k==='w2'||k==='l2'||k==='d2')return c==='stepped'||c==='sloped';}
@@ -1369,7 +1407,7 @@ function onField(t,obj,k){if((t==='pipe'||t==='pfit')&&k==='sys'){const d=SYS[ob
 function fieldHTML(t,obj,prefix){
   return `<div class="fields">`+FIELDS[t].filter(([k])=>fieldOn(t,k,obj)).map(([k,label,kind])=>{
     const id=`${prefix}-${k}`;
-    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','sys','mat','mhs','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh','stype','turn','whr','rails'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
+    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','sys','mat','mhs','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh','stype','turn','whr','rails','ftype','ftop','fcoat','vgk','bmat','bfin','cop'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
     if(kind==='txt')return`<div class="field wide"><label for="${id}">${label}</label><input id="${id}" data-k="${k}" value="${esc(obj[k])}"></div>`;
     return`<div class="field"><label for="${id}">${label}</label><div class="unitwrap"><input id="${id}" type="number" step="${kind==='°'?1:0.01}" min="0" data-k="${k}" data-num value="${obj[k]}"><span>${kind}</span></div></div>`;
   }).join('')+`</div>`;
@@ -1397,6 +1435,7 @@ function elemDims0(e){const p=e.p;switch(e.type){
   case'ramp':{const g=rampGeo(e);return`${fmtN(g.L)} m long · ${mm(g.w)} mm wide · rise ${fmtN(g.H)} m${g.H>0?` · gradient 1:${fmtN(g.ratio,1)}`:''}${g.H>0&&g.ratio<12?' · ⚠ steeper than 1:12':''} · ${OPT.rpmat[p.rpmat]}`;}
   case'rail':return`${fmtN(elLen(e))} m · ${fmtN(+p.h)} m high · ${OPT.bal[p.bal]}`;
   case'cwall':{const L=elLen(e),H=cwH(e),nm=Math.max(1,Math.round(L/Math.max(0.3,+p.mv||1.5)));return`${fmtN(L)} × ${fmtN(H)} m = ${fmtN(L*H)} m² · ${nm} bay${nm===1?'':'s'} of ${fmtN(L/nm)} m · ${OPT.cwsys[p.cwsys]} · ${OPT.glz[p.glz]}`;}
+  case'fence':{const F=fenceQ(e);return`${OPT.ftype[F.y]} · ${fmtN(F.L)} m long${F.Ln<F.L-1e-6?` (${fmtN(F.Ln)} m net of gates)`:''} · ${fmtN(F.y==='wallrail'?+p.dh+F.h:F.h)} m high${F.posts?` · ${F.posts} ${F.mas?'piers':'posts'} at ${fmtN(+p.sp)} m`:''}${F.pg||F.vg?` · ${F.pg} pedestrian + ${F.vg} vehicle gate${F.vg===1?'':'s'}`:''}${p.ftop&&p.ftop!=='none'?' · '+OPT.ftop[p.ftop].toLowerCase():''}`;}
   case'louvre':return`${fmtN(elLen(e))} × ${fmtN(+p.h)} m = ${fmtN(elLen(e)*p.h)} m² · ${OPT.lvmat[p.lvmat]}, ${OPT.lvblade[p.lvblade].toLowerCase()}`;}return'';}
 function cornersHTML(e){
   if(!e.pts)return'';const poly=POLYT.includes(e.type),line=LINET.includes(e.type)||e.type==='grid';
@@ -1595,7 +1634,7 @@ function drawPlanNow(){
     ctx.restore();}
   const els=onLevel(S.level).filter(vis);const isSel=e=>e.id===S.sel||(S.hl&&S.hl.has(e.id));
   drawGrids('lines');
-  const order=['roof','slab','room','void','ramp','stair','strip','pad','gbeam','beam','wall','cwall','louvre','fwall','rail','column','mh','pipe','pfit','sanitary'];
+  const order=['roof','slab','room','void','fence','ramp','stair','strip','pad','gbeam','beam','wall','cwall','louvre','fwall','rail','column','mh','pipe','pfit','sanitary'];
   let ri=0;
   for(const ty of order)for(const e of els.filter(x=>x.type===ty)){
     const sel=isSel(e);
@@ -1615,6 +1654,11 @@ function drawPlanNow(){
       if(pg.c==='circle'){const [sx,sy]=w2s([x,y]);ctx.beginPath();ctx.arc(sx,sy,e.p.dia/2*z,0,Math.PI*2);ctx.stroke();}
       else{const o=R4(+e.p.w,+e.p.l);poly(o);ctx.stroke();if(pg.w2){const iN=R4(pg.w2,pg.l2);poly(iN);ctx.setLineDash([3,3]);ctx.stroke();if(pg.c==='sloped'){ctx.setLineDash([]);ctx.lineWidth=0.8;ctx.beginPath();for(let k=0;k<4;k++){ctx.moveTo(...w2s(o[k]));ctx.lineTo(...w2s(iN[k]));}ctx.stroke();}}}
       ctx.setLineDash([]);}
+    else if(ty==='fence'){const C=colE(e),L=elLen(e);if(L<1e-3)continue;const F=fenceQ(e),col=sel?TH.mark:C;
+      if(F.mas){poly(elQuad(e,+e.p.t||0.2,false));ctx.fillStyle=hatch(C,0.45,5);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=sel?2.4:1.2;ctx.stroke();}
+      else{ctx.beginPath();for(let k=0;k<=24;k++){const f=frameAt(e,L*k/24);k?ctx.lineTo(...w2s(f.p)):ctx.moveTo(...w2s(f.p));}ctx.strokeStyle=col;ctx.lineWidth=sel?3:1.8;ctx.setLineDash(F.y==='wire'?[2,4]:F.y==='chain'||F.y==='mesh'?[7,3]:F.y==='hoarding'?[]:[12,3,2,3]);ctx.stroke();ctx.setLineDash([]);}
+      if(F.posts){ctx.fillStyle=col;for(let k=0;k<F.posts;k++){const f=frameAt(e,Math.min(L,k*(+e.p.sp)));const [x2,y2]=w2s(f.p);const r2=F.mas?Math.max(2.5,(+e.p.t+0.24)/2*z):2.8;ctx.fillRect(x2-r2,y2-r2,2*r2,2*r2);}}
+      if(z>16&&L*z>90){const f=frameAt(e,L/2),[x2,y2]=w2s(f.p);const txt={chain:'CHAIN-LINK',mesh:'MESH',palisade:'PALISADE',railing:'RAILINGS',closeboard:'CLOSE-BOARD',picket:'PICKET',postrail:'POST & RAIL',wire:'POST & WIRE',precast:'PRECAST',glass:'GLASS',hoarding:'HOARDING',bwall:'BOUNDARY WALL',wallrail:'WALL + RAILING'}[F.y]+' '+fmtN(F.y==='wallrail'?+e.p.dh+F.h:F.h,1)+' m';ctx.font='600 10.5px "Barlow Condensed",sans-serif';const tw=ctx.measureText(txt).width+6;ctx.fillStyle=TH.paper;ctx.fillRect(x2-tw/2,y2-16,tw,13);ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(txt,x2,y2-6);}}
     else if(ty==='stair'){const C=colE(e),M=stairModel(e);const col=sel?TH.mark:C;
       for(const l of M.lands){poly(l.poly.map(M.W));ctx.fillStyle=hatch(C,0.16,6);ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=sel?2:1.2;ctx.stroke();}
       for(const t of M.treads){poly(t.poly.map(M.W));ctx.globalAlpha=0.5;ctx.fillStyle=TH.paper;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=col;ctx.lineWidth=sel?1.6:0.9;ctx.stroke();}
@@ -1711,7 +1755,7 @@ function drawOpening(w,o,sel){
 }
 
 /* ---------- snapping & hit test ---------- */
-const POLYT=['room','slab','roof','void'],LINET=['wall','beam','strip','fwall','gbeam','pipe','cwall','louvre','rail','stair','ramp'];
+const POLYT=['room','slab','roof','void'],LINET=['wall','beam','strip','fwall','gbeam','pipe','cwall','louvre','rail','stair','ramp','fence'];
 /* ---------- curve panel for walls, beams, strips, foundation walls ---------- */
 function curveHTML(e){if(!ARCT.includes(e.type)||!e.pts||e.pts.length<2)return'';const A=arcOf(e);const c=d2(e.pts[0],e.pts[1]);
   return `<div class="curve-box"><div class="curve-hd"><span>Plan shape</span><span class="seg"><button data-cv="straight" aria-pressed="${!A}">Straight</button><button data-cv="curved" aria-pressed="${!!A}">Curved</button></span></div>
@@ -1971,7 +2015,7 @@ function hitAll(pt){
   {const hs=[];for(const e of els.filter(x=>x.type==='pipe')){const r=projEl(pt,e);if(r.d<0.06+tol)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
   for(const e of els.filter(e=>e.type==='column'||e.type==='pad')){const [x,y]=e.pts[0];const ex=e.type==='pad'?padGeo(e.p):colSec(e);const hw=ex.hw+tol,hd=(e.type==='pad'?ex.hl:ex.hd)+tol;if(Math.abs(pt[0]-x)<hw&&Math.abs(pt[1]-y)<hd)out.push(e);}
   for(const e of els.filter(x=>x.type==='stair')){const M=stairModel(e);if(M.planW.some(pl=>inPoly(pt,pl)))out.push(e);}
-  for(const ty of ['rail','cwall','louvre','wall','fwall','gbeam','beam','strip','ramp']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:ty==='cwall'?0.12:ty==='louvre'?0.16:ty==='rail'?0.08:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
+  for(const ty of ['fence','rail','cwall','louvre','wall','fwall','gbeam','beam','strip','ramp']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:ty==='fence'?Math.max(0.14,+e.p.t||0):ty==='cwall'?0.12:ty==='louvre'?0.16:ty==='rail'?0.08:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
   for(const ty of ['void','room','slab','roof'])els.filter(e=>e.type===ty&&inPoly(pt,e.pts)).sort((a,b)=>area(a.pts)-area(b.pts)).forEach(e=>out.push(e));
   gridHit(pt).forEach(g=>out.push(g));
   return out;
@@ -2270,6 +2314,20 @@ function build3D(){
       else if(e.type==='sanitary'){const F=FIT[p.fx]||FIT.wc;const [x,y]=e.pts[0];box(F.sz[0],F.h,F.sz[1],x,el0+F.h/2+0.02,y,-(+p.rot||0)*Math.PI/180,p.fx==='tank'?0x2B3A40:(isHex(e.c)||isHex(P.colors?.sanitary)?c3(e):0xF3F6F7),e.id);}
       else if(e.type==='pfit'){const S2=SYS[p.sys]||SYS.cw;const [x,y]=e.pts[0];const yy=p.sys==='ud'?+P.sub.egl+S2.h:el0+S2.h;const s0=Math.max(0.08,+p.dia/1000*2.2);box(s0,s0,s0,x,yy,y,0,c3(e,parseInt(S2.col.slice(1),16)),e.id);}
       else if(e.type==='mh'){const [x,y]=e.pts[0],sz=p.mhs.split('x').map(v=>+v/1000+0.3);box(sz[0],+p.dep+0.2,sz[1],x,+P.sub.egl-(+p.dep+0.2)/2+0.02,y,0,c3(e,0x8E969A),e.id);}
+      else if(e.type==='fence'){const L=elLen(e);if(L<1e-3)continue;const F=fenceQ(e),y=F.y,g0=isGround(l.id)?+P.sub.egl:el0,own=isHex(e.c)||isHex(P.colors?.fence),fc=fb=>own?c3(e,fb):fb,C=fc(0x5E8C4A),post=0x3F4A4F;let base=g0,h=F.h;
+        if(F.mas){const wh=y==='wallrail'?+p.dh:h,t=+p.t||0.2,mc=fc({block:0xC9C0B2,brick:0xC47A5E,stone:0xA99B84}[p.bmat||'block']);sweep(e,0,L,t,wh,g0,mc,e.id);
+          if(F.posts)for(let k=0;k<F.posts;k++){const s2=Math.min(L,k*(+p.sp));sweep(e,Math.max(0,s2-(t+0.24)/2),Math.min(L,s2+(t+0.24)/2),t+0.24,wh+0.05,g0,mc,e.id);}
+          if(p.cop!=='no')sweep(e,0,L,t+0.1,0.06,g0+wh,0xB5B5AE,e.id);base=g0+wh+(p.cop!=='no'?0.06:0);if(y==='bwall')h=0;}
+        if(h>0){const sp2=+p.sp||2.5,np=Math.max(1,Math.round(L/Math.max(0.5,sp2)));
+          const solid={closeboard:0x8B6B45,precast:0xA8A8A0,hoarding:0xC8B48A}[y],trans={chain:[fc(0x6F8F5A),0.35],mesh:[C,0.45],glass:[C3.glass,0.35]}[y];
+          if(solid)sweep(e,0,L,y==='precast'?0.08:0.03,h-(y==='hoarding'?0:0.05),base,fc(solid),e.id);
+          else if(trans)sweep(e,0,L,0.02,h-0.05,base+(y==='glass'?0.05:0.03),trans[0],e.id,{transparent:true,opacity:trans[1],noEdge:true});
+          else if(y==='wire'){for(const f2 of [0.25,0.5,0.75,0.97])sweep(e,0,L,0.01,0.01,base+h*f2,0x555555,e.id,{noEdge:true});}
+          else{const gap=y==='picket'?0.12:y==='postrail'?0:0.2,pc2=fc(y==='picket'||y==='postrail'?0x9B7B55:0x2F3A40);
+            if(gap&&L/gap<400){for(let s2=0.1;s2<L;s2+=gap)sweep(e,s2-0.025,s2+0.025,y==='palisade'?0.07:0.03,h-(y==='railing'?0.02:0),base,pc2,e.id,{noEdge:true});}
+            for(const f2 of y==='postrail'?[0.25,0.6,0.95]:[0.2,0.85])sweep(e,0,L,0.05,0.06,base+h*f2,pc2,e.id,{noEdge:true});}
+          if(y!=='glass'&&!(F.mas&&y==='wallrail'&&false))for(let k=0;k<=np;k++){const s2=L*k/np;sweep(e,Math.max(0,s2-0.04),Math.min(L,s2+0.04),0.08,h+0.05,base,y==='closeboard'||y==='picket'||y==='postrail'||y==='hoarding'?0x6E5234:post,e.id,{noEdge:true});}}
+        const top=base+Math.max(h,0);if(p.ftop==='razor')sweep(e,0,L,0.3,0.3,top,0x9AA0A4,e.id,{transparent:true,opacity:0.5,noEdge:true});else if(p.ftop&&p.ftop!=='none')for(const dz of [0.1,0.2,0.3])sweep(e,0,L,0.015,0.015,top+dz,p.ftop==='electric'?0xC9A20B:0x555555,e.id,{noEdge:true});}
       else if(e.type==='stair'){const M=stairModel(e),mt=p.stmat||'rc',heavy=['rc','pc','ext'].includes(mt),t=+p.t||0.15,cc=c3(e,mt==='timber'?0xB08A5E:heavy?0xB9B2A6:0x7E8A92),r=M.r;
         for(const tr of M.treads){const wp=tr.poly.map(M.W);const th=mt==='ext'?tr.z:heavy?(tr.kind==='f'?r:r+t):0.05;extrude(wp,Math.max(0.03,th),el0+tr.z,cc,e.id);}
         for(const l of M.lands)extrude(l.poly.map(M.W),mt==='ext'?M.H:heavy?t:0.08,el0+l.z,cc,e.id);
@@ -2752,7 +2810,7 @@ function mapMats(it,add,onRebar){
     const pm=k.match(/^pp_(\w+?)_(\w+?)_(\d+)/);if(pm){const [,sy,mt,di]=pm;const len=mt==='ppr'?4:mt==='cu'?3:6;add('plb',`pipe_${sy}_${mt}_${di}`,`${OPT.sys[sy]} pipe ${OPT.mat[mt]} Ø${di}`,`${len} m lengths`,'m',q,5,pipeRate(sy,mt,di)*0.45,src);}
     if(/^pf_|^pv_/.test(k))add('plb','f_'+k,d.split(',').slice(0,2).join(','),'','nr',q,0,it.r*0.6/fac,src);
     // supply items
-    if(/^san_|^dx|^di|^wn|^mh|^cw_|^lv_|^bal_|^stpc_|^ststeel_|^sttimber_/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only','nr',q,0,it.r*0.65/fac,src);
+    if(/^san_|^dx|^di|^wn|^mh|^cw_|^lv_|^bal_|^fn_|^gt_|^stpc_|^ststeel_|^sttimber_/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only','nr',q,0,it.r*0.65/fac,src);
 }
 const BOMG={cat:'Material',sec:'Bill section',level:'Floor',type:'Element'};
 function bomData(group){
@@ -3442,7 +3500,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-stairs2';
+const APP_VER='2026.09.26-fence';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
