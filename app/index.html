@@ -544,7 +544,7 @@ function inPoly(pt,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){con
 function projSeg(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1e-9;let t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2;t=clamp(t,0,1);const q=[a[0]+t*dx,a[1]+t*dy];return{t,q,d:d2(p,q),L:Math.sqrt(L2)};}
 
 /* ---------- curved (arc) line elements: chord a→b plus signed bulge e.arc (sagitta, m) ---------- */
-const ARCT=['wall','fwall','strip','beam','gbeam'];
+const ARCT=['wall','fwall','strip','beam','gbeam','cwall','louvre','rail'];
 function arcOf(e){const sg=+(e&&e.arc)||0;if(!e||!e.pts||e.pts.length<2||Math.abs(sg)<1e-3||!ARCT.includes(e.type))return null;const [a,b]=e.pts;const c=d2(a,b);if(c<1e-6)return null;
   const ux=(b[0]-a[0])/c,uy=(b[1]-a[1])/c,nx=-uy,ny=ux,m=[(a[0]+b[0])/2,(a[1]+b[1])/2];const R=(c*c/4+sg*sg)/(2*Math.abs(sg));const M=[m[0]+nx*sg,m[1]+ny*sg];const sn=Math.sign(sg);const C=[M[0]-nx*sn*R,M[1]-ny*sn*R];
   const fa=Math.atan2(a[1]-C[1],a[0]-C[0]),fm=Math.atan2(M[1]-C[1],M[0]-C[0]);let d=fm-fa;while(d>Math.PI)d-=2*Math.PI;while(d<=-Math.PI)d+=2*Math.PI;const D=2*d;return{C,R,fa,D,L:R*Math.abs(D),s:sg,M,c};}
@@ -570,7 +570,7 @@ function bbox(p){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const [x,y] of p){x0=Math
 function centroid(p){let x=0,y=0;for(const q of p){x+=q[0];y+=q[1];}return[x/p.length,y/p.length];}
 
 /* ---------- model definitions ---------- */
-const SEC=[['0','Preliminaries & general items'],['1.1','Substructure · foundations & earthworks'],['1.2','Substructure · lowest floor construction'],['2.1','Frame'],['2.2','Upper floors'],['2.3','Roof'],['2.5','External walls'],['2.6','Windows and external doors'],['2.7','Internal walls and partitions'],['2.8','Internal doors'],['3.1','Wall finishes'],['3.2','Floor finishes'],['3.3','Ceiling finishes'],['5.1','Sanitary installations'],['5.3','Disposal installations'],['5.4','Water installations'],['5.6','Space heating and air conditioning'],['5.8','Electrical installations'],['5.9','Fuel installations (gas)'],['5.11','Fire protection installations'],['8.2','Roads, paths and pavings'],['8.4','Fencing, railings and walls'],['8.6','External drainage'],['9','Provisional sums, PC sums & dayworks']];
+const SEC=[['0','Preliminaries & general items'],['1.1','Substructure · foundations & earthworks'],['1.2','Substructure · lowest floor construction'],['2.1','Frame'],['2.2','Upper floors'],['2.3','Roof'],['2.4','Stairs and ramps'],['2.5','External walls'],['2.6','Windows and external doors'],['2.7','Internal walls and partitions'],['2.8','Internal doors'],['3.1','Wall finishes'],['3.2','Floor finishes'],['3.3','Ceiling finishes'],['5.1','Sanitary installations'],['5.3','Disposal installations'],['5.4','Water installations'],['5.6','Space heating and air conditioning'],['5.8','Electrical installations'],['5.9','Fuel installations (gas)'],['5.11','Fire protection installations'],['8.2','Roads, paths and pavings'],['8.4','Fencing, railings and walls'],['8.6','External drainage'],['9','Provisional sums, PC sums & dayworks']];
 const TYPES={
   wall:{label:'Wall',key:'w',mode:'chain'},
   column:{label:'Column',key:'c',mode:'point'},
@@ -589,6 +589,11 @@ const TYPES={
   pipe:{label:'Pipe run',key:'e',mode:'chain'},
   mh:{label:'Manhole',key:'h',mode:'point'},
   pfit:{label:'Valve / pipe fitting',key:'x',mode:'point'},
+  stair:{label:'Staircase flight',key:'i',mode:'chain'},
+  ramp:{label:'Ramp',key:'j',mode:'chain'},
+  rail:{label:'Balustrade / handrail',key:'y',mode:'chain'},
+  cwall:{label:'Curtain wall',key:'q',mode:'chain'},
+  louvre:{label:'Louvre panel',key:'z',mode:'chain'},
 };
 const OPT={
   kind:{external:'External',internal:'Internal'},
@@ -616,6 +621,19 @@ const OPT={
   vkind:{lift:'Lift shaft',stair:'Stair opening',riser:'Service riser / duct',atrium:'Atrium / double-height void'},
   rule:{nrm:'Deduct only if > 1 m² (NRM2)',always:'Always deduct'},
   vrooms:{yes:'Yes, deduct floor & ceiling',no:'No'},
+  stmat:{rc:'In-situ reinforced concrete',pc:'Precast concrete',steel:'Structural steel',timber:'Timber'},
+  stfin:{terr:'Terrazzo',cer:'Ceramic tiles',por:'Porcelain tiles',gran:'Granite',tim:'Hardwood timber',none:'No finish (fair-faced)'},
+  nos:{yes:'Anti-slip nosings',no:'No nosings'},
+  rails:{'0':'None','1':'One side','2':'Both sides'},
+  bal:{steel:'Mild steel balustrade, painted',ss:'Stainless steel & glass balustrade',timber:'Hardwood timber balustrade',hr:'Wall-mounted handrail only'},
+  sof:{yes:'Plaster & paint',no:'Fair-faced, no finish'},
+  rpmat:{grade:'Concrete on grade (on fill)',susp:'Suspended reinforced concrete'},
+  rpfin:{broom:'Broom-finished concrete',tiles:'Anti-slip tiles',paving:'Concrete paving blocks',none:'No finish'},
+  cwsys:{stick:'Stick system, aluminium',unit:'Unitised system',ssg:'Structural silicone glazing'},
+  glz:{dgu:'Double glazed, low-E',sol:'Double glazed, solar control',tgu:'Triple glazed'},
+  lvmat:{alu:'Aluminium, powder coated',steel:'Galvanised steel',timber:'Hardwood timber',glass:'Glass blades'},
+  lvblade:{fixed:'Fixed blades',adj:'Adjustable / operable blades'},
+  mesh:{yes:'Bird / insect mesh behind',no:'No mesh'},
   type:{'pitched-tiles':'Pitched · concrete tiles','pitched-sheets':'Pitched · steel sheets','flat-membrane':'Flat · membrane'},
 };
 const FIELDS={
@@ -636,6 +654,11 @@ const FIELDS={
   pipe:[['sys','System','sel'],['mat','Material','sel'],['dia','Diameter','sel'],['vert','Extra vertical length','m']],
   mh:[['mhs','Internal size','sel'],['dep','Depth to invert','m']],
   pfit:[['pk','Valve / fitting','sel'],['sys','System','sel'],['dia','Diameter','sel']],
+  stair:[['stmat','Construction','sel'],['w','Width','m'],['h','Rise (0 = level height)','m'],['rmax','Maximum riser height','m'],['lt','Top landing length','m'],['t','Waist thickness','m'],['ra','Reinforcement allowance','kg/m³'],['stfin','Tread & riser finish','sel'],['nos','Nosings','sel'],['sof','Soffit finish','sel'],['rails','Balustrade','sel'],['bal','Balustrade type','sel']],
+  ramp:[['rpmat','Construction','sel'],['w','Width','m'],['h','Rise','m'],['t','Slab thickness','m'],['rpfin','Surface finish','sel'],['rails','Balustrade','sel'],['bal','Balustrade type','sel']],
+  rail:[['bal','Type','sel'],['h','Height','m']],
+  cwall:[['cwsys','System','sel'],['glz','Glazing','sel'],['h','Height (0 = level height)','m'],['mv','Mullion spacing','m'],['tv','Transom spacing (0 = none)','m'],['sp','Opaque spandrel height at slab','m'],['ov','Opening vents','nr']],
+  louvre:[['lvmat','Material','sel'],['lvblade','Blades','sel'],['h','Height','m'],['sill','Bottom above floor','m'],['mesh','Mesh','sel']],
 };
 const TD={
   wall:{kind:'external',material:'blockwork',t:0.2,h:2.8,fh:0,rh:0,rm:'bars',ra:90,vd:12,vs:0.2,hd:10,hs:0.2,ly:2,td:8,tn:4,trd:12,trn:2,cv:0.03,lap:40},
@@ -655,6 +678,11 @@ const TD={
   pipe:{sys:'cw',mat:'ppr',dia:'20',vert:0},
   mh:{mhs:'600x450',dep:0.9},
   pfit:{pk:'gate',sys:'cw',dia:'20'},
+  stair:{stmat:'rc',w:1.2,h:0,rmax:0.175,lt:1.2,t:0.15,ra:110,stfin:'terr',nos:'yes',sof:'yes',rails:'1',bal:'steel'},
+  ramp:{rpmat:'grade',w:1.5,h:0.45,t:0.15,rpfin:'broom',rails:'2',bal:'steel'},
+  rail:{bal:'steel',h:1.1},
+  cwall:{cwsys:'stick',glz:'dgu',h:0,mv:1.5,tv:1.5,sp:0,ov:0},
+  louvre:{lvmat:'alu',lvblade:'fixed',h:1.2,sill:0,mesh:'yes'},
 };
 /* reinforcement inputs */
 const TDc=t=>JSON.parse(JSON.stringify(TD[t]));
@@ -684,6 +712,8 @@ const ECOLS=[
   ['Frame',[['column','Column','#6F7F86'],['beam','Beam','#8A9AA2']]],
   ['Floors & roof',[['slab','Slab','#A9B4B9'],['void','Slab opening','#D0453A'],['roof','Roof','#B5563F']]],
   ['Walls',[['wall:blockwork','Blockwork wall','#BDB2A4'],['wall:brick','Brick wall','#C47A5E'],['wall:concrete','Concrete wall','#96A2A6'],['wall:drywall','Drywall partition','#DCD4BC']]],
+  ['Stairs & ramps',[['stair','Staircase','#7A5FA8'],['ramp','Ramp','#9A7CC0'],['rail','Balustrade','#4E5A66']]],
+  ['Facade',[['cwall','Curtain wall','#2E86B8'],['louvre','Louvre','#6B8E7A']]],
   ['Openings',[['door','Door','#A0703C'],['window','Window','#3C8DB5']]],
   ['Finishes',[['room','Rooms','']]],
   ['Services',[['sanitary','Sanitary fitting','#2F7FD1'],['pipe','Pipe runs',''],['pfit','Valves & fittings','']]],
@@ -763,6 +793,12 @@ function padGeo(p){const c=p.ps||'rect';
   if(c==='sloped'){const w2=Math.min(+p.w2,w),l2=Math.min(+p.l2,l),h=+p.d2;const Vp=h/6*(w*l+4*((w+w2)/2)*((l+l2)/2)+w2*l2);
     const slope=2*((w+w2)/2)*Math.hypot((l-l2)/2,h)+2*((l+l2)/2)*Math.hypot((w-w2)/2,h);return{c,Ab,V:Ab*d+Vp,H:d+h,hw:w/2,hl:l/2,w2,l2,slope};}
   return{c,Ab,V:Ab*d,H:d,hw:w/2,hl:l/2};}
+const lvH=e=>+(lvl(e.level)?.h)||3;
+function stairGeo(e){const p=e.p,L=elLen(e),H=+p.h>0?+p.h:lvH(e),lt=Math.min(Math.max(0,+p.lt||0),L*0.8),Lf=Math.max(0.05,L-lt);
+  const n=Math.max(2,Math.ceil(H/Math.max(0.12,+p.rmax||0.175)-1e-9)),r=H/n,nt=n-1,g=Lf/nt,sl=Math.hypot(Lf,H);
+  return{L,H,lt,Lf,n,r,nt,g,sl,ang:Math.atan2(H,Lf),w:+p.w,t:+p.t,rule:2*r+g};}
+function rampGeo(e){const L=elLen(e),H=+e.p.h||0;return{L,H,sl:Math.hypot(L,H),ang:Math.atan2(H,L||1),w:+e.p.w,t:+e.p.t,ratio:H>0?L/H:Infinity};}
+const cwH=e=>+e.p.h>0?+e.p.h:lvH(e);
 const midPt=e=>{const A=arcOf(e);return A?A.M.slice():[(e.pts[0][0]+e.pts[1][0])/2,(e.pts[0][1]+e.pts[1][1])/2];};
 function gSlabT(level,pt){const s=onLevel(level).filter(x=>x.type==='slab'&&inPoly(pt,x.pts))[0];return s?+s.p.t:0;}
 function stripUnder(fw){const m=midPt(fw);return onLevel(fw.level).find(s=>s.type==='strip'&&projEl(m,s).d<s.p.w/2)||null;}
@@ -938,6 +974,43 @@ function linesFor(e){
   }else if(e.type==='mh'){
     const band=[1,1.5,2,3].find(b=>+p.dep<=b)||3,base={'600x450':[380,220],'900x600':[620,300],'1200x750':[950,380]}[p.mhs]||[380,220];
     add('8.6',50,`mh${p.mhs}_${band}`,`Inspection chamber, internal size ${OPT.mhs[p.mhs]}, depth to invert ≤ ${band.toFixed(1)} m, precast concrete on concrete base, benching and channels, heavy-duty cover and frame, including excavation and backfill`,'nr',1,Math.round(base[0]+base[1]*band));
+  }else if(e.type==='stair'||e.type==='ramp'||e.type==='rail'){
+    const BALR={steel:150,ss:360,timber:130,hr:55};
+    const bal=(len,o)=>{if(+p.rails===0&&e.type!=='rail')return;const k=p.bal||'steel',hr=k==='hr';add('2.4',o,'bal_'+k+(e.type==='rail'?'f':''),hr?`Handrail Ø50 mm on wall brackets at 1.0 m centres${e.type==='rail'?'':', to stairs and ramps (measured on slope)'}`:`${OPT.bal[k]}, ${e.type==='rail'?fmtN(+p.h,2)+' m high, to balconies, landings and voids':'1.1 m high, with handrail, to stairs and ramps (measured on slope)'}, including fixings`,'m',len,BALR[k]||150);};
+    if(e.type==='rail')bal(elLen(e),60);
+    else if(e.type==='stair'){const G=stairGeo(e),W=mm(G.w),n=G.n,rs=+p.rails||0;
+      if(p.stmat==='rc'){const v=G.w*(G.t*G.sl+G.nt*G.g*G.r/2+G.t*G.lt);
+        add('2.4',10,'stc','Reinforced in-situ concrete C30/37 in stair flights and landings','m³',v,215);
+        add('2.4',11,'stfs','Formwork to soffits of stair flights (sloping) and landings','m²',G.w*(G.sl+G.lt),58);
+        add('2.4',12,'stfr','Formwork to riser faces of stairs, 150–200 mm high','m',n*G.w,22);
+        add('2.4',13,'stfo','Formwork to open sides of stair flights and landings (strings)','m²',rs*(G.Lf*G.H/2+G.t*(G.sl+G.lt)),48);
+        add('2.4',14,`ra_stairs_${+p.ra||0}`,`High-yield bar reinforcement B500B to stairs (allowance ${+p.ra||0} kg/m³)`,'t',v*(+p.ra||0)/1000,1900);
+        if(p.sof!=='no')add('2.4',40,'stsof','Plaster and emulsion paint to soffits of stair flights and landings','m²',G.w*(G.sl+G.lt),24);}
+      else{const R={pc:[420,95,'Precast concrete stair flight','including bearings, dowels and grouting',120,'Precast concrete landing slab, including bearings'],steel:[600,160,'Structural steel stair flight, steel stringers and chequer-plate treads, primed and painted','including fixings',260,'Steel landing, chequer plate on steel framing, primed and painted'],timber:[400,140,'Hardwood timber staircase flight, closed strings','including fixings',180,'Hardwood timber landing on timber framing']}[p.stmat]||[420,95,'Stair flight','',120,'Landing'];
+        add('2.4',10,`st${p.stmat}_${n}_${W}`,`${R[2]}, ${W} mm wide, ${n} risers of ${mm(G.r)} mm, goings ${mm(G.g)} mm, ${R[3]}`,'nr',1,Math.round(R[0]+n*G.w*R[1]));
+        add('2.4',11,`st${p.stmat}l`,R[5],'m²',G.w*G.lt,R[4]);}
+      if((p.stmat==='rc'||p.stmat==='pc')&&p.stfin!=='none'){const FR={terr:110,cer:68,por:78,gran:140,tim:98}[p.stfin]||80;
+        add('2.4',30,'stfin_'+p.stfin,`${OPT.stfin[p.stfin]} to stair treads and landings`,'m²',G.w*(G.nt*G.g+G.lt),FR);
+        add('2.4',31,'strfin_'+p.stfin,`${OPT.stfin[p.stfin]} to stair risers, 150–200 mm high`,'m',n*G.w,Math.round(FR*0.3));
+        if(p.nos!=='no')add('2.4',32,'stnos','Aluminium anti-slip stair nosings, screwed and plugged','m',G.nt*G.w,24);}
+      bal(rs*(G.sl+G.lt),50);}
+    else{const G=rampGeo(e),A=G.w*G.sl;
+      if(p.rpmat==='susp'){const v=A*G.t;add('2.4',20,'rpc','Reinforced in-situ concrete C30/37 in suspended ramps','m³',v,205);add('2.4',21,'rpfs','Formwork to soffits of sloping ramp slabs','m²',A,55);add('2.4',22,'rpfe','Formwork to edges of ramp slabs','m',2*G.sl,18);add('2.4',23,'ra_ramps_100','High-yield bar reinforcement B500B to ramps (allowance 100 kg/m³)','t',v*0.1,1900);}
+      else{add('2.4',20,'hc150','Hardcore bed 150 mm thick under ramps, compacted in layers','m²',A,9);add('2.4',21,'rpgc','In-situ concrete C25/30 in ramps on grade','m³',A*G.t,175);add('2.4',22,'mesh','A142 steel fabric reinforcement to ramps, 200 mm laps','m²',A,7);add('2.4',23,'rpfe','Formwork to edges of ramp slabs','m',2*G.sl,16);}
+      const RF={broom:['rpfbr','Broom finish to concrete ramp surface',4],tiles:['rpft','Anti-slip ceramic tiles R11 on adhesive to ramps',72],paving:['rpfp','Concrete paving blocks 80 mm on sand bed to ramps',38]}[p.rpfin];if(RF)add('2.4',30,RF[0],RF[1],'m²',A,RF[2]);
+      bal((+p.rails||0)*G.sl,50);}
+  }else if(e.type==='cwall'){
+    const L=elLen(e),H=cwH(e),A=L*H,As=L*Math.min(Math.max(0,+p.sp||0),H);
+    const base={stick:520,unit:720,ssg:820}[p.cwsys]||520,ex={dgu:0,sol:40,tgu:90}[p.glz]||0;
+    add('2.5',50,`cw_${p.cwsys}_${p.glz}`,`Curtain walling, ${OPT.cwsys[p.cwsys].toLowerCase()}, ${OPT.glz[p.glz].toLowerCase()} units, mullions at ${fmtN(+p.mv||1.5,2)} m${+p.tv>0?` and transoms at ${fmtN(+p.tv,2)} m`:''} centres, including brackets and fixings`,'m²',A,base+ex);
+    add('2.5',51,'cwsp','Extra over curtain walling for insulated opaque spandrel panels','m²',As,60);
+    add('2.5',52,'cwov','Opening vents in curtain walling, top-hung, including handles and restrictors','nr',Math.round(+p.ov||0),650);
+    add('2.5',53,'cwfs','Fire stopping and acoustic seal between curtain walling and slab edge','m',L,38);
+    add('2.5',54,'cwhc','Perimeter seals and flashings at head and cill of curtain walling','m',2*L,28);
+  }else if(e.type==='louvre'){
+    const A=elLen(e)*(+p.h||0),R={alu:[260,420],steel:[230,380],timber:[210,360],glass:[300,450]}[p.lvmat]||[260,420];
+    add('2.6',60,`lv_${p.lvmat}_${p.lvblade}`,`Louvres, ${OPT.lvmat[p.lvmat].toLowerCase()}, ${OPT.lvblade[p.lvblade].toLowerCase()}, including frame, fixings and flashings`,'m²',A,p.lvblade==='adj'?R[1]:R[0]);
+    if(p.mesh==='yes')add('2.6',61,'lvmesh','Bird / insect mesh behind louvres, stainless steel, in frame','m²',A,22);
   }else if(e.type==='roof'){
     const A=area(e.pts),Pm=perim(e.pts),b=bbox(e.pts),long=Math.max(b.w,b.h);
     if(p.type==='flat-membrane'){
@@ -1075,23 +1148,29 @@ const ICON={
   mh:'<rect x="4" y="4" width="14" height="14" rx="1"/><path d="M4 4l14 14M18 4L4 18" stroke-width="1"/>',
   fwall:'<path d="M2 12.5h18" stroke-dasharray="2 1.5" stroke-width="1"/><path d="M8 4h6v11H8z"/><path d="M5 15h12v3H5z"/><path d="M8 7.5h6M8 11h6" stroke-width="1"/>',
   pad:'<path d="M4 14h14v4H4z"/><path d="M9 14V5h4v9" stroke-width="1"/>',
+  stair:'<path d="M3 19h4v-4h4v-4h4V7h4V3"/><path d="M3 19 19 3" stroke-width="1" stroke-dasharray="2 2"/>',
+  ramp:'<path d="M2 18h18L20 8z"/><path d="M6 16l8-4" stroke-width="1"/><path d="M12 11.5l2 .5-1 1.8" stroke-width="1"/>',
+  rail:'<path d="M2 7h18"/><path d="M4 7v12M9 7v12M14 7v12M19 7v12" stroke-width="1.2"/><path d="M2 17h18" stroke-width="1"/>',
+  cwall:'<rect x="3" y="3" width="16" height="16"/><path d="M8.3 3v16M13.7 3v16M3 11h16" stroke-width="1.2"/>',
+  louvre:'<rect x="3" y="3" width="16" height="16"/><path d="M5 6.5l12 1.5M5 10.5l12 1.5M5 14.5l12 1.5" stroke-width="1.2"/>',
   measure:'<path d="M3 15.5 15.5 3l3.5 3.5L6.5 19z"/><path d="M7 11.5l1.6 1.6M10 8.5l1.6 1.6M13 5.5l1.6 1.6" stroke-width="1"/>',
   calibrate:'<path d="M3 11h16"/><path d="M3 7v8M19 7v8" /><path d="M6 9l-3 2 3 2M16 9l3 2-3 2" stroke-width="1"/>',
   align:'<path d="M11 2v18M2 11h18"/><path d="M8 5l3-3 3 3M8 17l3 3 3-3M5 8l-3 3 3 3M17 8l3 3-3 3" stroke-width="1"/>',
 };
-const SHORT={grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
+const SHORT={stair:'Stair',ramp:'Ramp',rail:'Rail',cwall:'Curtain',louvre:'Louvre',grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
 const TT=t=>[t,TYPES[t].label,TYPES[t].key];
 const TOOLS=[['','',[['select','Select / move','v'],['grid','Structural grid line','l']]],
   ['1','Substructure',['strip','pad','gbeam','fwall'].map(TT)],
   ['2.1','Frame',['column','beam'].map(TT)],
   ['2.2','Floors',['slab','void'].map(TT)],
   ['2.3','Roof',['roof'].map(TT)],
-  ['2.5','Walls',['wall'].map(TT)],
-  ['2.6','Openings',['door','window'].map(TT)],
+  ['2.4','Stairs',['stair','ramp','rail'].map(TT)],
+  ['2.5','Walls',['wall','cwall'].map(TT)],
+  ['2.6','Openings',['door','window','louvre'].map(TT)],
   ['3','Finishes',['room'].map(TT)],
   ['5','Services',['sanitary','pipe','pfit','mh'].map(TT)],
   ['','Drawing',[['measure','Measure distance','m'],['calibrate','Calibrate drawing scale','k'],['align','Move drawing underlay','']]]];
-const GCOL={'':'#0F7A70',Substructure:'#9A6230',Frame:'#2F6FB8',Floors:'#4B7C8C',Roof:'#C4523B',Walls:'#C07E14',Openings:'#1C93AE',Finishes:'#8150C0',Services:'#2E9460',Drawing:'#657583'};
+const GCOL={'':'#0F7A70',Substructure:'#9A6230',Frame:'#2F6FB8',Floors:'#4B7C8C',Roof:'#C4523B',Stairs:'#7A5FA8',Walls:'#C07E14',Openings:'#1C93AE',Finishes:'#8150C0',Services:'#2E9460',Drawing:'#657583'};
 function renderRail(){
   $('#rail').innerHTML=TOOLS.map(([code,name,ts])=>`<div class="rgrp" style="--gc:${GCOL[name]||GCOL['']}">${name?`<span class="grp" title="${esc(name)}">${code?`<b>${code}</b>`:''}${name}</span>`:''}<div class="rtools">`+ts.map(([id,label,k])=>`<button class="tool" data-tool="${id}" title="${esc(label)}${k?' · shortcut '+k.toUpperCase():''}" aria-label="${esc(label)}" aria-pressed="${S.tool===id}"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">${ICON[id]}</svg><span class="tl">${SHORT[id]}</span>${k?`<kbd>${k.toUpperCase()}</kbd>`:''}${TYPES[id]?`<i class="cnt" data-cnt="${id}" hidden></i>`:''}</button>`).join('')+`</div></div>`).join('');
   updateRailCounts();
@@ -1185,6 +1264,8 @@ function wireSets(el,obj,commit){
 function fieldOn(t,k,o){
   if(t==='wall'&&k==='rh')return o.kind==='external'&&o.material!=='drywall';if(t==='wall'&&k==='fh')return P?.finMode==='walls'||o.material==='drywall'||(+o.fh>0);
   if(t==='room'&&k==='wt')return o.wall==='tilesPart';
+  if(t==='stair'){if(k==='t'||k==='ra'||k==='sof')return o.stmat==='rc';if(k==='stfin'||k==='nos')return o.stmat==='rc'||o.stmat==='pc';if(k==='bal')return o.rails!=='0';}
+  if(t==='ramp'&&k==='bal')return o.rails!=='0';
   if(t==='column'){const c=o.cs||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='d')return c!=='circle';if(k==='t'||k==='rot')return c==='L';}
   if(t==='strip'){const c=o.ss||'rect';if(k==='w2')return c!=='rect';if(k==='d2')return c==='stepped';}
   if(t==='pad'){const c=o.ps||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='l')return c!=='circle';if(k==='w2'||k==='l2'||k==='d2')return c==='stepped'||c==='sloped';}
@@ -1227,7 +1308,7 @@ function onField(t,obj,k){if((t==='pipe'||t==='pfit')&&k==='sys'){const d=SYS[ob
 function fieldHTML(t,obj,prefix){
   return `<div class="fields">`+FIELDS[t].filter(([k])=>fieldOn(t,k,obj)).map(([k,label,kind])=>{
     const id=`${prefix}-${k}`;
-    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','sys','mat','mhs','pk','smat'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
+    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','sys','mat','mhs','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
     if(kind==='txt')return`<div class="field wide"><label for="${id}">${label}</label><input id="${id}" data-k="${k}" value="${esc(obj[k])}"></div>`;
     return`<div class="field"><label for="${id}">${label}</label><div class="unitwrap"><input id="${id}" type="number" step="${kind==='°'?1:0.01}" min="0" data-k="${k}" data-num value="${obj[k]}"><span>${kind}</span></div></div>`;
   }).join('')+`</div>`;
@@ -1250,7 +1331,13 @@ function elemDims0(e){const p=e.p;switch(e.type){
   case'room':{const n=netArea(e),g=area(e.pts),q=roomQ(e);return`${fmtN(n)} m²${Math.abs(n-g)>0.005?` net (${fmtN(g)} gross)`:''} · perimeter ${fmtN(q.Pm)} m · ${+e.p.ch>0?`walls finished to ${fmtN(q.H)} m`:`walls finished full height ${fmtN(q.H)} m`} · walls ${fmtN(q.net)} m² net (${q.ops.length} openings on boundary)`;}
   case'void':{const s=hostSlab(e);const a=area(e.pts);return`${fmtN(a)} m² · ${OPT.vkind[p.vkind]}`+(!s?' · not over a slab':voidCounts(e)?` · deducts ${fmtN(a*s.p.t,3)} m³ concrete`:' · ≤ 1 m², not deducted');}
   case'roof':return`${fmtN(area(e.pts))} m² on plan · ${OPT.type[p.type]}`;
-  case'door':case'window':return`${mm(p.w)} × ${mm(p.h)} mm`;}return'';}
+  case'door':case'window':return`${mm(p.w)} × ${mm(p.h)} mm`;
+  case'stair':{const g=stairGeo(e);const warn=[];if(g.g<0.25)warn.push('going under 250 mm: lengthen the flight or add a landing');if(g.r>0.19)warn.push('riser over 190 mm');if(g.rule<0.55||g.rule>0.7)warn.push(`2R + G = ${mm(g.rule)} mm (aim 550–700)`);
+    return`${OPT.stmat[p.stmat]} · ${mm(g.w)} mm wide · ${g.n} risers × ${mm(g.r)} mm, ${g.nt} goings × ${mm(g.g)} mm · rise ${fmtN(g.H)} m${g.lt?` · top landing ${fmtN(g.lt)} m`:''}${warn.length?' · ⚠ '+warn.join('; '):''}`;}
+  case'ramp':{const g=rampGeo(e);return`${fmtN(g.L)} m long · ${mm(g.w)} mm wide · rise ${fmtN(g.H)} m${g.H>0?` · gradient 1:${fmtN(g.ratio,1)}`:''}${g.H>0&&g.ratio<12?' · ⚠ steeper than 1:12':''} · ${OPT.rpmat[p.rpmat]}`;}
+  case'rail':return`${fmtN(elLen(e))} m · ${fmtN(+p.h)} m high · ${OPT.bal[p.bal]}`;
+  case'cwall':{const L=elLen(e),H=cwH(e),nm=Math.max(1,Math.round(L/Math.max(0.3,+p.mv||1.5)));return`${fmtN(L)} × ${fmtN(H)} m = ${fmtN(L*H)} m² · ${nm} bay${nm===1?'':'s'} of ${fmtN(L/nm)} m · ${OPT.cwsys[p.cwsys]} · ${OPT.glz[p.glz]}`;}
+  case'louvre':return`${fmtN(elLen(e))} × ${fmtN(+p.h)} m = ${fmtN(elLen(e)*p.h)} m² · ${OPT.lvmat[p.lvmat]}, ${OPT.lvblade[p.lvblade].toLowerCase()}`;}return'';}
 function cornersHTML(e){
   if(!e.pts)return'';const poly=POLYT.includes(e.type),line=LINET.includes(e.type)||e.type==='grid';
   const names=line?['Start','End']:e.pts.length===1?['Position']:e.pts.map((_,i)=>String(i+1));
@@ -1448,7 +1535,7 @@ function drawPlanNow(){
     ctx.restore();}
   const els=onLevel(S.level).filter(vis);const isSel=e=>e.id===S.sel||(S.hl&&S.hl.has(e.id));
   drawGrids('lines');
-  const order=['roof','slab','room','void','strip','pad','gbeam','beam','wall','fwall','column','mh','pipe','pfit','sanitary'];
+  const order=['roof','slab','room','void','ramp','stair','strip','pad','gbeam','beam','wall','cwall','louvre','fwall','rail','column','mh','pipe','pfit','sanitary'];
   let ri=0;
   for(const ty of order)for(const e of els.filter(x=>x.type===ty)){
     const sel=isSel(e);
@@ -1468,6 +1555,16 @@ function drawPlanNow(){
       if(pg.c==='circle'){const [sx,sy]=w2s([x,y]);ctx.beginPath();ctx.arc(sx,sy,e.p.dia/2*z,0,Math.PI*2);ctx.stroke();}
       else{const o=R4(+e.p.w,+e.p.l);poly(o);ctx.stroke();if(pg.w2){const iN=R4(pg.w2,pg.l2);poly(iN);ctx.setLineDash([3,3]);ctx.stroke();if(pg.c==='sloped'){ctx.setLineDash([]);ctx.lineWidth=0.8;ctx.beginPath();for(let k=0;k<4;k++){ctx.moveTo(...w2s(o[k]));ctx.lineTo(...w2s(iN[k]));}ctx.stroke();}}}
       ctx.setLineDash([]);}
+    else if(ty==='stair'||ty==='ramp'){const C=colE(e),L=elLen(e);if(L<1e-3)continue;const st=ty==='stair',G=st?stairGeo(e):rampGeo(e),f=frameAt(e,0),[ux,uy]=f.u,[nx,ny]=f.n,a=e.pts[0],hw=G.w/2,at=(s2,o2)=>w2s([a[0]+ux*s2+nx*o2,a[1]+uy*s2+ny*o2]);
+      poly(elQuad(e,G.w,false));ctx.fillStyle=hatch(C,0.18,6);ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.4;ctx.stroke();
+      ctx.beginPath();if(st){for(let i=1;i<=G.nt;i++){const s2=i*G.g;ctx.moveTo(...at(s2,hw));ctx.lineTo(...at(s2,-hw));}}ctx.lineWidth=1;ctx.stroke();
+      const end=st?G.Lf:L,p0=at(0.15,0),p1=at(Math.max(0.2,end-0.12),0);ctx.beginPath();ctx.moveTo(...p0);ctx.lineTo(...p1);const an=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]),hl=8;ctx.moveTo(...p1);ctx.lineTo(p1[0]-hl*Math.cos(an-0.45),p1[1]-hl*Math.sin(an-0.45));ctx.moveTo(...p1);ctx.lineTo(p1[0]-hl*Math.cos(an+0.45),p1[1]-hl*Math.sin(an+0.45));ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=1.4;ctx.stroke();
+      if(z>16){const [cx,cy]=at(0.35,0);ctx.font='600 11px "Barlow Condensed",sans-serif';const txt=st?`UP ${G.n}R`:(G.H>0?`RAMP 1:${Math.round(G.ratio)}`:'RAMP');const tw=ctx.measureText(txt).width+6;ctx.fillStyle=TH.paper;ctx.fillRect(cx-tw/2,cy-8,tw,14);ctx.fillStyle=C;ctx.textAlign='center';ctx.fillText(txt,cx,cy+3);}}
+    else if(ty==='cwall'||ty==='louvre'||ty==='rail'){const C=colE(e),L=elLen(e);if(L<1e-3)continue;const wd=ty==='cwall'?0.12:ty==='louvre'?0.16:0.06;poly(elQuad(e,wd,false));
+      if(ty==='cwall'){ctx.globalAlpha=.35;ctx.fillStyle=C;ctx.fill();ctx.globalAlpha=1;}else if(ty==='louvre'){ctx.fillStyle=hatch(C,0.6,4);ctx.fill();}else{ctx.fillStyle=C;ctx.fill();}
+      ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.3;ctx.stroke();
+      if(ty==='cwall'){const nm=Math.max(1,Math.round(L/Math.max(0.3,+e.p.mv||1.5)));ctx.beginPath();for(let k=0;k<=nm;k++){const f=frameAt(e,L*k/nm);const q=0.14;ctx.moveTo(...w2s([f.p[0]+f.n[0]*q,f.p[1]+f.n[1]*q]));ctx.lineTo(...w2s([f.p[0]-f.n[0]*q,f.p[1]-f.n[1]*q]));}ctx.lineWidth=2;ctx.strokeStyle=sel?TH.mark:C;ctx.stroke();}
+      if(ty==='rail'){ctx.beginPath();const np=Math.max(1,Math.round(L/1.2));for(let k=0;k<=np;k++){const f=frameAt(e,L*k/np);const [x2,y2]=w2s(f.p);ctx.moveTo(x2+2.5,y2);ctx.arc(x2,y2,2.5,0,Math.PI*2);}ctx.fillStyle=C;ctx.fill();}}
     else if(ty==='beam'){const C=colE(e);poly(elQuad(e,+e.p.w,false));ctx.setLineDash([3,3]);ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.4;ctx.stroke();ctx.setLineDash([]);}
     else if(ty==='wall'){const q=elQuad(e,+e.p.t);poly(q);ctx.fillStyle=colE(e)||MATC[e.p.material]||'#bbb';ctx.fill();ctx.fillStyle=hatch('#000',TH.dark?0.25:0.18,5);ctx.fill();ctx.strokeStyle=sel?TH.mark:TH.ink;ctx.lineWidth=sel?2.5:1.1;ctx.stroke();
       for(const o of openingsOf(e).filter(vis))drawOpening(e,o,isSel(o));}
@@ -1547,7 +1644,7 @@ function drawOpening(w,o,sel){
 }
 
 /* ---------- snapping & hit test ---------- */
-const POLYT=['room','slab','roof','void'],LINET=['wall','beam','strip','fwall','gbeam','pipe'];
+const POLYT=['room','slab','roof','void'],LINET=['wall','beam','strip','fwall','gbeam','pipe','cwall','louvre','rail','stair','ramp'];
 /* ---------- curve panel for walls, beams, strips, foundation walls ---------- */
 function curveHTML(e){if(!ARCT.includes(e.type)||!e.pts||e.pts.length<2)return'';const A=arcOf(e);const c=d2(e.pts[0],e.pts[1]);
   return `<div class="curve-box"><div class="curve-hd"><span>Plan shape</span><span class="seg"><button data-cv="straight" aria-pressed="${!A}">Straight</button><button data-cv="curved" aria-pressed="${!!A}">Curved</button></span></div>
@@ -1806,7 +1903,7 @@ function hitAll(pt){
   for(const e of els.filter(e=>e.type==='sanitary'||e.type==='mh')){const [x,y]=e.pts[0];const h=e.type==='mh'?e.p.mhs.split('x').map(v=>(+v/1000+0.3)/2):(FIT[e.p.fx]||FIT.wc).sz.map(v=>v/2);const r2=Math.max(...h)+tol;if(Math.abs(pt[0]-x)<r2&&Math.abs(pt[1]-y)<r2)out.push(e);}
   {const hs=[];for(const e of els.filter(x=>x.type==='pipe')){const r=projEl(pt,e);if(r.d<0.06+tol)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
   for(const e of els.filter(e=>e.type==='column'||e.type==='pad')){const [x,y]=e.pts[0];const ex=e.type==='pad'?padGeo(e.p):colSec(e);const hw=ex.hw+tol,hd=(e.type==='pad'?ex.hl:ex.hd)+tol;if(Math.abs(pt[0]-x)<hw&&Math.abs(pt[1]-y)<hd)out.push(e);}
-  for(const ty of ['wall','fwall','gbeam','beam','strip']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
+  for(const ty of ['rail','cwall','louvre','wall','fwall','gbeam','beam','strip','stair','ramp']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:ty==='cwall'?0.12:ty==='louvre'?0.16:ty==='rail'?0.08:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
   for(const ty of ['void','room','slab','roof'])els.filter(e=>e.type===ty&&inPoly(pt,e.pts)).sort((a,b)=>area(a.pts)-area(b.pts)).forEach(e=>out.push(e));
   gridHit(pt).forEach(g=>out.push(g));
   return out;
@@ -2074,6 +2171,8 @@ function build3D(){
     if(!o.noEdge){const ed=new THREE.LineSegments(new THREE.EdgesGeometry(geo,25),new THREE.LineBasicMaterial({color:edgeCol,transparent:true,opacity:TH.dark?0.55:0.28}));m.add(ed);}return m;};
   const box=(len,h,d,cx,cy,cz,rot,color,id,o)=>{const m=addMesh(new THREE.BoxGeometry(Math.max(len,1e-3),Math.max(h,1e-3),Math.max(d,1e-3)),color,id,o);m.position.set(cx,cy,cz);m.rotation.y=rot;return m;};
   const extrude=(pts,depth,topY,color,id,o,holes)=>{const sh=new THREE.Shape(pts.map(([x,y])=>new THREE.Vector2(x,y)));(holes||[]).forEach(h=>sh.holes.push(new THREE.Path(h.map(([x,y])=>new THREE.Vector2(x,y)))));const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false});const m=addMesh(geo,color,id,o);m.rotation.x=Math.PI/2;m.position.y=topY;return m;};
+  const obox=(cx,cy,cz,len,h,d,rotY,tilt,color,id,o)=>{const m=addMesh(new THREE.BoxGeometry(Math.max(len,1e-3),Math.max(h,1e-3),Math.max(d,1e-3)),color,id,o);m.rotation.order='YZX';m.rotation.y=rotY;m.rotation.z=tilt;m.position.set(cx,cy,cz);return m;};
+  const rod=(a,b,r,color,id)=>{const v=new THREE.Vector3(b[0]-a[0],b[1]-a[1],b[2]-a[2]),L=v.length();if(L<1e-3)return;const m=addMesh(new THREE.CylinderGeometry(r,r,L,8),color,id,{noEdge:true});m.position.set((a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());return m;};
   const sweep=(e,s0,s1,w,h,bot,color,id,o)=>{if(!(h>0)||!(s1>s0))return;if(arcOf(e))return extrude(bandPts(e,s0,s1,w),h,bot+h,color,id,o);for(const g of alongSegs(e,s0,s1,w))box(g.len,h,w,g.c[0],bot+h/2,g.c[1],g.rot,color,id,o);};
   for(const l of P.levels){
     if(S.cut&&act&&l.elev>act.elev+1e-6)continue;
@@ -2102,6 +2201,23 @@ function build3D(){
       else if(e.type==='sanitary'){const F=FIT[p.fx]||FIT.wc;const [x,y]=e.pts[0];box(F.sz[0],F.h,F.sz[1],x,el0+F.h/2+0.02,y,-(+p.rot||0)*Math.PI/180,p.fx==='tank'?0x2B3A40:(isHex(e.c)||isHex(P.colors?.sanitary)?c3(e):0xF3F6F7),e.id);}
       else if(e.type==='pfit'){const S2=SYS[p.sys]||SYS.cw;const [x,y]=e.pts[0];const yy=p.sys==='ud'?+P.sub.egl+S2.h:el0+S2.h;const s0=Math.max(0.08,+p.dia/1000*2.2);box(s0,s0,s0,x,yy,y,0,c3(e,parseInt(S2.col.slice(1),16)),e.id);}
       else if(e.type==='mh'){const [x,y]=e.pts[0],sz=p.mhs.split('x').map(v=>+v/1000+0.3);box(sz[0],+p.dep+0.2,sz[1],x,+P.sub.egl-(+p.dep+0.2)/2+0.02,y,0,c3(e,0x8E969A),e.id);}
+      else if(e.type==='stair'||e.type==='ramp'){const L=elLen(e);if(L<1e-3)continue;const st=e.type==='stair',G=st?stairGeo(e):rampGeo(e),f=frameAt(e,0),[ux,uy]=f.u,[nx,ny]=f.n,a=e.pts[0],rot=-Math.atan2(uy,ux),cc=c3(e,st?0xB9B2A6:0xB5B9B0);
+        const at=(s2,o2=0)=>[a[0]+ux*s2+nx*o2,a[1]+uy*s2+ny*o2];const run=st?G.Lf:L;const ang=Math.atan2(G.H,run),sl=Math.hypot(run,G.H),t=+p.t||0.15;
+        {const m=at(run/2+Math.sin(ang)*t/2);obox(m[0],el0+G.H/2-Math.cos(ang)*t/2,m[1],sl,t,G.w,rot,ang,cc,e.id);}
+        if(st){for(let i=0;i<G.nt;i++){const c=at((i+0.5)*G.g);box(G.g,G.r,G.w,c[0],el0+(i+0.5)*G.r,c[1],rot,cc,e.id);}
+          if(G.lt>0){const c=at(G.Lf+G.lt/2);box(G.lt,t,G.w,c[0],el0+G.H-t/2,c[1],rot,cc,e.id);}}
+        const rs=+p.rails||0,rc=c3(e,0x4E5A66);for(let k=0;k<rs;k++){const off=(k?-1:1)*(G.w/2-0.05),hh=p.bal==='hr'?0.9:1.0,s0=at(0,off),s1=at(run,off),s2=at(L,off);
+          rod([s0[0],el0+hh,s0[1]],[s1[0],el0+G.H+hh,s1[1]],0.025,rc,e.id);if(st&&G.lt>0)rod([s1[0],el0+G.H+hh,s1[1]],[s2[0],el0+G.H+hh,s2[1]],0.025,rc,e.id);
+          if(p.bal!=='hr'){const np=Math.max(1,Math.round(run/1.2));for(let j=0;j<=np;j++){const q=at(run*j/np,off),y0=el0+G.H*j/np;rod([q[0],y0,q[1]],[q[0],y0+hh,q[1]],0.018,rc,e.id);}}}}
+      else if(e.type==='cwall'){const L=elLen(e);if(L<1e-3)continue;const H=cwH(e),fr=c3(e,0x3F4A52),sp=Math.min(Math.max(0,+p.sp||0),H);
+        if(H-sp>0)sweep(e,0,L,0.03,H-sp,el0+sp,C3.glass,e.id,{transparent:true,opacity:0.38,noEdge:true});if(sp>0)sweep(e,0,L,0.05,sp,el0,0x5B6770,e.id,{noEdge:true});
+        const nm=Math.max(1,Math.round(L/Math.max(0.3,+p.mv||1.5)));for(let k=0;k<=nm;k++){const s2=L*k/nm;sweep(e,Math.max(0,s2-0.03),Math.min(L,s2+0.03),0.14,H,el0,fr,e.id,{noEdge:true});}
+        const ys=[0.03,H-0.03];if(sp>0)ys.push(sp);if(+p.tv>0.2)for(let y=+p.tv;y<H-0.1;y+=+p.tv)ys.push(y);ys.forEach(y=>sweep(e,0,L,0.12,0.06,el0+y-0.03,fr,e.id,{noEdge:true}));}
+      else if(e.type==='louvre'){const L=elLen(e);if(L<1e-3)continue;const h=+p.h||1,y0=el0+(+p.sill||0),lc=c3(e,0x8FA79A),nb=Math.min(80,Math.max(2,Math.floor(h/0.1)));
+        for(let k=0;k<nb;k++)sweep(e,0,L,0.13,0.015,y0+(k+0.5)*h/nb,lc,e.id,{noEdge:true});sweep(e,0,L,0.15,0.04,y0,lc,e.id);sweep(e,0,L,0.15,0.04,y0+h-0.04,lc,e.id);sweep(e,0,0.05,0.15,h,y0,lc,e.id);sweep(e,L-0.05,L,0.15,h,y0,lc,e.id);}
+      else if(e.type==='rail'){const L=elLen(e);if(L<1e-3)continue;const h=+p.h||1.1,rc=c3(e,0x4E5A66);sweep(e,0,L,0.06,0.05,el0+h-0.05,rc,e.id);
+        if(p.bal==='ss')sweep(e,0,L,0.02,h-0.12,el0+0.04,C3.glass,e.id,{transparent:true,opacity:0.4,noEdge:true});
+        else if(p.bal!=='hr'){const np=Math.max(1,Math.round(L/1.2));for(let k=0;k<=np;k++){const s2=L*k/np;sweep(e,Math.max(0,s2-0.025),Math.min(L,s2+0.025),0.05,h,el0,rc,e.id,{noEdge:true});}sweep(e,0,L,0.03,0.03,el0+0.12,rc,e.id,{noEdge:true});sweep(e,0,L,0.03,0.03,el0+h/2,rc,e.id,{noEdge:true});}}
       else if(e.type==='gbeam'){const L=elLen(e);if(L<1e-3)continue;const top=-gSlabT(l.id,midPt(e));sweep(e,0,L,+p.w,+p.d,top-p.d,c3(e,0x8E9A9E),e.id);}
       else if(e.type==='roof'&&e.pts.length>=3){
         const rc=isHex(e.c)||isHex(P.colors?.roof)?c3(e):null;if(p.type==='flat-membrane')extrude(e.pts,0.3,el0+0.3,rc??C3.flat,e.id);
@@ -2252,7 +2368,7 @@ function fmtDate(iso){try{return new Date(iso+'T12:00:00').toLocaleDateString('e
 function coverChartData(kind){
   let rows=[];
   if(kind==='bom'){rows=bomData().cats.map(c=>({n:(S.bomGroup==='sec'?c.code+' ':'')+c.n,v:c.total}));}
-  else{const G=[['0','Preliminaries items'],['9','Provisional sums'],['1','Substructure'],['2.1','Frame'],['2.2','Upper floors'],['2.3','Roof'],['2.5','External walls'],['2.6','Windows & external doors'],['2.7','Internal walls'],['2.8','Internal doors'],['3','Internal finishes'],['5','Services'],['8','External works']];
+  else{const G=[['0','Preliminaries items'],['9','Provisional sums'],['1','Substructure'],['2.1','Frame'],['2.2','Upper floors'],['2.3','Roof'],['2.4','Stairs and ramps'],['2.5','External walls'],['2.6','Windows & external doors'],['2.7','Internal walls'],['2.8','Internal doors'],['3','Internal finishes'],['5','Services'],['8','External works']];
     rows=G.map(([g,n])=>({n,v:TO.secs.filter(x=>x.code===g||x.code.startsWith(g+'.')).reduce((a,x)=>a+x.total,0)}));rows.push({n:'Preliminaries & contingency',v:TO.prelims+TO.cont});}
   rows=rows.filter(r=>r.v>0.5).sort((a,b)=>b.v-a.v);
   if(rows.length>8){const rest=rows.splice(7);rows.push({n:`Other (${rest.length})`,v:rest.reduce((a,r)=>a+r.v,0),other:true});}
@@ -2557,7 +2673,7 @@ function mapMats(it,add,onRebar){
     const pm=k.match(/^pp_(\w+?)_(\w+?)_(\d+)/);if(pm){const [,sy,mt,di]=pm;const len=mt==='ppr'?4:mt==='cu'?3:6;add('plb',`pipe_${sy}_${mt}_${di}`,`${OPT.sys[sy]} pipe ${OPT.mat[mt]} Ø${di}`,`${len} m lengths`,'m',q,5,pipeRate(sy,mt,di)*0.45,src);}
     if(/^pf_|^pv_/.test(k))add('plb','f_'+k,d.split(',').slice(0,2).join(','),'','nr',q,0,it.r*0.6/fac,src);
     // supply items
-    if(/^san_|^dx|^di|^wn|^mh/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only','nr',q,0,it.r*0.65/fac,src);
+    if(/^san_|^dx|^di|^wn|^mh|^cw_|^lv_|^bal_|^stpc_|^ststeel_|^sttimber_/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only','nr',q,0,it.r*0.65/fac,src);
 }
 const BOMG={cat:'Material',sec:'Bill section',level:'Floor',type:'Element'};
 function bomData(group){
@@ -3247,7 +3363,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-quickadd';
+const APP_VER='2026.09.26-stairs';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
