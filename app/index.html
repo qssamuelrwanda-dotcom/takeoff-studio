@@ -98,7 +98,14 @@ button{cursor:pointer}
 .ra-why{margin:0 16px 12px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--surface2);border-radius:4px;line-height:1.5}
 .dialog.dr-dlg{width:min(1000px,100%);max-height:90vh;overflow:auto}.dr-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.dr-head h2{margin:0}
 .dr-bar{display:flex;justify-content:flex-start;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}.dr-store{font-size:12.5px;color:var(--ink2)}
-.dr-set{border:1px solid var(--line);border-radius:8px;padding:10px;margin:12px 0}.dr-sh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}.dr-sh small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
+.dr-fold{--gcx:var(--gc);border:1px solid color-mix(in srgb,var(--gcx) 30%,var(--line));border-radius:10px;margin:10px 0;background:color-mix(in srgb,var(--gcx) 4%,var(--surface))}
+.dr-fh{display:flex;align-items:center;gap:6px;padding:6px 8px}.dr-ft{flex:1;display:flex;align-items:center;gap:7px;border:0;background:none;padding:4px 2px;cursor:pointer;text-align:left;color:var(--ink);min-width:0;font:inherit}
+.dr-ft b{color:var(--gcx);font-family:var(--f-cond);font-size:15px;letter-spacing:.02em}.dr-ft small{color:var(--ink2);font-size:12px;margin-left:4px}.dr-ft:disabled{cursor:default;opacity:.75}.dr-fold.empty .dr-ft .chev{visibility:hidden}
+.dr-ft .fic{width:20px;height:20px;color:var(--gcx);flex:none}.chev{width:12px;height:12px;flex:none;transition:transform .15s}[aria-expanded="true"]>.chev{transform:rotate(90deg)}
+.dr-fbody{padding:0 8px 8px}.dr-set{border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin:6px 0;background:var(--surface)}
+.dr-st{display:flex;align-items:flex-start;gap:7px;border:0;background:none;padding:2px 0;cursor:pointer;text-align:left;color:var(--ink);font:inherit;min-width:0;flex:1}.dr-st .chev{margin-top:4px}.dr-st b{word-break:break-word}
+.dr-fsel{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2)}.dr-fsel select{font-size:12px;padding:3px 4px;max-width:150px}
+.dr-newf{display:flex;gap:6px;align-items:center;margin:0 0 8px}.dr-newf input{flex:1;max-width:320px;padding:6px 8px}.dr-sh{display:flex;justify-content:space-between;gap:8px 10px;flex-wrap:wrap;align-items:center}.dr-sh small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
 .dr-acts{display:flex;gap:6px;flex-wrap:wrap}.dr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
 .dr-tile{border:1px solid var(--line);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:5px;background:var(--paper);min-width:0}
 .dr-th{display:block;border:1px solid var(--line);padding:0;background:#fff;border-radius:4px;overflow:hidden;cursor:zoom-in;aspect-ratio:1.414/1;width:100%}.dr-th img{width:100%;height:100%;object-fit:contain;display:block}
@@ -2049,10 +2056,10 @@ async function readDrawing(f){const isPdf=/pdf$/i.test(f.type)||/\.pdf$/i.test(f
   if(!isPdf&&!isImg){toast(f.name+' is not a PDF or an image.');return null;}const buf=await f.arrayBuffer();let pages=1,doc=null,canvas=null;
   if(isPdf){if(!pdfReady())return null;doc=await pdfjsLib.getDocument({data:buf.slice(0)}).promise;pages=doc.numPages;}else canvas=await imgCanvas(f);
   return{kind:isPdf?'pdf':'img',pages,buf,doc,canvas,name:f.name,type:f.type,size:f.size};}
-async function addDrawingFiles(files){const out=[];try{navigator.storage?.persist?.();}catch(e){}
+async function addDrawingFiles(files,folder){const out=[];try{navigator.storage?.persist?.();}catch(e){}
   for(const f of files){try{toast('Reading '+f.name+'…');const R=await readDrawing(f);if(!R)continue;const id='d'+uid();
       try{await DDB.put(id,{name:R.name,kind:R.kind,type:R.type,buf:R.buf});}catch(e){toast('Browser storage is full. Delete old drawings or projects (Project → Free up storage space).');break;}
-      DOCS[id]=Promise.resolve(R.doc?{doc:R.doc}:{canvas:R.canvas});out.push({id,name:R.name,kind:R.kind,pages:R.pages,size:R.size,added:Date.now(),rev:1});}
+      DOCS[id]=Promise.resolve(R.doc?{doc:R.doc}:{canvas:R.canvas});out.push({id,name:R.name,kind:R.kind,pages:R.pages,size:R.size,added:Date.now(),rev:1,folder:folder||drFolderOf(R.name)});}
     catch(e){console.error(e);toast(f.name+' could not be read as a PDF or image.');}}
   if(out.length)mutate(()=>{P.drawings=(P.drawings||[]).concat(out);});return out;}
 function ensureUnder(id){const l=lvl(id),u=l?.underlay;if(!u?.did)return Promise.resolve();const rec=UL[id],pg=u.kind==='pdf'?u.page||1:1;
@@ -2082,34 +2089,64 @@ async function thumbFor(did,n,im){const k=did+':'+n;if(!THUMB[k]){const r=await 
   if(im.isConnected)im.src=THUMB[k];}
 async function storageLine(el){const own=(P.drawings||[]).reduce((a,d)=>a+(+d.size||0),0);let t=`Drawings in this project: ${fmtBytes(own)}`;
   try{const e=await navigator.storage?.estimate?.();if(e&&e.quota)t+=` · browser storage used ${fmtBytes(e.usage)} of about ${fmtBytes(e.quota)}`;}catch(e){}if(el.isConnected)el.textContent=t;}
+const DFOLD=[['arch','Architectural','#C07E14'],['str','Structural','#2F6FB8'],['mep','MEP (mechanical, electrical, plumbing)','#2E9460'],['civ','Civil, site & external works','#4F7A3A'],['oth','Other','#657583']];
+function drFolderOf(name){const n=' '+String(name||'').toLowerCase().replace(/\.[a-z0-9]+$/,'')+' ';
+  if(/struct|\bstr\b|\bs[-_ .]?\d|rebar|reinforce|foundation|footing|\bpiles?\b|column|beam|\bslab/.test(n))return'str';
+  if(/\bmep\b|mech|elec|plumb|hvac|drain|sanit|fire|light|power|\bm[-_ .]?\d|\be[-_ .]?\d|\bp[-_ .]?\d|services|water|sewer/.test(n))return'mep';
+  if(/civil|site|landscap|external|road|survey|topo|\bc[-_ .]?\d|\bl[-_ .]?\d|paving|parking|fence/.test(n))return'civ';
+  if(/arch|\ba[-_ .]?\d|plan|elevation|section|layout|floor|door|window|finish|detail|roof/.test(n))return'arch';return'oth';}
+function drFolders(){return DFOLD.concat((P.drawFolders||[]).map(x=>[x.k,x.n,'#7A5FA8',1]));}
+const DRO={fold:(()=>{try{return new Set(JSON.parse(localStorage.getItem('takeoffstudio.drfold')||'null')||[]);}catch(e){return new Set();}})(),set:new Set(),init:false};
+const saveDRO=()=>{try{localStorage.setItem('takeoffstudio.drfold',JSON.stringify([...DRO.fold]));}catch(e){}};
 function openDrawings(){
   const s=document.createElement('div');s.className='scrim';
   s.innerHTML=`<div class="dialog dr-dlg" role="dialog" aria-modal="true" aria-label="Drawings"><div class="dr-head"><h2>Drawings</h2><button class="btn sm" data-c aria-label="Close">×</button></div>
-    <p class="hint" style="margin:6px 0 0">Add whole PDF drawing sets and images: every page is imported and kept with this project in this browser, so it is there next time. Put any page under a level to trace over it, or open it in the viewer next to your model. A new revision replaces the old file to save space.</p>
-    <div class="dr-bar"><button class="btn primary" data-add>Add PDFs or images…</button><button class="btn" data-free>Free up space…</button><span class="dr-store"></span></div>
+    <p class="hint" style="margin:6px 0 0">Add whole PDF drawing sets and images: every page is imported and kept with this project in this browser. Files go into folders by discipline (guessed from the file name; change it with the Folder list). Put any page under a level to trace over it, or open it in the viewer next to your model. A new revision replaces the old file to save space.</p>
+    <div class="dr-bar"><button class="btn primary" data-add>Add PDFs or images…</button><button class="btn" data-newf>New folder</button><button class="btn sm" data-xall>Expand all</button><button class="btn sm" data-call>Collapse all</button><button class="btn" data-free>Free up space…</button><span class="dr-store"></span></div>
+    <div class="dr-newf" hidden><input type="text" placeholder="Folder name, e.g. Interior design" aria-label="New folder name" maxlength="60"><button class="btn sm primary" data-newok>Create</button><button class="btn sm" data-newx>Cancel</button></div>
     <div class="dr-sets"></div><input type="file" data-fin accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" multiple hidden><input type="file" data-frev accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" hidden></div>`;
-  document.body.appendChild(s);const onK=e=>{if(e.key==='Escape'&&s.isConnected&&!$('#dv')?.contains(e.target)){e.stopPropagation();close();}},close=()=>{s.remove();document.removeEventListener('keydown',onK,true);},box=s.querySelector('.dr-sets');let armed=null,revId=null;
+  document.body.appendChild(s);const onK=e=>{if(e.key==='Escape'&&s.isConnected&&!$('#dv')?.contains(e.target)&&!e.target.closest('.dr-newf')){e.stopPropagation();close();}},close=()=>{s.remove();document.removeEventListener('keydown',onK,true);},box=s.querySelector('.dr-sets');let armed=null,revId=null,addTo=null;
   document.addEventListener('keydown',onK,true);s.querySelector('[data-c]').onclick=close;s.addEventListener('click',e=>{if(e.target===s)close();});s.addEventListener('keydown',e=>e.stopPropagation());
   s.querySelector('[data-free]').onclick=()=>{close();freeUpSpace();};
-  const fin=s.querySelector('[data-fin]'),frev=s.querySelector('[data-frev]');s.querySelector('[data-add]').onclick=()=>fin.click();
-  fin.onchange=async()=>{const fs=[...fin.files];fin.value='';if(!fs.length)return;const ds=await addDrawingFiles(fs);if(ds.length)toast(`${ds.reduce((a,x)=>a+x.pages,0)} page${ds.length===1&&ds[0].pages===1?'':'s'} added.`);draw();};
+  const sets=()=>P.drawings||[],fk=d=>{const k=d.folder||drFolderOf(d.name);return drFolders().some(f=>f[0]===k)?k:'oth';};
+  if(!DRO.init){DRO.init=true;if(!DRO.fold.size)sets().forEach(d=>DRO.fold.add(fk(d)));if(sets().length===1)DRO.set.add(sets()[0].id);}
+  const fin=s.querySelector('[data-fin]'),frev=s.querySelector('[data-frev]');s.querySelector('[data-add]').onclick=()=>{addTo=null;fin.click();};
+  fin.onchange=async()=>{const fs=[...fin.files];fin.value='';if(!fs.length)return;const ds=await addDrawingFiles(fs,addTo);ds.forEach(d=>{DRO.fold.add(d.folder);if(ds.length===1)DRO.set.add(d.id);});saveDRO();
+    if(ds.length){const by={};ds.forEach(d=>{const n=(drFolders().find(f=>f[0]===d.folder)||[,'Other'])[1];by[n]=(by[n]||0)+1;});toast(`${ds.reduce((a,x)=>a+x.pages,0)} page(s) added: `+Object.entries(by).map(([n,c])=>`${c} → ${n.split(' (')[0]}`).join(', '));}draw();};
   frev.onchange=async()=>{const f=frev.files[0];frev.value='';if(f&&revId)await replaceDrawing(revId,f);draw();};
-  const draw=()=>{const sets=P.drawings||[],lvs=levelsSorted().slice().reverse();
-    box.innerHTML=sets.length?sets.map(d=>{const us=P.levels.filter(l=>l.underlay?.did===d.id);return`<section class="dr-set" data-id="${esc(d.id)}"><div class="dr-sh"><div><b>${esc(d.name)}</b><small>${d.kind==='img'?'Image':d.pages+' page'+(d.pages===1?'':'s')}${(d.rev||1)>1?' · revision '+d.rev:''} · ${fmtBytes(d.size)}${MISS[d.id]?' · <b style="color:var(--danger)">file not on this device, add it again with New revision</b>':''}</small></div>
-      <div class="dr-acts">${d.pages>1?'<button class="btn sm" data-a="order" title="Page 1 under the lowest level, page 2 under the next, and so on">Pages → levels in order</button>':''}<button class="btn sm" data-a="rev" title="Replace with an updated file; the old one is deleted">New revision…</button><button class="btn sm${armed===d.id?' danger':''}" data-a="del">${armed===d.id?'Delete?':'Delete'}</button></div></div>
-      <div class="dr-grid">${Array.from({length:d.pages||1},(_,i)=>{const n=i+1,on=us.filter(l=>(l.underlay.page||1)===n).map(l=>l.name).join(', ');return`<div class="dr-tile" data-n="${n}"><button class="dr-th" data-a="view" title="Open ${d.kind==='img'?'image':'page '+n} in the viewer"><img alt="${d.kind==='img'?'Image':'Page '+n}" data-th="${esc(d.id)}:${n}"></button>
+  const nf=s.querySelector('.dr-newf'),nfi=nf.querySelector('input');s.querySelector('[data-newf]').onclick=()=>{nf.hidden=false;nfi.value='';nfi.focus();};
+  const mkF=()=>{const n=nfi.value.trim();if(!n)return;const k='f'+uid();mutate(()=>{P.drawFolders=(P.drawFolders||[]).concat([{k,n}]);});DRO.fold.add(k);saveDRO();nf.hidden=true;draw();toast(`Folder “${n}” created. Add drawings to it or move sets into it with their Folder list.`);};
+  nf.querySelector('[data-newok]').onclick=mkF;nf.querySelector('[data-newx]').onclick=()=>{nf.hidden=true;};nfi.onkeydown=e=>{if(e.key==='Enter')mkF();if(e.key==='Escape')nf.hidden=true;};
+  s.querySelector('[data-xall]').onclick=()=>{drFolders().forEach(f=>{if(sets().some(d=>fk(d)===f[0]))DRO.fold.add(f[0]);});sets().forEach(d=>DRO.set.add(d.id));saveDRO();draw();};
+  s.querySelector('[data-call]').onclick=()=>{DRO.fold.clear();DRO.set.clear();saveDRO();draw();};
+  const chev='<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const folderIc='<svg class="fic" viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 5.5a1.5 1.5 0 0 1 1.5-1.5h4l1.6 1.8H16a1.5 1.5 0 0 1 1.5 1.5v7.7A1.5 1.5 0 0 1 16 16.5H4A1.5 1.5 0 0 1 2.5 15z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="1.4"/></svg>';
+  const setHTML=d=>{const us=P.levels.filter(l=>l.underlay?.did===d.id),op=DRO.set.has(d.id),lvs=levelsSorted().slice().reverse(),fs=drFolders();
+    return`<div class="dr-set${op?' open':''}" data-id="${esc(d.id)}"><div class="dr-sh"><button class="dr-st" data-a="set" aria-expanded="${op}">${chev}<span><b>${esc(d.name)}</b><small>${d.kind==='img'?'Image':d.pages+' page'+(d.pages===1?'':'s')}${(d.rev||1)>1?' · revision '+d.rev:''} · ${fmtBytes(d.size)}${us.length?' · on '+us.length+' level'+(us.length===1?'':'s'):''}${MISS[d.id]?' · <b style="color:var(--danger)">file not on this device, add it again with New revision</b>':''}</small></span></button>
+      <div class="dr-acts"><label class="dr-fsel"><span>Folder</span><select data-a="folder" aria-label="Folder for ${esc(d.name)}">${fs.map(f=>`<option value="${esc(f[0])}" ${fk(d)===f[0]?'selected':''}>${esc(f[1].split(' (')[0])}</option>`).join('')}</select></label>${d.pages>1?'<button class="btn sm" data-a="order" title="Page 1 under the lowest level, page 2 under the next, and so on">Pages → levels</button>':''}<button class="btn sm" data-a="rev" title="Replace with an updated file; the old one is deleted">New revision…</button><button class="btn sm${armed===d.id?' danger':''}" data-a="del">${armed===d.id?'Delete?':'Delete'}</button></div></div>
+      ${op?`<div class="dr-grid">${Array.from({length:d.pages||1},(_,i)=>{const n=i+1,on=us.filter(l=>(l.underlay.page||1)===n).map(l=>l.name).join(', ');return`<div class="dr-tile" data-n="${n}"><button class="dr-th" data-a="view" title="Open ${d.kind==='img'?'image':'page '+n} in the viewer"><img alt="${d.kind==='img'?'Image':'Page '+n}" data-th="${esc(d.id)}:${n}"></button>
         <div class="dr-tl"><b>${d.kind==='img'?'Image':'Page '+n}</b>${on?`<span class="badge" title="${esc(on)}">${esc(on)}</span>`:''}</div>
-        <select data-a="lv" aria-label="Put ${d.kind==='img'?'image':'page '+n} under a level"><option value="">Put under level…</option>${lvs.map(l=>`<option value="${esc(l.id)}">${esc(l.name)}${l.underlay?.did===d.id&&(l.underlay.page||1)===n?' ✓':''}</option>`).join('')}</select></div>`;}).join('')}</div></section>`;}).join('')
-      :'<p class="pj-empty">No drawings yet. Add a PDF drawing set: every page is imported.</p>';
+        <select data-a="lv" aria-label="Put ${d.kind==='img'?'image':'page '+n} under a level"><option value="">Put under level…</option>${lvs.map(l=>`<option value="${esc(l.id)}">${esc(l.name)}${l.underlay?.did===d.id&&(l.underlay.page||1)===n?' ✓':''}</option>`).join('')}</select></div>`;}).join('')}</div>`:''}</div>`;};
+  const draw=()=>{const all=sets();
+    box.innerHTML=drFolders().map(([k,n,c,custom])=>{const ds=all.filter(d=>fk(d)===k),op=DRO.fold.has(k)&&ds.length>0,pg=ds.reduce((a,d)=>a+(d.pages||1),0);
+      if(!ds.length&&k==='oth'&&!custom)return'';
+      return`<section class="dr-fold${op?' open':''}${ds.length?'':' empty'}" data-fold="${esc(k)}" style="--gc:${c}"><div class="dr-fh"><button class="dr-ft" data-a="fold" aria-expanded="${op}" ${ds.length?'':'disabled'}>${chev}${folderIc}<b>${esc(n)}</b><small>${ds.length?`${ds.length} file${ds.length===1?'':'s'} · ${pg} page${pg===1?'':'s'}`:'empty'}</small></button><button class="btn sm" data-a="addin" title="Add PDFs or images to this folder">+ Add</button>${custom&&!ds.length?'<button class="btn sm" data-a="delf" title="Delete this empty folder">×</button>':''}</div>
+        ${op?`<div class="dr-fbody">${ds.map(setHTML).join('')}</div>`:''}</section>`;}).join('')+(all.length?'':'<p class="pj-empty">No drawings yet. Add PDF drawing sets: every page is imported and each file goes into its discipline folder.</p>');
     box.querySelectorAll('img[data-th]').forEach(im=>{const [id,n]=im.dataset.th.split(':');THQ=THQ.then(()=>thumbFor(id,+n,im)).catch(()=>{});});
     storageLine(s.querySelector('.dr-store'));};
-  box.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b||b.tagName==='SELECT')return;const id=b.closest('[data-id]').dataset.id,a=b.dataset.a;if(a!=='del')armed=null;
+  box.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b||b.tagName==='SELECT')return;const a=b.dataset.a;
+    if(a==='fold'){const k=b.closest('[data-fold]').dataset.fold;DRO.fold.has(k)?DRO.fold.delete(k):DRO.fold.add(k);saveDRO();draw();return;}
+    if(a==='addin'){addTo=b.closest('[data-fold]').dataset.fold;fin.click();return;}
+    if(a==='delf'){const k=b.closest('[data-fold]').dataset.fold;mutate(()=>{P.drawFolders=(P.drawFolders||[]).filter(x=>x.k!==k);});draw();return;}
+    const id=b.closest('[data-id]')?.dataset.id;if(!id)return;if(a!=='del')armed=null;
+    if(a==='set'){DRO.set.has(id)?DRO.set.delete(id):DRO.set.add(id);draw();return;}
     if(a==='view'){close();openViewer(id,+b.closest('[data-n]').dataset.n);return;}
     if(a==='rev'){revId=id;frev.click();return;}
     if(a==='del'){if(armed!==id){armed=id;draw();return;}armed=null;await deleteDrawing(id);draw();return;}
     if(a==='order'){const d=P.drawings.find(x=>x.id===id),lv=levelsSorted(),n=Math.min(lv.length,d.pages);for(let i=0;i<n;i++)await assignPage(lv[i].id,id,i+1,false);toast(`Pages 1–${n} are under ${lv[0].name} to ${lv[n-1].name}. Change any page with its “Put under level” list.`);draw();}});
-  box.addEventListener('change',async e=>{const sel=e.target.closest('select[data-a="lv"]');if(!sel||!sel.value)return;const id=sel.closest('[data-id]').dataset.id,n=+sel.closest('[data-n]').dataset.n,lv=sel.value;
-    await assignPage(lv,id,n,lv===S.level);if(lv!==S.level)setLevel(lv);fitPlan(true);toast(`${n>1||(P.drawings.find(x=>x.id===id)||{}).kind==='pdf'?'Page '+n:'Image'} is under ${lvl(lv).name}.`);draw();});
+  box.addEventListener('change',async e=>{const fsel=e.target.closest('select[data-a="folder"]');if(fsel){const id=fsel.closest('[data-id]').dataset.id,d=P.drawings.find(x=>x.id===id);if(d){mutate(()=>{d.folder=fsel.value;});DRO.fold.add(fsel.value);saveDRO();draw();toast(`${d.name} moved to ${(drFolders().find(f=>f[0]===fsel.value)||[,''])[1].split(' (')[0]}.`);}return;}
+    const sel=e.target.closest('select[data-a="lv"]');if(!sel||!sel.value)return;const id=sel.closest('[data-id]').dataset.id,n=+sel.closest('[data-n]').dataset.n,lv=sel.value;
+    await assignPage(lv,id,n,lv===S.level);if(lv!==S.level)setLevel(lv);fitPlan(true);toast(`${(P.drawings.find(x=>x.id===id)||{}).kind==='img'?'Image':'Page '+n} is under ${lvl(lv).name}.`);draw();});
   draw();}
 /* floating viewer: look at any sheet while modelling */
 const DV={did:null,n:1,z:1,task:null};
@@ -4298,7 +4335,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-accordion';
+const APP_VER='2026.09.26-drawfolders';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
