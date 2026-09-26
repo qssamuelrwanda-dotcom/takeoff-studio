@@ -1,9 +1,11 @@
-# Takeoff Studio — website
+# AgileBOQ — website
+
+Live at **https://agileboq.vercel.app** (app: `/app/`, admin: `/admin/`).
 
 | Path | What it is |
 |---|---|
-| `index.html` + `assets/` | Landing page (your home page) |
-| `app/index.html` | The Takeoff Studio app, served at `/app/` |
+| `index.html` + `shot-*.jpg` | Landing page (your home page) |
+| `app/index.html` | The AgileBOQ app, served at `/app/` |
 | `app/version.json` | Current app version. Open copies show "A new version is available" when it changes |
 | `admin/index.html` | Your private admin dashboard at `/admin/` (users, activity, suspend/restore) |
 | `supabase-setup.sql` | Database tables, privacy rules, usage tracking and admin reports. Run in Supabase → SQL Editor |

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Takeoff Studio · Quantity take-off, 3D model and NRM Bill of Quantities in your browser</title>
-<meta name="description" content="Trace PDF drawings or model the building. Takeoff Studio measures to NRM as you draw and produces the 3D model, Bill of Quantities, bar schedule and bill of materials. Free during beta.">
-<meta property="og:title" content="Takeoff Studio">
+<title>AgileBOQ · Quantity take-off, 3D model and NRM Bill of Quantities in your browser</title>
+<meta name="description" content="Trace PDF drawings or model the building. AgileBOQ measures to NRM as you draw and produces the 3D model, Bill of Quantities, bar schedule and bill of materials. Free during beta.">
+<meta property="og:title" content="AgileBOQ">
 <meta property="og:description" content="Quantity take-off, 3D model and NRM Bill of Quantities in your browser.">
 <meta property="og:image" content="/shot-split.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,6 +48,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent),#2F6FB8 6
 .lede{font-size:clamp(17px,1.6vw,20px);color:var(--ink2);max-width:60ch;margin:0 0 26px}
 .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .small{font-size:14px;color:var(--ink3);margin-top:14px}
+.frame video{display:block;width:100%;height:auto;background:#0B1F1C}.frame.demo{margin-top:36px;scroll-margin-top:90px}.demo-cap{margin-top:14px;max-width:820px}
 .frame{margin-top:44px;border-radius:14px;border:1px solid var(--line);background:var(--surface);box-shadow:0 30px 80px rgba(16,40,36,.18),0 4px 14px rgba(0,0,0,.06);overflow:hidden}
 .frame .bar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface2)}
 .frame .bar i{width:11px;height:11px;border-radius:50%;background:var(--line)}.frame .bar i:nth-child(1){background:#E0645A}.frame .bar i:nth-child(2){background:#E2B13C}.frame .bar i:nth-child(3){background:#5DBA6A}
@@ -98,7 +99,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 </head>
 <body>
 <nav class="nav"><div class="wrap">
-  <a class="logo" href="#top" aria-label="Takeoff Studio home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9z" fill="#0F6B63"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9" stroke="#fff" stroke-width="1.6" fill="none"/></svg>Takeoff Studio</a>
+  <a class="logo" href="#top" aria-label="AgileBOQ home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9z" fill="#0F6B63"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9" stroke="#fff" stroke-width="1.6" fill="none"/></svg>AgileBOQ</a>
   <div class="links"><a href="#features">Features</a><a href="#how">How it works</a><a href="#who">Who it's for</a><a href="#faq">FAQ</a></div>
   <div class="sp"></div>
   <a class="btn primary" href="app/">Open the app</a>
@@ -107,12 +108,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 <header class="hero" id="top"><div class="wrap">
   <span class="eyebrow"><i></i>Free during beta · no sign-up · no install</span>
   <h1>Measure once. <em>Model, bill and price</em> in one go.</h1>
-  <p class="lede">Trace your PDF drawings or model the building. Takeoff Studio measures to NRM while you draw, from substructure to services, with rebar bar by bar and finishes room by room. You get the 3D model, the Bill of Quantities and the bill of materials, all priced and ready for Excel.</p>
-  <div class="cta"><a class="btn primary lg" href="app/">Start measuring, free</a><a class="btn lg" href="#how">See how it works</a></div>
+  <p class="lede">Trace your PDF drawings or model the building. AgileBOQ measures to NRM while you draw, from substructure to services, with rebar bar by bar and finishes room by room. You get the 3D model, the Bill of Quantities and the bill of materials, all priced and ready for Excel.</p>
+  <div class="cta"><a class="btn primary lg" href="app/">Start measuring, free</a><a class="btn lg" href="#demo">&#9654;&nbsp; Watch the 4-minute demo</a></div>
   <p class="small">No account needed. It runs in Chrome, Edge and Firefox, and your work is saved automatically in your browser.</p>
-  <div class="frame"><div class="bar"><i></i><i></i><i></i><span>takeoff studio · split view: plan and live 3D</span></div><img src="/shot-split.jpg" alt="Takeoff Studio showing a traced ground-floor plan with grid lines next to the live 3D model of a two-storey house" width="2160" height="1290"></div>
+  <div class="frame"><div class="bar"><i></i><i></i><i></i><span>agileboq · split view: plan and live 3D</span></div><img src="/shot-split.jpg" alt="AgileBOQ showing a traced ground-floor plan with grid lines next to the live 3D model of a two-storey house" width="2160" height="1290"></div>
   <div class="badges">
-    <span><b style="background:#0F7A70"></b>NRM1 element groups</span><span><b style="background:#2F6FB8"></b>NRM2 measurement rules</span><span><b style="background:#8150C0"></b>Bar-by-bar rebar schedules</span><span><b style="background:#C4523B"></b>Excel with live formulas</span><span><b style="background:#C07E14"></b>9 currencies incl. RWF, KES, UGX</span><span><b style="background:#2E9460"></b>No sign-up needed</span>
+    <span><b style="background:#0F7A70"></b>NRM1 element groups</span><span><b style="background:#2F6FB8"></b>NRM2 measurement rules</span><span><b style="background:#8150C0"></b>Bar-by-bar rebar schedules</span><span><b style="background:#C4523B"></b>Excel with live formulas</span><span><b style="background:#C07E14"></b>Prices for 27 countries incl. RWF, KES, UGX</span><span><b style="background:#2E9460"></b>No sign-up needed</span>
   </div>
 </div></header>
 
@@ -146,12 +147,15 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 <section id="how"><div class="wrap">
   <span class="kicker">How it works</span><h2>From drawing to priced bill in three steps</h2>
-  <p class="intro">No install and no training course needed. If you can read a drawing, you can use Takeoff Studio.</p>
+  <p class="intro">No install and no training course needed. If you can read a drawing, you can use AgileBOQ.</p>
   <div class="steps">
     <div class="step"><h3>Set up the drawing</h3><p>Import a PDF or image for each level, calibrate the scale from one known dimension, and lay out the grid lines by typing the bay sizes.</p></div>
     <div class="step"><h3>Trace or model</h3><p>Pick a tool, such as walls, columns, slabs or rooms, and click. Enter rebar and finishes as you go. Quantities update instantly.</p></div>
     <div class="step"><h3>Price and export</h3><p>Review the bill, adjust or analyse rates, add a cover page and export to Excel. Share the live project with your team.</p></div>
   </div>
+  <div class="frame demo" id="demo"><div class="bar"><i></i><i></i><i></i><span>Watch: a 6-storey office block, from grid to priced Bill of Quantities · 3 min 52 s</span></div>
+    <video controls preload="none" playsinline poster="media/office-block.jpg" width="1280" height="800"><source src="media/office-block.mp4" type="video/mp4">Your browser cannot play this video. <a href="media/office-block.mp4">Download it</a>.</video></div>
+  <p class="small demo-cap">Structural grid, columns, pad footings and beams in a few clicks, a lift core with a dog-leg stair, curtain-wall and blockwork façades, six storeys, a roof with plant screen, a palisade boundary fence, then the 3D model and the NRM bill priced for Rwanda.</p>
 </div></section>
 
 <section class="alt" id="who"><div class="wrap">
@@ -175,7 +179,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
   </div>
 </div></section>
 
-<div class="wrap"><div class="band"><div><h2>Measure your next project here</h2><p>Open the app with a sample two-storey house and try it in five minutes.</p></div><a class="btn lg" href="app/">Open Takeoff Studio →</a></div></div>
+<div class="wrap"><div class="band"><div><h2>Measure your next project here</h2><p>Open the app with a sample two-storey house and try it in five minutes.</p></div><a class="btn lg" href="app/">Open AgileBOQ →</a></div></div>
 
 <section id="privacy" style="padding-top:0"><div class="wrap privacy">
   <span class="kicker">Privacy</span><h2 style="font-size:32px">Your data</h2>
@@ -188,7 +192,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
   <p>Questions about your data? Write to <a href="mailto:your-email@example.com">your-email@example.com</a>.</p>
 </div></section>
 
-<footer><div class="wrap"><span>© <span id="yr">2026</span> Takeoff Studio</span><span><a href="#privacy">Privacy</a> · <a href="app/">Open the app</a></span></div></footer>
+<footer><div class="wrap"><span>© <span id="yr">2026</span> AgileBOQ</span><span><a href="#privacy">Privacy</a> · <a href="app/">Open the app</a></span></div></footer>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 </body>
 </html>

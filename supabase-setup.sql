@@ -1,4 +1,4 @@
--- Takeoff Studio · Supabase setup (v2: accounts, cloud ts_projects, sharing, usage tracking, admin)
+-- AgileBOQ · Supabase setup (v2: accounts, cloud ts_projects, sharing, usage tracking, admin)
 -- Paste ALL of this into Supabase → SQL Editor → New query → Run. Safe to run again after updates.
 -- Admin email is set in section 5 — change it there if you sign in to the admin page with another address.
 
