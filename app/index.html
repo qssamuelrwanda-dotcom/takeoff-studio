@@ -1315,11 +1315,11 @@ $('#levels').addEventListener('change',e=>{const row=e.target.closest('.lv');con
 $('#levels').addEventListener('focusin',e=>{const row=e.target.closest('.lv');if(e.target.closest('[data-eyel],[data-del]'))return;if(row&&row.dataset.id!==S.level&&e.target.type!=='radio'){S.level=row.dataset.id;S.sel=null;S.hl=null;S.draft=null;$$('#levels .lv').forEach(r=>{r.classList.toggle('on',r.dataset.id===S.level);r.querySelector('[type=radio]').checked=r.dataset.id===S.level;});$('#hudLevel').textContent=lvl(S.level).name;renderProps();renderSub();renderUnder();drawPlan();queue3D();}});
 function setLevel(id){S.level=id;if(TEAM.room)setTimeout(()=>teamPresence(true));S.sel=null;S.hl=null;S.draft=null;updateRailCounts();renderLevels();renderProps();renderSub();renderUnder();drawPlan();queue3D();}
 $('#addLevel').onclick=()=>{const top=levelsSorted().at(-1);const n=P.levels.length;const l={id:uid(),name:n===1?'First Floor':`Level ${n}`,elev:+(top.elev+top.h).toFixed(3),h:3.0};mutate(()=>P.levels.push(l));setLevel(l.id);};
-$('#dupLevel').onclick=()=>{const src=lvl(S.level);const top=levelsSorted().at(-1);const l={id:uid(),name:src.name+' (copy)',elev:+(top.elev+top.h).toFixed(3),h:src.h};
-  mutate(()=>{P.levels.push(l);const map={};const els=onLevel(src.id).filter(e=>!['strip','pad'].includes(e.type));
+$('#dupLevel').onclick=()=>{const src=lvl(S.level);const top=levelsSorted().at(-1);const l={id:uid(),name:`Level ${P.levels.length}`,elev:+(top.elev+top.h).toFixed(3),h:src.h};
+  mutate(()=>{P.levels.push(l);const map={};const els=onLevel(src.id).filter(e=>!['strip','pad','gbeam','fwall','mh','fence','ramp'].includes(e.type));
     for(const e of els){map[e.id]=uid();}
     for(const e of els){const c=JSON.parse(JSON.stringify(e));c.id=map[e.id];c.level=l.id;if(c.host)c.host=map[c.host];P.elements.push(c);}});
-  setLevel(l.id);toast(`Copied ${src.name} to a new level above. Footings were left out.`);};
+  setLevel(l.id);toast(`Copied ${src.name} to ${l.name} above. Foundations, ground beams and external works were left out.`);};
 
 /* ---------- properties panel ---------- */
 function rebarHTML(t,obj,prefix,el){
@@ -1614,7 +1614,7 @@ function underPx(u,rec){return u.mpp/(rec.k||1);} // metres per canvas pixel
 
 /* ---------- plan canvas ---------- */
 const cv=$('#plan');let ctx=cv.getContext('2d');let dpr=1;
-const w2s=([x,y])=>[(x-S.cam.x)*S.cam.z+cv.clientWidth/2,(y-S.cam.y)*S.cam.z+cv.clientHeight/2];
+window.__tsW2S=p=>w2s(p);const w2s=([x,y])=>[(x-S.cam.x)*S.cam.z+cv.clientWidth/2,(y-S.cam.y)*S.cam.z+cv.clientHeight/2];
 const s2w=(sx,sy)=>[(sx-cv.clientWidth/2)/S.cam.z+S.cam.x,(sy-cv.clientHeight/2)/S.cam.z+S.cam.y];
 function sizeCanvas(){dpr=window.devicePixelRatio||1;const w=cv.clientWidth,h=cv.clientHeight;if(!w||!h)return;if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}}
 function poly(pts,close=true){ctx.beginPath();pts.forEach((p,i)=>{const [x,y]=w2s(p);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});if(close)ctx.closePath();}
@@ -1871,7 +1871,7 @@ function quickGridHTML(){const q=qgState();const n=(P.grids||[]).length;
   <div class="fields">${f('qgX0','Origin X (m)',q.x0,'type="number" step="0.05"')}${f('qgY0','Origin Y (m)',q.y0,'type="number" step="0.05"')}${f('qgExt','Extend past (m)',q.ext,'type="number" step="0.1" min="0"')}
     <div class="field"><label for="qgMode">Existing grids${n?` (${n})`:''}</label><select id="qgMode"><option value="replace" ${q.mode==='replace'?'selected':''}>Replace</option><option value="add" ${q.mode==='add'?'selected':''}>Keep and add</option></select></div></div>
   <p class="qg-sum" id="qgSum">${qgSummary()}</p>
-  <div class="row" style="justify-content:flex-start;flex-wrap:wrap"><button class="btn sm primary" id="qgGo">Create grid <kbd style="font-size:10px">⏎</kbd></button><button class="btn sm" id="qgPick" aria-pressed="${!!q.pick}">${q.pick?'Click the plan…':'Pick origin on plan'}</button><button class="btn sm" id="qgCols" title="Read the grid from columns and pad footings already placed">From columns</button></div>
+  <div class="row" style="justify-content:flex-start;flex-wrap:wrap"><button class="btn sm primary" id="qgGo">Create grid <kbd style="font-size:10px">⏎</kbd></button><button class="btn sm" id="qgPick" aria-pressed="${!!q.pick}">${q.pick?'Click the plan…':'Pick origin on plan'}</button><button class="btn sm" id="qgCols" title="Read the grid from columns and pad footings already placed">From columns</button><button class="btn sm" id="qgPlace" ${n?'':'disabled'} title="Place a column at every grid intersection on this level">Columns at all intersections</button></div>
   <p class="hint" style="margin-top:12px">Single lines: click two points on the plan. Numbers or letters follow on automatically. Select a grid line to edit or drag it.</p>`;}
 function wireQuickGrid(el){const q=qgState();const v=id=>el.querySelector('#'+id);
   const upd=()=>{const s=v('qgSum');if(s)s.innerHTML=qgSummary();drawPlan();};
@@ -1879,7 +1879,9 @@ function wireQuickGrid(el){const q=qgState();const v=id=>el.querySelector('#'+id
   [['qgX0','x0'],['qgY0','y0'],['qgExt','ext']].forEach(([id,k])=>v(id).addEventListener('input',e=>{q[k]=parseFloat(e.target.value)||0;upd();}));
   v('qgMode').onchange=e=>{q.mode=e.target.value;if(q.mode==='add'&&(P.grids||[]).length&&q.x1==='1'&&q.y1==='A'){q.x1=nextGridName(true);q.y1=nextGridName(false);}renderProps();drawPlan();};
   el.querySelectorAll('.qg-axis input,.fields input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();qgApply();}}));
-  v('qgGo').onclick=qgApply;v('qgPick').onclick=()=>{q.pick=!q.pick;renderProps();drawPlan();};v('qgCols').onclick=()=>{if(qgFromColumns()){renderProps();drawPlan();}};}
+  v('qgGo').onclick=qgApply;v('qgPick').onclick=()=>{q.pick=!q.pick;renderProps();drawPlan();};v('qgCols').onclick=()=>{if(qgFromColumns()){renderProps();drawPlan();}};
+  v('qgPlace').onclick=()=>{const pts=gridIntersections();const add=[];for(const q2 of pts){if(onLevel(S.level).some(x=>x.type==='column'&&d2(x.pts[0],q2)<0.05)||add.some(x=>d2(x.pts[0],q2)<0.05))continue;add.push({id:uid(),type:'column',level:S.level,pts:[q2.map(v2=>+v2.toFixed(4))],p:TDc('column')});}
+    if(!add.length){toast('Every grid intersection already has a column.');return;}mutate(()=>add.forEach(x=>P.elements.push(x)));setSel(add.map(x=>x.id));setTool('select');setSel(add.map(x=>x.id));renderProps();drawPlan();queue3D();toast(`Placed ${add.length} columns at the grid intersections. They are selected: use Quick add for footings and beams.`);};}
 function drawQuickGridPreview(){if(S.tool!=='grid'||S.sel||S.draft)return;const G=qgGrids();if(!G)return;drawGrids('lines',G,true);drawGrids('labels',G,true);
   const q=qgState();const o=q.pick&&S.cursor?S.cursor:[q.x0,q.y0];const [sx,sy]=w2s(o);ctx.save();ctx.strokeStyle=TH.mark;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx,sy,6,0,Math.PI*2);ctx.moveTo(sx-11,sy);ctx.lineTo(sx+11,sy);ctx.moveTo(sx,sy-11);ctx.lineTo(sx,sy+11);ctx.stroke();ctx.fillStyle=TH.mark;ctx.font='500 10.5px "JetBrains Mono",monospace';ctx.fillText(`origin ${fmtN(+o[0])}, ${fmtN(+o[1])}`,sx+9,sy+18);ctx.restore();}
 
@@ -3605,7 +3607,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-ra';
+const APP_VER='2026.09.26-grid';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
