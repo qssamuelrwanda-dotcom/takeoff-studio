@@ -135,11 +135,13 @@ button{cursor:pointer}
 .rail .grp{font-family:var(--f-cond);font-size:11.5px;font-weight:700;letter-spacing:0;color:var(--gcx);padding:0 2px 3px;display:block;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rail .grp b{display:block;width:fit-content;font-family:var(--f-mono);font-weight:600;font-size:9.5px;letter-spacing:0;color:#fff;background:var(--gcx);border-radius:4px;padding:1px 4px;margin:0 0 2px;text-transform:none}
 .rtools{display:flex;flex-direction:column;gap:2px}
-.disc{display:flex;flex-direction:column;gap:3px;padding:0 0 6px;margin-bottom:1px;border-bottom:1px solid var(--line)}
+.dsec{display:flex;flex-direction:column;gap:4px}.dsec.open{padding-bottom:4px;border-bottom:1px dashed color-mix(in srgb,var(--gc) 40%,transparent)}.dbody{display:flex;flex-direction:column;gap:5px}
+.dxall{display:flex;justify-content:center}.dxall button{border:0;background:none;color:var(--ink2);font-family:var(--f-cond);font-size:10.5px;font-weight:600;padding:1px 2px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}.dxall button:hover{color:var(--ink)}
+.dsc .chev{position:absolute;left:3px;top:4px;width:11px;height:11px;transition:transform .15s}.dsc[aria-expanded="true"] .chev{transform:rotate(90deg)}
 .dsc{--gcx:var(--gc);display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid color-mix(in srgb,var(--gcx) 28%,transparent);background:color-mix(in srgb,var(--gcx) 8%,var(--surface));border-radius:8px;padding:4px 1px 3px;color:var(--gcx);font-family:var(--f-cond);font-weight:700;font-size:10.5px;line-height:1.1;letter-spacing:-.01em;position:relative;cursor:pointer;min-width:0}
 .dsc span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsc svg{width:20px;height:20px;flex:none}
 .dsc:hover{background:color-mix(in srgb,var(--gcx) 16%,var(--surface))}
-.dsc[aria-selected="true"]{background:var(--gcx);border-color:var(--gcx);color:#fff;box-shadow:0 3px 10px color-mix(in srgb,var(--gcx) 38%,transparent)}
+.dsc[aria-expanded="true"]{background:var(--gcx);border-color:var(--gcx);color:#fff;box-shadow:0 3px 10px color-mix(in srgb,var(--gcx) 38%,transparent)}
 .dsc .dcnt{position:absolute;top:2px;right:2px;font-style:normal;font-family:var(--f-mono);font-size:8.5px;font-weight:600;line-height:1;padding:2px 3px;border-radius:6px;background:var(--surface);color:var(--gcx);border:1px solid color-mix(in srgb,var(--gcx) 35%,transparent)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dsc{--gcx:color-mix(in srgb,var(--gc) 72%,#fff)}}
 :root[data-theme="dark"] .dsc{--gcx:color-mix(in srgb,var(--gc) 72%,#fff)}
@@ -443,7 +445,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
   .rgrp{flex-direction:column;padding:0 6px}
   .rgrp+.rgrp{border-top:0;border-left:1px solid var(--line2)}
   .rtools{flex-direction:row}
-  .disc{flex-direction:row;border-bottom:0;border-right:1px solid var(--line);padding:0 6px 0 0;margin:0 6px 0 0}
+  .dsec,.dbody{flex-direction:row}.dsec.open{border-bottom:0;padding:0}.dxall{display:none}
   .dsc{width:78px;flex:none;justify-content:center}
   .tool{flex:none;width:62px}
   .tool[aria-pressed="true"]::before{display:none}
@@ -1665,19 +1667,20 @@ const TOOLS=[['','',[['select','Select / move','v'],['grid','Structural grid lin
 const DISC=[['str','Structural','#2F6FB8','<path d="M3 5h16M3 9h16"/><path d="M6 9v10M16 9v10M4 19h4M14 19h4"/>'],
   ['arch','Architectural','#C07E14','<path d="M3 10.5 11 4l8 6.5"/><path d="M5 9v10h12V9"/><path d="M9.5 19v-5h3v5"/>'],
   ['mep','MEP','#2E9460','<path d="M2 7h6a3 3 0 0 1 3 3v10" stroke-width="2"/><path d="M16.5 2.5 13.5 9h4l-3 6.5" stroke-width="1.5"/>'],
-  ['ext','External','#4F7A3A','<circle cx="11" cy="8" r="5"/><path d="M11 13v7M6 20h10"/>'],
-  ['all','All','#657583','<rect x="3" y="3" width="6.5" height="6.5" rx="1.2"/><rect x="12.5" y="3" width="6.5" height="6.5" rx="1.2"/><rect x="3" y="12.5" width="6.5" height="6.5" rx="1.2"/><rect x="12.5" y="12.5" width="6.5" height="6.5" rx="1.2"/>']];
-S.disc=(()=>{try{const v=localStorage.getItem('takeoffstudio.disc');return DISC.some(d=>d[0]===v)?v:'str';}catch(e){return'str';}})();
-function setDisc(k){S.disc=k;try{localStorage.setItem('takeoffstudio.disc',k);}catch(e){}renderRail();}
+  ['ext','External','#4F7A3A','<circle cx="11" cy="8" r="5"/><path d="M11 13v7M6 20h10"/>']];
+S.dopen=new Set((()=>{try{const a=JSON.parse(localStorage.getItem('takeoffstudio.dopen')||'null');if(Array.isArray(a))return a;const v=localStorage.getItem('takeoffstudio.disc');return v&&v!=='all'?[v]:v==='all'?DISC.map(d=>d[0]):['str'];}catch(e){return['str'];}})().filter(k=>DISC.some(d=>d[0]===k)));
+function saveDopen(){try{localStorage.setItem('takeoffstudio.dopen',JSON.stringify([...S.dopen]));}catch(e){}}
+function toggleDisc(k,open){const on=open!=null?open:!S.dopen.has(k);if(on)S.dopen.add(k);else S.dopen.delete(k);saveDopen();renderRail();}
 const GCOL={'':'#0F7A70',Substructure:'#9A6230',Frame:'#2F6FB8',Floors:'#4B7C8C',Roof:'#C4523B',Stairs:'#7A5FA8',Walls:'#C07E14',Openings:'#1C93AE',Finishes:'#8150C0',Services:'#2E9460','Plumbing & drainage':'#2E9460',Electrical:'#B8860B','Stairs & ramps':'#7A5FA8',Balustrades:'#4E5A66','External works':'#4F7A3A',External:'#4F7A3A',Drawing:'#657583'};
 function renderRail(){
-  const tabs=`<div class="disc" role="tablist" aria-label="Modelling category">${DISC.map(([k,n,c,ic])=>`<button role="tab" class="dsc" data-disc="${k}" aria-selected="${S.disc===k}" style="--gc:${c}" title="${k==='all'?'Show all modelling tools':n+' modelling tools'}"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${ic}</svg><span>${n}</span><i class="dcnt" data-dcnt="${k}" hidden></i></button>`).join('')}</div>`;
-  $('#rail').innerHTML=tabs+TOOLS.filter(g=>!g[3]||S.disc==='all'||g[3]===S.disc).map(([code,name,ts])=>`<div class="rgrp" style="--gc:${GCOL[name]||GCOL['']}">${name?`<span class="grp" title="${esc(name)}">${code?`<b>${code}</b>`:''}${name}</span>`:''}<div class="rtools">`+ts.map(([id,label,k])=>`<button class="tool" data-tool="${id}" title="${esc(label)}${k?' · shortcut '+k.toUpperCase():''}" aria-label="${esc(label)}" aria-pressed="${S.tool===id}"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">${ICON[id]}</svg><span class="tl">${SHORT[id]}</span>${k?`<kbd>${k.toUpperCase()}</kbd>`:''}${TYPES[id]?`<i class="cnt" data-cnt="${id}" hidden></i>`:''}</button>`).join('')+`</div></div>`).join('');
+  const grp=([code,name,ts])=>`<div class="rgrp" style="--gc:${GCOL[name]||GCOL['']}">${name?`<span class="grp" title="${esc(name)}">${code?`<b>${code}</b>`:''}${name}</span>`:''}<div class="rtools">`+ts.map(([id,label,k])=>`<button class="tool" data-tool="${id}" title="${esc(label)}${k?' · shortcut '+k.toUpperCase():''}" aria-label="${esc(label)}" aria-pressed="${S.tool===id}"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">${ICON[id]}</svg><span class="tl">${SHORT[id]}</span>${k?`<kbd>${k.toUpperCase()}</kbd>`:''}${TYPES[id]?`<i class="cnt" data-cnt="${id}" hidden></i>`:''}</button>`).join('')+`</div></div>`;
+  const all=S.dopen.size===DISC.length;
+  $('#rail').innerHTML=grp(TOOLS[0])+`<div class="dxall"><button data-dall="${all?0:1}" title="${all?'Collapse all categories':'Expand all categories'}">${all?'Collapse all':'Expand all'}</button></div>`+DISC.map(([k,n,c,ic])=>{const op=S.dopen.has(k);return`<div class="dsec${op?' open':''}" style="--gc:${c}"><button class="dsc" data-disc="${k}" aria-expanded="${op}" title="${op?'Collapse':'Expand'} ${n} tools"><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${ic}</svg><span>${n}</span><i class="dcnt" data-dcnt="${k}" hidden></i></button>${op?`<div class="dbody">${TOOLS.filter(g=>g[3]===k).map(grp).join('')}</div>`:''}</div>`;}).join('')+TOOLS.filter(g=>!g[3]).slice(1).map(grp).join('');
   updateRailCounts();
 }
-function updateRailCounts(){if(!P)return;const c={};onLevel(S.level).forEach(e=>c[e.type]=(c[e.type]||0)+1);$$('#rail [data-dcnt]').forEach(b=>{const k=b.dataset.dcnt;if(k==='all'){b.hidden=true;return;}const n=TOOLS.filter(g=>g[3]===k).flatMap(g=>g[2]).reduce((a,x)=>a+(c[x[0]]||0),0);b.hidden=!n;b.textContent=n>999?'999+':n;b.title=`${n} on this level`;});$$('#rail [data-cnt]').forEach(b=>{const n=c[b.dataset.cnt]||0;b.hidden=!n;b.textContent=n;b.title=`${n} on this level`;});}
+function updateRailCounts(){if(!P)return;const c={};onLevel(S.level).forEach(e=>c[e.type]=(c[e.type]||0)+1);$$('#rail [data-dcnt]').forEach(b=>{const k=b.dataset.dcnt;const n=TOOLS.filter(g=>g[3]===k).flatMap(g=>g[2]).reduce((a,x)=>a+(c[x[0]]||0),0);b.hidden=!n;b.textContent=n>999?'999+':n;b.title=`${n} on this level`;});$$('#rail [data-cnt]').forEach(b=>{const n=c[b.dataset.cnt]||0;b.hidden=!n;b.textContent=n;b.title=`${n} on this level`;});}
 function setTool(t){
-  {const g=TOOLS.find(g=>g[2].some(x=>x[0]===t));if(g&&g[3]&&S.disc!=='all'&&g[3]!==S.disc)setDisc(g[3]);}
+  {const g=TOOLS.find(g=>g[2].some(x=>x[0]===t));if(g&&g[3]&&!S.dopen.has(g[3]))toggleDisc(g[3],true);}
   if((t==='calibrate'||t==='align')&&!UL[S.level]){toast('Import a PDF or image drawing for this level first.');}
   S.tool=t;S.draft=null;S.numBuf='';if(t!=='room'&&S.shape==='pick')S.shape='line';if(!ARCT.includes(t)&&S.shape==='arc')S.shape='line';if(t!=='select'){S.sel=null;}
   if(t==='measure')S.measure=null;
@@ -1685,7 +1688,7 @@ function setTool(t){
   $('#plan').classList.toggle('sel',t==='select');
   renderProps();drawPlan();updateHint();queue3D();if(TEAM.room)teamPresence(true);
 }
-$('#rail').addEventListener('click',e=>{const d=e.target.closest('[data-disc]');if(d){setDisc(d.dataset.disc);return;}const b=e.target.closest('.tool');if(b)setTool(b.dataset.tool);});
+$('#rail').addEventListener('click',e=>{const d=e.target.closest('[data-disc]');if(d){toggleDisc(d.dataset.disc);return;}const x=e.target.closest('[data-dall]');if(x){S.dopen=new Set(x.dataset.dall==='1'?DISC.map(d=>d[0]):[]);saveDopen();renderRail();return;}const b=e.target.closest('.tool');if(b)setTool(b.dataset.tool);});
 
 /* ---------- levels panel ---------- */
 function renderLevels(){
@@ -4295,7 +4298,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-disciplines';
+const APP_VER='2026.09.26-accordion';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
