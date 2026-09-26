@@ -96,6 +96,17 @@ button{cursor:pointer}
 .pd-wrap{overflow:auto;max-height:70vh}.pd th{white-space:nowrap;font-size:11.5px;line-height:1.25;vertical-align:bottom;position:sticky;top:0;background:var(--surface);z-index:2}.pd .pd-sticky{position:sticky;left:0;background:var(--surface);z-index:1;min-width:210px}.pd th.pd-sticky{z-index:3}
 .pd td input{width:88px;font-family:var(--f-mono);font-size:12px;padding:3px 5px;text-align:right}.pd .pd-on{background:color-mix(in srgb,var(--accent) 9%,transparent)}.pd input.pd-ov{background:color-mix(in srgb,var(--mark) 22%,var(--surface));font-weight:600}
 .ra-why{margin:0 16px 12px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--surface2);border-radius:4px;line-height:1.5}
+.dialog.dr-dlg{width:min(1000px,100%);max-height:90vh;overflow:auto}.dr-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.dr-head h2{margin:0}
+.dr-bar{display:flex;justify-content:flex-start;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0}.dr-store{font-size:12.5px;color:var(--ink2)}
+.dr-set{border:1px solid var(--line);border-radius:8px;padding:10px;margin:12px 0}.dr-sh{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start}.dr-sh small{display:block;color:var(--ink2);font-size:12px;margin-top:2px}
+.dr-acts{display:flex;gap:6px;flex-wrap:wrap}.dr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.dr-tile{border:1px solid var(--line);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:5px;background:var(--paper);min-width:0}
+.dr-th{display:block;border:1px solid var(--line);padding:0;background:#fff;border-radius:4px;overflow:hidden;cursor:zoom-in;aspect-ratio:1.414/1;width:100%}.dr-th img{width:100%;height:100%;object-fit:contain;display:block}
+.dr-tl{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:12.5px;min-width:0}.dr-tl .badge{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dr-tile select{font-size:12px;padding:3px 4px;width:100%;min-width:0}.fu-list label{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13.5px}
+.dv{position:fixed;right:16px;top:90px;width:min(600px,calc(100vw - 32px));height:min(480px,70vh);background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.28);z-index:70;display:flex;flex-direction:column;resize:both;overflow:hidden;min-width:280px;min-height:200px}
+.dv-h{display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid var(--line);cursor:move;user-select:none;flex-wrap:wrap;touch-action:none}.dv-t{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:38%}.dv-sp{flex:1}.dv-pg{font-size:12px;min-width:48px;text-align:center}
+.dv-b{flex:1;overflow:auto;background:#8a8f93}.dv-b canvas{display:block;margin:0 auto;background:#fff}
 .pj-dlg{width:min(640px,100%)}.pj-top{display:flex;gap:8px;margin:4px 0 10px}.pj-top input{flex:1;min-width:0;padding:7px 10px}
 .pj-row{grid-template-columns:minmax(0,1fr) auto}.pj-row .pj-acts{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}.pj-name b{overflow-wrap:anywhere}.pj-name input{width:100%;padding:5px 8px}
 .pj-list{max-height:52vh;overflow:auto}.pj-empty{color:var(--ink3);margin:10px 2px}.pj-foot{font-size:12px;color:var(--ink3);margin:10px 0 0}.btn.danger{background:#c2372c;border-color:#c2372c;color:#fff}
@@ -467,6 +478,8 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
       <div class="menu" id="fileMenu" hidden>
         <button data-act="projects">My projects… <small>saved here</small></button>
         <button data-act="settings">Project settings…</button>
+        <button data-act="drawings">Drawings <small>PDF sets · all pages</small></button>
+        <button data-act="free">Free up storage space…</button>
         <hr>
         <button data-act="new">New empty project</button>
         <button data-act="sample">Load sample apartment block</button>
@@ -489,6 +502,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
       <canvas id="plan" aria-label="Plan drawing canvas"></canvas>
       <div class="hud">
         <button class="chip vis-btn" data-visbtn title="Show or hide element types (slabs, walls, columns…)"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 10S4.6 4.2 10 4.2 18.5 10 18.5 10 15.4 15.8 10 15.8 1.5 10 1.5 10z"/><circle cx="10" cy="10" r="2.6"/></svg><span>Show / hide</span></button>
+        <button class="chip" data-drbtn title="Drawings: every PDF page kept with this project"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5H5z"/><path d="M12 2.5V6h3.5M7.5 10h5M7.5 13h5"/></svg><span>Drawings</span></button>
         <span class="chip"><span class="dot"></span><b id="hudLevel">Level</b><span id="hudUnder" class="mono" style="color:var(--ink3)"></span></span>
         <button class="chip hud-hid" id="hudHidden" hidden title="Show everything again"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 3l14 14M8.2 4.5A8.9 8.9 0 0110 4.2c5.4 0 8.5 5.8 8.5 5.8a15 15 0 01-2.6 3.3M5.2 6.2C2.9 7.8 1.5 10 1.5 10s3.1 5.8 8.5 5.8c1.3 0 2.5-.3 3.5-.8"/></svg><span></span><u>Show all</u></button>
         <span class="chip legend" id="hudLegend" hidden><i style="background:#2F7FD1"></i>CW<i style="background:#D1452F"></i>HW<i style="background:#9A6B35"></i>W<i style="background:#6B4A26"></i>S<i style="background:#8E7CC3"></i>V<i style="background:#2A9D8F"></i>RW<i style="background:#5B4632"></i>UD<i style="background:#B0122E"></i>FIRE<i style="background:#C9A20B"></i>GAS<i style="background:#E07B24"></i>HTG<i style="background:#1F9CB8"></i>CHW</span>
@@ -544,7 +558,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
 <input type="file" id="fProject" accept=".json,application/json" hidden>
 <input type="file" id="fBank" accept=".csv,text/csv" hidden>
 <input type="file" id="fLogo" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
-<input type="file" id="fUnder" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" hidden>
+<input type="file" id="fUnder" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" multiple hidden>
 
 <script>
 (()=>{
@@ -1663,7 +1677,7 @@ function renderLevels(){
     <input type="number" step="0.05" min="0" data-f="h" value="${l.h}" aria-label="Floor to floor height">
     <button class="eye" data-eyel aria-pressed="${!(S.hideL&&S.hideL.has(l.id))}" title="${S.hideL&&S.hideL.has(l.id)?'Show':'Hide'} ${esc(l.name)} in 3D">${S.hideL&&S.hideL.has(l.id)?EYEOFF:EYE}</button><button class="x" data-del title="Delete level" aria-label="Delete level">×</button></div>`).join('');renderHudHidden();
   $('#hudLevel').textContent=lvl(S.level)?.name||'';$('#hudLegend').hidden=!onLevel(S.level).some(e=>e.type==='pipe');
-  const u=lvl(S.level)?.underlay;$('#hudUnder').textContent=u?('· '+u.name+(UL[S.level]?'':' (re-attach)')):'';
+  const u=lvl(S.level)?.underlay;$('#hudUnder').textContent=u?('· '+u.name+(UL[S.level]?.canvas||u.did?'':' (re-attach)')):'';
 }
 $('#levels').addEventListener('click',e=>{const row=e.target.closest('.lv');if(!row)return;const id=row.dataset.id;
   const eb=e.target.closest('[data-eyel]');if(eb){if(!S.hideL)loadVis();if(S.hideL.has(id))S.hideL.delete(id);else S.hideL.add(id);visChanged();return;}
@@ -1973,50 +1987,150 @@ function renderUnder(){
   const el=$('#underPanel');const l=lvl(S.level);if(!l){el.innerHTML='';return;}
   const u=l.underlay,has=UL[S.level];
   if(!u){el.innerHTML=`<h3>Drawing underlay <span class="sub">${esc(l.name)}</span></h3>
-    <div class="drop" id="drop">Import a PDF plan or an image for this level, set its scale, then trace over it.<br><button class="btn sm primary" id="impU">Import PDF or image</button></div>`;
-    $('#impU').onclick=()=>$('#fUnder').click();wireDrop($('#drop'));return;}
+    <div class="drop" id="drop">Import a PDF drawing set or an image, set its scale, then trace over it. Every page of the PDF is kept in Drawings with this project.<br><button class="btn sm primary" id="impU">Import PDF or image</button> <button class="btn sm" id="uDrw">Drawings…</button></div>`;
+    $('#impU').onclick=()=>$('#fUnder').click();$('#uDrw').onclick=()=>openDrawings();wireDrop($('#drop'));return;}
+  if(u.did&&!(has&&has.canvas&&has.did===u.did&&has.page===(u.kind==='pdf'?u.page||1:1))&&!has?.missing)ensureUnder(S.level);
   const scales=[20,50,100,200,250,500];
   el.innerHTML=`<h3>Drawing underlay <span class="sub">${esc(l.name)}</span></h3>
-    <p class="hint" style="margin:0 0 8px"><span class="badge">${u.kind==='pdf'?'PDF':'Image'}</span> ${esc(u.name)}${!has?' · <b style="color:var(--danger)">not loaded, import it again to show it</b>':''}</p>
+    <p class="hint" style="margin:0 0 8px"><span class="badge">${u.kind==='pdf'?'PDF':'Image'}</span> ${esc(u.name)}${has?.missing?' · <b style="color:var(--danger)">file not on this device: add it again in Drawings (New revision)</b>':!has?.canvas?(u.did?' · loading…':' · <b style="color:var(--danger)">not loaded, import it again to show it</b>'):''}</p>
     <div class="fields">
       ${u.kind==='pdf'?`<div class="field"><label for="uPage">Page</label><select id="uPage">${Array.from({length:u.pages||1},(_,i)=>`<option ${u.page===i+1?'selected':''}>${i+1}</option>`).join('')}</select></div>
       <div class="field"><label for="uScale">Drawing scale</label><select id="uScale">${scales.map(s=>`<option value="${s}" ${u.scale===s?'selected':''}>1:${s}</option>`).join('')}<option value="0" ${!u.scale?'selected':''}>Calibrated</option></select></div>`:''}
       <div class="field wide"><label for="uOp">Opacity</label><input type="range" id="uOp" min="0.1" max="1" step="0.05" value="${u.opacity}"></div>
     </div>
     <p class="hint mono" style="font-size:11.5px">1 px = ${fmtN(u.mpp*1000,2)} mm</p>
-    <div class="row"><button class="btn sm" data-t="calibrate">Calibrate</button><button class="btn sm" data-t="align">Move</button><button class="btn sm" id="uRep">Replace</button><button class="btn sm" id="uDel">Remove</button></div>`;
+    <div class="row"><button class="btn sm" data-t="calibrate">Calibrate</button><button class="btn sm" data-t="align">Move</button><button class="btn sm" id="uRep">Replace</button><button class="btn sm" id="uDel">Remove</button></div>
+    <div class="row"><button class="btn sm" id="uDrw">Drawings…</button>${u.did?'<button class="btn sm" id="uView">Open in viewer</button>':''}</div>`;
   el.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
-  $('#uRep').onclick=()=>$('#fUnder').click();
+  $('#uRep').onclick=()=>$('#fUnder').click();$('#uDrw').onclick=()=>openDrawings();if($('#uView'))$('#uView').onclick=()=>openViewer(u.did,u.page||1);
   $('#uDel').onclick=()=>mutate(()=>{delete l.underlay;delete UL[l.id];});
   $('#uOp').oninput=e=>{u.opacity=+e.target.value;drawPlan();};
   $('#uOp').onchange=()=>changed();
-  if($('#uPage'))$('#uPage').onchange=async e=>{u.page=+e.target.value;await renderPdfPage(l.id);changed();};
+  if($('#uPage'))$('#uPage').onchange=async e=>{u.page=+e.target.value;if(u.did){const d=(P.drawings||[]).find(x=>x.id===u.did);if(d)u.name=`${d.name} · p${u.page}`;}await renderPdfPage(l.id);changed();};
   if($('#uScale'))$('#uScale').onchange=e=>{const s=+e.target.value;if(!s)return;mutate(()=>{u.scale=s;u.mpp=PT_M*s/RS;});};
 }
-function wireDrop(z){z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over');});z.addEventListener('dragleave',()=>z.classList.remove('over'));z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const f=e.dataTransfer.files[0];if(f)importUnder(f);});}
-$('#fUnder').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(f)importUnder(f);});
-async function importUnder(f){
-  const l=lvl(S.level);const isPdf=/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);
-  try{
-    if(isPdf){
-      if(!window.pdfjsLib){toast('The PDF reader did not load. Check your connection and reload the page.');return;}
-      try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}catch(e){}
-      const buf=await f.arrayBuffer();const doc=await pdfjsLib.getDocument({data:buf}).promise;
-      UL[l.id]={doc};
-      const prev=l.underlay;
-      pushUndo();
-      l.underlay={kind:'pdf',name:f.name,pages:doc.numPages,page:prev?.kind==='pdf'&&prev.name===f.name?prev.page:1,scale:prev?.scale??100,mpp:prev?.mpp??PT_M*100/RS,ox:prev?.ox??0,oy:prev?.oy??0,opacity:prev?.opacity??0.6};
-      await renderPdfPage(l.id);
-    }else{
-      const url=URL.createObjectURL(f);const img=new Image();await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url;});
-      const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);URL.revokeObjectURL(url);
-      UL[l.id]={canvas:c};const prev=l.underlay;pushUndo();
-      l.underlay={kind:'img',name:f.name,mpp:prev?.mpp??0.01,ox:prev?.ox??0,oy:prev?.oy??0,opacity:prev?.opacity??0.6,scale:0};
-    }
-    changed();fitPlan(true);
-    toast(l.underlay.kind==='pdf'?'Drawing imported. Set the scale, or use Calibrate on a known dimension.':'Image imported. Use Calibrate on a known dimension to set its scale.');
-  }catch(err){console.error(err);toast('That file could not be read as a PDF or image.');}
-}
+function wireDrop(z){z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('over');});z.addEventListener('dragleave',()=>z.classList.remove('over'));z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('over');const fs=[...e.dataTransfer.files];if(fs.length)importUnder(fs);});}
+$('#fUnder').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)importUnder(fs);});
+/* ---------- drawings register: every page of every PDF, stored in IndexedDB ---------- */
+const DDB={db:null,open(){if(this.db)return Promise.resolve(this.db);return new Promise((res,rej)=>{const r=indexedDB.open('agileboq-drawings',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>{this.db=r.result;res(this.db);};r.onerror=()=>rej(r.error);});},
+  tx(mode,fn){return this.open().then(db=>new Promise((res,rej)=>{const t=db.transaction('files',mode),st=t.objectStore('files');let out;const q=fn(st);if(q)q.onsuccess=()=>{out=q.result;};t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);}));},
+  put(id,v){return this.tx('readwrite',st=>st.put(v,id));},get(id){return this.tx('readonly',st=>st.get(id));},del(id){return this.tx('readwrite',st=>st.delete(id));},keys(){return this.tx('readonly',st=>st.getAllKeys());}};
+const DOCS={},MISS={},THUMB={},ULL={};let THQ=Promise.resolve();
+const fmtBytes=n=>!(n>0)?'0 KB':n<1048576?Math.max(1,Math.round(n/1024))+' KB':(n/1048576).toFixed(1)+' MB';
+function pdfReady(){if(!window.pdfjsLib){toast('The PDF reader did not load. Check your connection and reload the page.');return false;}try{if(!pdfReady.w){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';pdfReady.w=1;}}catch(e){}return true;}
+async function imgCanvas(blob){const url=URL.createObjectURL(blob);const img=new Image();try{await new Promise((a,b)=>{img.onload=a;img.onerror=b;img.src=url;});}finally{setTimeout(()=>URL.revokeObjectURL(url),0);}const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);return c;}
+function getDoc(did){if(!DOCS[did])DOCS[did]=(async()=>{const r=await DDB.get(did).catch(()=>null);if(!r||!r.buf){MISS[did]=1;return null;}delete MISS[did];
+    if(r.kind==='img')return{canvas:await imgCanvas(new Blob([r.buf],{type:r.type||'image/png'}))};if(!pdfReady())return null;return{doc:await pdfjsLib.getDocument({data:r.buf.slice(0)}).promise};})().catch(e=>{console.error(e);delete DOCS[did];return null;});
+  return DOCS[did];}
+async function readDrawing(f){const isPdf=/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name),isImg=/^image\//.test(f.type)||/\.(png|jpe?g|webp)$/i.test(f.name);
+  if(!isPdf&&!isImg){toast(f.name+' is not a PDF or an image.');return null;}const buf=await f.arrayBuffer();let pages=1,doc=null,canvas=null;
+  if(isPdf){if(!pdfReady())return null;doc=await pdfjsLib.getDocument({data:buf.slice(0)}).promise;pages=doc.numPages;}else canvas=await imgCanvas(f);
+  return{kind:isPdf?'pdf':'img',pages,buf,doc,canvas,name:f.name,type:f.type,size:f.size};}
+async function addDrawingFiles(files){const out=[];try{navigator.storage?.persist?.();}catch(e){}
+  for(const f of files){try{toast('Reading '+f.name+'…');const R=await readDrawing(f);if(!R)continue;const id='d'+uid();
+      try{await DDB.put(id,{name:R.name,kind:R.kind,type:R.type,buf:R.buf});}catch(e){toast('Browser storage is full. Delete old drawings or projects (Project → Free up storage space).');break;}
+      DOCS[id]=Promise.resolve(R.doc?{doc:R.doc}:{canvas:R.canvas});out.push({id,name:R.name,kind:R.kind,pages:R.pages,size:R.size,added:Date.now(),rev:1});}
+    catch(e){console.error(e);toast(f.name+' could not be read as a PDF or image.');}}
+  if(out.length)mutate(()=>{P.drawings=(P.drawings||[]).concat(out);});return out;}
+function ensureUnder(id){const l=lvl(id),u=l?.underlay;if(!u?.did)return Promise.resolve();const rec=UL[id],pg=u.kind==='pdf'?u.page||1:1;
+  if(rec?.canvas&&rec.did===u.did&&rec.page===pg)return Promise.resolve();if(ULL[id])return ULL[id];
+  return ULL[id]=(async()=>{try{const r=await getDoc(u.did);if(!r){UL[id]={missing:true,did:u.did};}else if(r.canvas){UL[id]={canvas:r.canvas,did:u.did,page:1};}else{UL[id]={doc:r.doc,did:u.did};await renderPdfPage(id);}}finally{delete ULL[id];}
+    if(id===S.level){renderUnder();drawPlan();const h=$('#hudUnder');if(h)h.textContent=u?('· '+u.name):'';}})();}
+async function assignPage(lvId,did,n,fit){const l=lvl(lvId),d=(P.drawings||[]).find(x=>x.id===did);if(!l||!d)return;const prev=l.underlay;delete UL[lvId];
+  mutate(()=>{l.underlay={kind:d.kind,did,name:d.kind==='img'?d.name:`${d.name} · p${n}`,pages:d.pages,page:d.kind==='img'?1:n,scale:d.kind==='img'?0:(prev?.kind==='pdf'?prev.scale:100),mpp:prev&&prev.kind===d.kind?prev.mpp:(d.kind==='img'?0.01:PT_M*100/RS),ox:prev?.ox??0,oy:prev?.oy??0,opacity:prev?.opacity??0.6};});
+  await ensureUnder(lvId);if(fit&&lvId===S.level)fitPlan(true);}
+async function importUnder(files){files=[].concat(files);const ds=await addDrawingFiles(files);if(!ds.length)return;const l=lvl(S.level),d=ds[0];
+  await assignPage(S.level,d.id,1,true);const tot=ds.reduce((a,x)=>a+(x.pages||1),0);
+  toast(tot>1?`${tot} pages added to Drawings. Page 1 is under ${l.name}; open Drawings to put other pages under other levels.`:d.kind==='pdf'?'Drawing imported. Set the scale, or use Calibrate on a known dimension.':'Image imported. Use Calibrate on a known dimension to set its scale.');}
+async function replaceDrawing(did,f){const d=(P.drawings||[]).find(x=>x.id===did);if(!d)return;try{const R=await readDrawing(f);if(!R)return;
+    await DDB.put(did,{name:R.name,kind:R.kind,type:R.type,buf:R.buf});DOCS[did]=Promise.resolve(R.doc?{doc:R.doc}:{canvas:R.canvas});delete MISS[did];for(const k in THUMB)if(k.startsWith(did+':'))delete THUMB[k];
+    const us=P.levels.filter(l=>l.underlay?.did===did);us.forEach(l=>delete UL[l.id]);
+    mutate(()=>{Object.assign(d,{name:R.name,kind:R.kind,pages:R.pages,size:R.size,added:Date.now(),rev:(d.rev||1)+1});for(const l of us){const u=l.underlay;u.kind=R.kind;u.pages=R.pages;u.page=Math.min(u.page||1,R.pages);u.name=R.kind==='img'?R.name:`${R.name} · p${u.page}`;}});
+    await ensureUnder(S.level);toast(`${R.name} is now revision ${d.rev}. The previous version was deleted to free space; scales and positions were kept.`);}
+  catch(e){console.error(e);toast('That file could not be read or stored.');}}
+function drawingUsedElsewhere(did){for(const x of libList()){if(x.id===LIB.cur)continue;const p=libGet(x.id);if((p?.drawings||[]).some(d=>d.id===did))return true;}return false;}
+async function deleteDrawing(did){const d=(P.drawings||[]).find(x=>x.id===did);if(!d)return;
+  mutate(()=>{for(const l of P.levels)if(l.underlay?.did===did){delete l.underlay;delete UL[l.id];}P.drawings=P.drawings.filter(x=>x.id!==did);});
+  if(!drawingUsedElsewhere(did)){try{await DDB.del(did);}catch(e){}}delete DOCS[did];for(const k in THUMB)if(k.startsWith(did+':'))delete THUMB[k];toast(d.name+' deleted.');}
+async function thumbFor(did,n,im){const k=did+':'+n;if(!THUMB[k]){const r=await getDoc(did);if(!r)return;let c;
+    if(r.canvas){const sc=200/Math.max(r.canvas.width,r.canvas.height);c=document.createElement('canvas');c.width=Math.max(1,Math.round(r.canvas.width*sc));c.height=Math.max(1,Math.round(r.canvas.height*sc));c.getContext('2d').drawImage(r.canvas,0,0,c.width,c.height);}
+    else{const pg=await r.doc.getPage(n),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:260/Math.max(v0.width,v0.height)});c=document.createElement('canvas');c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:vp}).promise;}
+    THUMB[k]=c.toDataURL('image/jpeg',0.75);}
+  if(im.isConnected)im.src=THUMB[k];}
+async function storageLine(el){const own=(P.drawings||[]).reduce((a,d)=>a+(+d.size||0),0);let t=`Drawings in this project: ${fmtBytes(own)}`;
+  try{const e=await navigator.storage?.estimate?.();if(e&&e.quota)t+=` · browser storage used ${fmtBytes(e.usage)} of about ${fmtBytes(e.quota)}`;}catch(e){}if(el.isConnected)el.textContent=t;}
+function openDrawings(){
+  const s=document.createElement('div');s.className='scrim';
+  s.innerHTML=`<div class="dialog dr-dlg" role="dialog" aria-modal="true" aria-label="Drawings"><div class="dr-head"><h2>Drawings</h2><button class="btn sm" data-c aria-label="Close">×</button></div>
+    <p class="hint" style="margin:6px 0 0">Add whole PDF drawing sets and images: every page is imported and kept with this project in this browser, so it is there next time. Put any page under a level to trace over it, or open it in the viewer next to your model. A new revision replaces the old file to save space.</p>
+    <div class="dr-bar"><button class="btn primary" data-add>Add PDFs or images…</button><button class="btn" data-free>Free up space…</button><span class="dr-store"></span></div>
+    <div class="dr-sets"></div><input type="file" data-fin accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" multiple hidden><input type="file" data-frev accept="application/pdf,.pdf,image/png,image/jpeg,image/webp" hidden></div>`;
+  document.body.appendChild(s);const onK=e=>{if(e.key==='Escape'&&s.isConnected&&!$('#dv')?.contains(e.target)){e.stopPropagation();close();}},close=()=>{s.remove();document.removeEventListener('keydown',onK,true);},box=s.querySelector('.dr-sets');let armed=null,revId=null;
+  document.addEventListener('keydown',onK,true);s.querySelector('[data-c]').onclick=close;s.addEventListener('click',e=>{if(e.target===s)close();});s.addEventListener('keydown',e=>e.stopPropagation());
+  s.querySelector('[data-free]').onclick=()=>{close();freeUpSpace();};
+  const fin=s.querySelector('[data-fin]'),frev=s.querySelector('[data-frev]');s.querySelector('[data-add]').onclick=()=>fin.click();
+  fin.onchange=async()=>{const fs=[...fin.files];fin.value='';if(!fs.length)return;const ds=await addDrawingFiles(fs);if(ds.length)toast(`${ds.reduce((a,x)=>a+x.pages,0)} page${ds.length===1&&ds[0].pages===1?'':'s'} added.`);draw();};
+  frev.onchange=async()=>{const f=frev.files[0];frev.value='';if(f&&revId)await replaceDrawing(revId,f);draw();};
+  const draw=()=>{const sets=P.drawings||[],lvs=levelsSorted().slice().reverse();
+    box.innerHTML=sets.length?sets.map(d=>{const us=P.levels.filter(l=>l.underlay?.did===d.id);return`<section class="dr-set" data-id="${esc(d.id)}"><div class="dr-sh"><div><b>${esc(d.name)}</b><small>${d.kind==='img'?'Image':d.pages+' page'+(d.pages===1?'':'s')}${(d.rev||1)>1?' · revision '+d.rev:''} · ${fmtBytes(d.size)}${MISS[d.id]?' · <b style="color:var(--danger)">file not on this device, add it again with New revision</b>':''}</small></div>
+      <div class="dr-acts">${d.pages>1?'<button class="btn sm" data-a="order" title="Page 1 under the lowest level, page 2 under the next, and so on">Pages → levels in order</button>':''}<button class="btn sm" data-a="rev" title="Replace with an updated file; the old one is deleted">New revision…</button><button class="btn sm${armed===d.id?' danger':''}" data-a="del">${armed===d.id?'Delete?':'Delete'}</button></div></div>
+      <div class="dr-grid">${Array.from({length:d.pages||1},(_,i)=>{const n=i+1,on=us.filter(l=>(l.underlay.page||1)===n).map(l=>l.name).join(', ');return`<div class="dr-tile" data-n="${n}"><button class="dr-th" data-a="view" title="Open ${d.kind==='img'?'image':'page '+n} in the viewer"><img alt="${d.kind==='img'?'Image':'Page '+n}" data-th="${esc(d.id)}:${n}"></button>
+        <div class="dr-tl"><b>${d.kind==='img'?'Image':'Page '+n}</b>${on?`<span class="badge" title="${esc(on)}">${esc(on)}</span>`:''}</div>
+        <select data-a="lv" aria-label="Put ${d.kind==='img'?'image':'page '+n} under a level"><option value="">Put under level…</option>${lvs.map(l=>`<option value="${esc(l.id)}">${esc(l.name)}${l.underlay?.did===d.id&&(l.underlay.page||1)===n?' ✓':''}</option>`).join('')}</select></div>`;}).join('')}</div></section>`;}).join('')
+      :'<p class="pj-empty">No drawings yet. Add a PDF drawing set: every page is imported.</p>';
+    box.querySelectorAll('img[data-th]').forEach(im=>{const [id,n]=im.dataset.th.split(':');THQ=THQ.then(()=>thumbFor(id,+n,im)).catch(()=>{});});
+    storageLine(s.querySelector('.dr-store'));};
+  box.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b||b.tagName==='SELECT')return;const id=b.closest('[data-id]').dataset.id,a=b.dataset.a;if(a!=='del')armed=null;
+    if(a==='view'){close();openViewer(id,+b.closest('[data-n]').dataset.n);return;}
+    if(a==='rev'){revId=id;frev.click();return;}
+    if(a==='del'){if(armed!==id){armed=id;draw();return;}armed=null;await deleteDrawing(id);draw();return;}
+    if(a==='order'){const d=P.drawings.find(x=>x.id===id),lv=levelsSorted(),n=Math.min(lv.length,d.pages);for(let i=0;i<n;i++)await assignPage(lv[i].id,id,i+1,false);toast(`Pages 1–${n} are under ${lv[0].name} to ${lv[n-1].name}. Change any page with its “Put under level” list.`);draw();}});
+  box.addEventListener('change',async e=>{const sel=e.target.closest('select[data-a="lv"]');if(!sel||!sel.value)return;const id=sel.closest('[data-id]').dataset.id,n=+sel.closest('[data-n]').dataset.n,lv=sel.value;
+    await assignPage(lv,id,n,lv===S.level);if(lv!==S.level)setLevel(lv);fitPlan(true);toast(`${n>1||(P.drawings.find(x=>x.id===id)||{}).kind==='pdf'?'Page '+n:'Image'} is under ${lvl(lv).name}.`);draw();});
+  draw();}
+/* floating viewer: look at any sheet while modelling */
+const DV={did:null,n:1,z:1,task:null};
+function openViewer(did,n){const d=(P.drawings||[]).find(x=>x.id===did);if(!d){toast('That drawing is no longer in this project.');return;}let v=$('#dv');
+  if(!v){v=document.createElement('div');v.id='dv';v.className='dv';v.setAttribute('role','dialog');v.setAttribute('aria-label','Drawing viewer');
+    v.innerHTML=`<div class="dv-h"><b class="dv-t"></b><span class="dv-sp"></span><button class="btn sm" data-v="prev" aria-label="Previous page">‹</button><span class="dv-pg mono"></span><button class="btn sm" data-v="next" aria-label="Next page">›</button><button class="btn sm" data-v="out" aria-label="Zoom out">−</button><button class="btn sm" data-v="fit">Fit</button><button class="btn sm" data-v="in" aria-label="Zoom in">+</button><button class="btn sm" data-v="use" title="Put this page under the active level">Use on level</button><button class="btn sm" data-v="x" aria-label="Close viewer">×</button></div><div class="dv-b"><canvas></canvas></div>`;
+    document.body.appendChild(v);const h=v.querySelector('.dv-h');
+    h.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;const r=v.getBoundingClientRect(),dx=e.clientX-r.left,dy=e.clientY-r.top;h.setPointerCapture(e.pointerId);
+      const mv=ev=>{v.style.left=Math.max(0,Math.min(innerWidth-80,ev.clientX-dx))+'px';v.style.top=Math.max(0,Math.min(innerHeight-40,ev.clientY-dy))+'px';v.style.right='auto';};const up=()=>{h.removeEventListener('pointermove',mv);h.removeEventListener('pointerup',up);};h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);});
+    v.addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;const a=b.dataset.v,dd=(P.drawings||[]).find(x=>x.id===DV.did);
+      if(a==='x'){v.remove();return;}if(a==='prev'&&DV.n>1){DV.n--;DV.z=1;}if(a==='next'&&dd&&DV.n<dd.pages){DV.n++;DV.z=1;}if(a==='in')DV.z=Math.min(8,DV.z*1.4);if(a==='out')DV.z=Math.max(0.25,DV.z/1.4);if(a==='fit')DV.z=1;
+      if(a==='use'){assignPage(S.level,DV.did,DV.n,true).then(()=>toast(`${dd?.kind==='img'?'Image':'Page '+DV.n} is under ${lvl(S.level).name}.`));return;}dvRender();});
+    v.querySelector('.dv-b').addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();DV.z=Math.max(0.25,Math.min(8,DV.z*(e.deltaY<0?1.15:1/1.15)));clearTimeout(DV.wt);DV.wt=setTimeout(dvRender,120);},{passive:false});
+    v.addEventListener('keydown',e=>e.stopPropagation());
+    try{let rw=0;new ResizeObserver(()=>{const w=v.clientWidth;if(Math.abs(w-rw)>20){rw=w;clearTimeout(DV.rt);DV.rt=setTimeout(dvRender,150);}}).observe(v);}catch(e){}}
+  DV.did=did;DV.n=n||1;DV.z=1;dvRender();}
+async function dvRender(){const v=$('#dv');if(!v)return;const d=(P.drawings||[]).find(x=>x.id===DV.did);if(!d){v.remove();return;}
+  v.querySelector('.dv-t').textContent=d.name;v.querySelector('.dv-t').title=d.name;v.querySelector('.dv-pg').textContent=d.kind==='img'?'image':`${DV.n} / ${d.pages}`;
+  const r=await getDoc(DV.did),c=v.querySelector('canvas'),bw=Math.max(100,v.querySelector('.dv-b').clientWidth-4),dpr=Math.min(2,window.devicePixelRatio||1);
+  if(!r){const g=c.getContext('2d');c.width=bw;c.height=60;c.style.width=bw+'px';c.style.height='60px';g.fillStyle='#fff';g.fillRect(0,0,bw,60);g.fillStyle='#b00';g.font='14px sans-serif';g.fillText('This file is not on this device. Add it again in Drawings.',10,34);return;}
+  if(r.canvas){const w=bw*DV.z,k=w/r.canvas.width,h=r.canvas.height*k;c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);c.style.width=w+'px';c.style.height=h+'px';c.getContext('2d').drawImage(r.canvas,0,0,c.width,c.height);return;}
+  const pg=await r.doc.getPage(DV.n),v0=pg.getViewport({scale:1});let sc=bw/v0.width*DV.z*dpr;const mx=8000/Math.max(v0.width,v0.height);if(sc>mx)sc=mx;const vp=pg.getViewport({scale:sc});
+  try{DV.task?.cancel();}catch(e){}const off=document.createElement('canvas');off.width=Math.ceil(vp.width);off.height=Math.ceil(vp.height);const g=off.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,off.width,off.height);
+  const t=DV.task=pg.render({canvasContext:g,viewport:vp});try{await t.promise;}catch(e){return;}if(DV.task!==t)return;
+  c.width=off.width;c.height=off.height;c.style.width=(off.width/dpr)+'px';c.style.height=(off.height/dpr)+'px';c.getContext('2d').drawImage(off,0,0);}
+/* free up storage: old-version copy, duplicate projects, unused drawing files */
+async function freeUpSpace(){clearTimeout(saveT);libSave();const items=[],list=libList();
+  let legacy=0;try{legacy=(localStorage.getItem(STORE)||'').length*2;}catch(e){}if(legacy&&list.length)items.push({k:'legacy',t:`Old copy of a project left by a previous version of the app (${fmtBytes(legacy)})`});
+  const G={};list.forEach(x=>{const k=(x.name||'')+'|'+x.n+'|'+x.lv;(G[k]=G[k]||[]).push(x);});
+  Object.values(G).forEach(g=>{if(g.length<2)return;g.sort((a,b)=>a.id===LIB.cur?-1:b.id===LIB.cur?1:(b.updated||0)-(a.updated||0));g.slice(1).forEach(x=>{let sz=0;try{sz=(localStorage.getItem(PKEY(x.id))||'').length*2;}catch(e){}items.push({k:'dup',id:x.id,t:`Duplicate project “${x.name}” (${x.n} elements, edited ${new Date(x.updated||0).toLocaleDateString()}, ${fmtBytes(sz)}). The ${g[0].id===LIB.cur?'open':'newest'} copy is kept.`});});});
+  let orphan=[],osz=0;try{const keys=await DDB.keys(),used=new Set((P.drawings||[]).map(d=>d.id));for(const x of list){if(x.id===LIB.cur)continue;(libGet(x.id)?.drawings||[]).forEach(d=>used.add(d.id));}orphan=keys.filter(k=>!used.has(k));
+    for(const k of orphan){const r=await DDB.get(k).catch(()=>null);osz+=r?.buf?.byteLength||0;}}catch(e){}
+  if(orphan.length)items.push({k:'orph',ids:orphan,t:`${orphan.length} drawing file${orphan.length===1?'':'s'} (old versions or deleted projects) that no project uses any more (${fmtBytes(osz)})`});
+  if(!items.length){toast('Nothing to clean up: no old copies, duplicate projects or unused drawing files.');return;}
+  const s=document.createElement('div');s.className='scrim';
+  s.innerHTML=`<div class="dialog team-dlg" role="dialog" aria-modal="true" aria-label="Free up storage space"><h2>Free up storage space</h2><p>These can be deleted from this browser. Untick anything you want to keep. This cannot be undone, so download a project first if you are unsure.</p>
+    <div class="fu-list">${items.map((x,i)=>`<label><input type="checkbox" data-i="${i}" checked><span>${esc(x.t)}</span></label>`).join('')}</div>
+    <div class="row"><button class="btn" data-c>Cancel</button><button class="btn danger" data-go>Delete selected</button></div></div>`;
+  document.body.appendChild(s);const close=()=>s.remove();s.querySelector('[data-c]').onclick=close;s.addEventListener('click',e=>{if(e.target===s)close();});s.addEventListener('keydown',e=>{if(e.key==='Escape')close();e.stopPropagation();});
+  s.querySelector('[data-go]').onclick=async()=>{let n=0;for(const cb of s.querySelectorAll('input[data-i]:checked')){const x=items[+cb.dataset.i];
+      if(x.k==='legacy'){try{localStorage.removeItem(STORE);n++;}catch(e){}}
+      else if(x.k==='dup'){try{localStorage.removeItem(PKEY(x.id));}catch(e){}libSetList(libList().filter(y=>y.id!==x.id));n++;}
+      else if(x.k==='orph'){for(const k of x.ids){try{await DDB.del(k);n++;}catch(e){}}}}
+    close();toast(n?`Deleted ${n} item${n===1?'':'s'}. Storage space freed.`:'Nothing was deleted.');};}
 async function renderPdfPage(id){
   const l=lvl(id),u=l.underlay,rec=UL[id];if(!rec?.doc)return;
   const page=await rec.doc.getPage(u.page||1);let vp=page.getViewport({scale:RS});
@@ -2024,7 +2138,7 @@ async function renderPdfPage(id){
   const c=document.createElement('canvas');c.width=Math.floor(vp.width);c.height=Math.floor(vp.height);
   const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
   await page.render({canvasContext:ctx,viewport:vp}).promise;
-  rec.canvas=c;rec.k=k;drawPlan();
+  rec.canvas=c;rec.k=k;rec.page=u.page||1;rec.did=u.did;drawPlan();
 }
 function underPx(u,rec){return u.mpp/(rec.k||1);} // metres per canvas pixel
 
@@ -2695,6 +2809,7 @@ $('#tEnd').onclick=()=>{S.snap.end=!S.snap.end;syncToggles();};
 $('#tOrtho').onclick=()=>{S.snap.ortho=!S.snap.ortho;syncToggles();};
 $('#hudHidden').onclick=showAll;
 $$('[data-visbtn]').forEach(b=>b.onclick=()=>openVisPop(b));
+$$('[data-drbtn]').forEach(b=>b.onclick=()=>openDrawings());
 $('#tAxes').onclick=()=>{S.gshow=S.gshow===false;syncToggles();drawPlan();queue3D();};
 $('#gridStep').onchange=e=>{S.grid=+e.target.value;};
 function updateHint(){const t=S.tool;const m=TYPES[t]?.mode;const h={select:'Click to select (click again to cycle) · drag the element to move it · drag a box to select many · Shift-click to add · right-drag or Space-drag to pan · wheel to zoom · Del to delete',
@@ -3693,6 +3808,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('#fileMenu'))$('#file
 $('#fileMenu').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$('#fileMenu').hidden=true;const a=b.dataset.act;
   if(a==='settings'){S.set='general';setView('settings');}
   if(a==='projects')openProjects();
+  if(a==='drawings')openDrawings();if(a==='free')freeUpSpace();
   if(a==='new')newProjectFlow();
   if(a==='sample')libNew(sampleProject(),'Sample 12-storey apartment block opened as a new project.');
   if(a==='open')$('#fProject').click();
@@ -3797,12 +3913,13 @@ function openProjects(){
   s.innerHTML=`<div class="dialog team-dlg pj-dlg" role="dialog" aria-modal="true" aria-label="My projects"><h2>My projects</h2><p>Every project is saved automatically in this browser on this computer. To use one on another computer, download it and open the file there.</p>
     <div class="pj-top"><input type="search" placeholder="Search projects" aria-label="Search projects" data-q><button class="btn primary" data-new>New project</button></div>
     <div class="tm-list pj-list"></div><p class="pj-foot"></p>
-    <div class="row"><button class="btn" data-file>Open project file…</button><button class="btn" data-c>Close</button></div></div>`;
+    <div class="row"><button class="btn" data-free>Free up space…</button><button class="btn" data-file>Open project file…</button><button class="btn" data-c>Close</button></div></div>`;
   document.body.appendChild(s);const close=()=>s.remove();
   s.querySelector('[data-c]').onclick=close;s.addEventListener('click',e=>{if(e.target===s)close();});
   s.addEventListener('keydown',e=>{if(e.key==='Escape'){if(e.target.matches('.pj-name input'))return;close();}e.stopPropagation();});
   s.querySelector('[data-new]').onclick=()=>{close();newProjectFlow();};
   s.querySelector('[data-file]').onclick=()=>{close();$('#fProject').click();};
+  s.querySelector('[data-free]').onclick=()=>{close();freeUpSpace();};
   const q=s.querySelector('[data-q]');q.oninput=()=>draw();
   let armed=null;
   const ago=ts=>{if(!ts)return'';const m=Math.round((Date.now()-ts)/60000);if(m<1)return'just now';if(m<60)return m+' min ago';if(m<1440)return Math.round(m/60)+' h ago';const d=Math.round(m/1440);return d<14?d+' d ago':new Date(ts).toLocaleDateString();};
@@ -3814,7 +3931,7 @@ function openProjects(){
       <div class="pj-name"><b>${x.cc?flagImg(x.cc,12)+' ':''}${esc(x.name)}</b><small>${x.cc&&CTRY[x.cc]?CTRY[x.cc].n+' · ':''}${x.n} element${x.n===1?'':'s'} · ${x.lv} level${x.lv===1?'':'s'} · edited ${ago(x.updated)}</small></div>
       ${x.id===LIB.cur?'<span class="badge">Open now</span>':'<button class="btn sm primary" data-a="open">Open</button>'}
       <div class="pj-acts"><button class="btn sm" data-a="ren" title="Rename">Rename</button><button class="btn sm" data-a="dup" title="Make a copy">Copy</button><button class="btn sm needs-dl" data-a="dl" title="Download as a file">Download</button><button class="btn sm${armed===x.id?' danger':''}" data-a="del" title="Delete">${armed===x.id?'Delete?':'Delete'}</button></div></div>`).join(''):`<p class="pj-empty">${t?'No projects match that search.':'No projects yet.'}</p>`;
-    const kb=libBytes()/1024;s.querySelector('.pj-foot').textContent=`${all.length} project${all.length===1?'':'s'} · about ${kb<1024?Math.max(1,Math.round(kb))+' KB':(kb/1024).toFixed(1)+' MB'} of browser storage used (browsers allow about 5 MB).`;
+    const kb=libBytes()/1024;s.querySelector('.pj-foot').textContent=`${all.length} project${all.length===1?'':'s'} · about ${kb<1024?Math.max(1,Math.round(kb))+' KB':(kb/1024).toFixed(1)+' MB'} of browser storage used (browsers allow about 5 MB for projects; drawings are stored separately).`;
     list.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>act(b.dataset.a,b.closest('[data-id]').dataset.id,b));
   };
   const act=(a,id,b)=>{
@@ -4157,7 +4274,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-electrical';
+const APP_VER='2026.09.26-drawings';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
