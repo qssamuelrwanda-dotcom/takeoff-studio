@@ -3086,7 +3086,7 @@ async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await
     const secRows=x=>{const b=[[{content:pT(`${x.code}   ${x.name.toUpperCase()}`),colSpan:NC,styles:{fillColor:TINT,textColor:PR,fontStyle:'bold',fontSize:9.2}}]];
       x.items.forEach(it=>b.push([it.ref,pT(it.desc),pT(it.unit),fmtQ(it.q,it.unit),priced?n2(it.r):'',priced?n2(it.amt):'',...(cm?[cmV(it.amt)]:[])]));
       const sty={fontStyle:'bold',fillColor:TINT2,lineColor:PR,lineWidth:{top:0.3,bottom:0.3}};b.push([{content:'',styles:sty},{content:pT('Total carried to collection · '+x.name),colSpan:4,styles:sty},{content:priced?n2(x.total):'',styles:{...sty,halign:'right'}},...(cm?[{content:cmV(x.total),styles:{...sty,halign:'right'}}]:[])]);return b;};
-    const colS={0:{cellWidth:15,textColor:INK3,fontSize:7.8},2:{cellWidth:11},3:{halign:'right',cellWidth:19},4:{halign:'right',cellWidth:18},5:{halign:'right',cellWidth:23},...(cm?{6:{halign:'right',cellWidth:17,textColor:INK2}}:{})};
+    const bigN=(+P.factor||1)>=50;const colS={0:{cellWidth:15,textColor:INK3,fontSize:7.8},2:{cellWidth:11},3:{halign:'right',cellWidth:19},4:{halign:'right',cellWidth:bigN?22:18},5:{halign:'right',cellWidth:bigN?29:23},...(cm?{6:{halign:'right',cellWidth:17,textColor:INK2}}:{})};
     if(o.newPage){secs.forEach((x,i)=>{newPage('Bill of Quantities');const y=heading(i?`Bill ${x.code}`:'Bill of Quantities',i?`${x.name} · ${coverVal('project')}`:undefined);tbl({startY:y,head:[cols],body:secRows(x),columnStyles:colS});});}
     else{newPage('Bill of Quantities');const y=heading('Bill of Quantities');tbl({startY:y,head:[cols],body:secs.flatMap(secRows),columnStyles:colS});}}
   // ---- bill of materials
@@ -3095,7 +3095,7 @@ async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await
     B.cats.forEach(c=>{body.push([{content:pT(`${c.code}   ${c.n.toUpperCase()}`),colSpan:8,styles:{fillColor:TINT,textColor:PR,fontStyle:'bold'}}]);c.rows.forEach((m,i)=>body.push([c.code+'.'+String(i+1).padStart(2,'0'),pT(m.name+(m.spec?'\n'+m.spec:'')),pT(m.unit),fmtN(m.qty),m.waste+'%',fmtN(m.order,COUNTU.includes(m.unit)?0:2),priced?n2(m.price):'',priced?n2(m.amt):'']));
       body.push([{content:pT('Total · '+c.n),colSpan:7,styles:{fontStyle:'bold',fillColor:TINT2}},{content:priced?n2(c.total):'',styles:{fontStyle:'bold',fillColor:TINT2,halign:'right'}}]);});
     body.push([{content:'TOTAL MATERIALS (supply only, excl. VAT)',colSpan:7,styles:{fontStyle:'bold',fillColor:PR,textColor:ONP}},{content:priced?n2(B.total):'',styles:{fontStyle:'bold',fillColor:PR,textColor:ONP,halign:'right'}}]);
-    tbl({startY:y,head,body,columnStyles:{0:{cellWidth:14,textColor:INK3,fontSize:7.8},2:{cellWidth:12},3:{halign:'right',cellWidth:18},4:{halign:'right',cellWidth:13},5:{halign:'right',cellWidth:18},6:{halign:'right',cellWidth:18},7:{halign:'right',cellWidth:22}}});}
+    tbl({startY:y,head,body,columnStyles:{0:{cellWidth:14,textColor:INK3,fontSize:7.8},2:{cellWidth:12},3:{halign:'right',cellWidth:18},4:{halign:'right',cellWidth:13},5:{halign:'right',cellWidth:18},6:{halign:'right',cellWidth:(+P.factor||1)>=50?21:18},7:{halign:'right',cellWidth:(+P.factor||1)>=50?28:22}}});}
   // ---- bar schedule
   if(o.rebar){newPage('Bar schedule');const y=heading('Bar schedule');const rows=rebarSchedule();const body=[];
     rows.forEach(r=>{if(r.head){body.push([{content:pT(`${r.ref} · ${r.title} · ${r.level}   —   ${r.dims}`),colSpan:7,styles:{fillColor:TINT,textColor:PR,fontStyle:'bold'}}]);return;}
@@ -3714,7 +3714,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-apartments2';
+const APP_VER='2026.09.26-apartments3';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
