@@ -603,6 +603,8 @@ const TYPES={
   void:{label:'Slab opening',key:'o',mode:'poly'},
   strip:{label:'Strip footing',key:'f',mode:'chain'},
   pad:{label:'Pad footing',key:'p',mode:'point'},
+  raft:{label:'Raft / mat foundation',key:'',mode:'poly'},
+  pile:{label:'Pile / pile group with cap',key:'',mode:'point'},
   gbeam:{label:'Ground beam',key:'g',mode:'chain'},
   fwall:{label:'Foundation wall',key:'u',mode:'chain'},
   sanitary:{label:'Sanitary fitting',key:'a',mode:'point'},
@@ -672,6 +674,12 @@ const OPT={
   bays:{auto:'Mark bays automatically',none:'No parking bays'},
   kerb:{yes:'Precast concrete kerbs to edges',no:'No kerbs'},
   cars:{yes:'Show parked cars in 3D',no:'No cars in 3D'},
+  rwp:{dpm:'Polythene DPM 1200 gauge',tank:'Bituminous membrane tanking under and up the edges',none:'No membrane'},
+  rfin:{float:'Power-floated finish (raft is the floor)',none:'No finish (screed or slab over)'},
+  pty:{bored:'Bored cast-in-place concrete',cfa:'CFA (continuous flight auger)',driven:'Driven precast concrete (square)',steelh:'Driven steel H-pile',micro:'Micropile, drilled and grouted'},
+  pn:{'1':'1 pile','2':'2 piles','3':'3 piles','4':'4 piles','5':'5 piles','6':'6 piles','8':'8 piles','9':'9 piles'},
+  pcap:{yes:'With pile cap',no:'No cap (pile only)'},
+  tank:{no:'None',yes:'Tanking membrane, protection board and drainage layer to outer face'},
   type:{'pitched-tiles':'Pitched · concrete tiles','pitched-sheets':'Pitched · steel sheets','flat-membrane':'Flat · membrane'},
 };
 const FIELDS={
@@ -687,7 +695,9 @@ const FIELDS={
   strip:[['smat','Material','sel'],['ss','Section shape','sel'],['w','Base width','m'],['d','Base depth','m'],['w2','Upper / top width','m'],['d2','Upper tier depth','m'],['exc','Excavation depth below ground','m']],
   pad:[['ps','Shape','sel'],['w','Base width','m'],['l','Base length','m'],['dia','Diameter','m'],['d','Base depth','m'],['w2','Upper / top width','m'],['l2','Upper / top length','m'],['d2','Upper tier depth / slope rise','m'],['exc','Excavation depth below ground','m'],['stub','Column stub up to ground slab','sel']],
   gbeam:[['w','Width','m'],['d','Depth','m']],
-  fwall:[['fmat','Material','sel'],['t','Thickness','m'],['hh','Height (0 = auto)','m']],
+  fwall:[['fmat','Material','sel'],['t','Thickness','m'],['hh','Height (0 = auto)','m'],['tank','Waterproofing','sel']],
+  raft:[['t','Raft thickness','m'],['ew','Edge thickening width','m'],['ed','Edge thickening depth below raft','m'],['iw','Internal thickening width (0 = none)','m'],['isp','Internal thickenings at spacing','m'],['ra','Reinforcement allowance','kg/m³'],['rwp','Membrane','sel'],['rfin','Top finish','sel']],
+  pile:[['pty','Pile type','sel'],['dia','Diameter / size','m'],['len','Pile length below cut-off','m'],['pn','Piles in group','sel'],['psp','Pile spacing (0 = 3 × diameter)','m'],['ra','Pile reinforcement','kg/m³'],['pcap','Pile cap','sel'],['cd','Cap depth','m'],['cra','Cap reinforcement','kg/m³']],
   sanitary:[['fx','Fitting','sel'],['cap','Capacity','L'],['rot','Rotation','sel'],['conn','Connection pipework','sel'],['acc','Accessories','sel']],
   pipe:[['sys','System','sel'],['mat','Material','sel'],['dia','Diameter','sel'],['vert','Extra vertical length','m']],
   mh:[['mhk','Type','sel'],['mhs','Internal size','sel'],['dep','Depth to invert','m'],['cap','Capacity','m³'],['sd','Diameter','m']],
@@ -713,7 +723,9 @@ const TD={
   strip:{smat:'rc',ss:'rect',w:0.6,d:0.25,w2:0.4,d2:0.2,exc:1.0,rm:'bars',ra:60,mn:4,md:12,td:10,ts:0.2,cv:0.05,lap:40},
   pad:{ps:'rect',w:1.2,l:1.2,dia:1.2,d:0.4,w2:0.6,l2:0.6,d2:0.25,exc:1.2,stub:'yes',rm:'bars',ra:60,md:12,ms:0.15,ly:1,cv:0.05},
   gbeam:{w:0.23,d:0.4,rm:'bars',ra:120,mb:[{pos:'top',n:2,d:12},{pos:'bot',n:2,d:12}],lk:[{t:'closed',d:8,s:0.2,s2:0.2}],cv:0.05,lap:40},
-  fwall:{fmat:'block',t:0.2,hh:0,rm:'bars',ra:60,vd:12,vs:0.2,hd:10,hs:0.25,ly:2,td:8,tn:4,trd:12,trn:0,cv:0.05,lap:40},
+  raft:{t:0.35,ew:0.6,ed:0.35,iw:0,isp:6,ra:110,rwp:'dpm',rfin:'float'},
+  pile:{pty:'bored',dia:0.6,len:15,pn:'1',psp:0,ra:45,pcap:'yes',cd:0.9,cra:120},
+  fwall:{tank:'no',fmat:'block',t:0.2,hh:0,rm:'bars',ra:60,vd:12,vs:0.2,hd:10,hs:0.25,ly:2,td:8,tn:4,trd:12,trn:0,cv:0.05,lap:40},
   sanitary:{fx:'wc',cap:0,rot:'0',conn:'yes',acc:'no'},
   pipe:{sys:'cw',mat:'ppr',dia:'20',vert:0},
   mh:{mhk:'mh',mhs:'600x450',dep:0.9,cap:6,sd:2},
@@ -727,8 +739,8 @@ const TD={
   fence:{ftype:'mesh',h:1.8,dh:0.6,sp:2.5,fcoat:'pc',ftop:'none',bmat:'block',t:0.2,bfin:'render2',cop:'yes',fw:0.6,fd:0.25,exc:0.6,pg:0,vg:0,vgw:4,vgk:'swing'},
 };
 /* marks: every structural and architectural element can carry a mark such as C1, B2, F1, D1 */
-const MARKT=['column','beam','pad','strip','gbeam','fwall','wall','slab','stair','ramp','door','window','cwall','louvre','rail','fence','roof','sanitary','pfit','mh'];
-const MARKHINT={column:'C1',beam:'B1',pad:'F1',strip:'SF1',gbeam:'GB1',fwall:'FW1',wall:'W1',slab:'S1',stair:'ST1',ramp:'R1',door:'D1',window:'WD1',cwall:'CW1',louvre:'L1',rail:'BL1',fence:'FN1',roof:'RF1',sanitary:'WC1',pfit:'V1',mh:'MH1'};
+const MARKT=['column','beam','pad','raft','pile','strip','gbeam','fwall','wall','slab','stair','ramp','door','window','cwall','louvre','rail','fence','roof','sanitary','pfit','mh'];
+const MARKHINT={column:'C1',beam:'B1',pad:'F1',raft:'RF1',pile:'P1',strip:'SF1',gbeam:'GB1',fwall:'FW1',wall:'W1',slab:'S1',stair:'ST1',ramp:'R1',door:'D1',window:'WD1',cwall:'CW1',louvre:'L1',rail:'BL1',fence:'FN1',roof:'RF1',sanitary:'WC1',pfit:'V1',mh:'MH1'};
 for(const t of MARKT){FIELDS[t].unshift(['mk',`Mark / name (e.g. ${MARKHINT[t]})`,'txt']);TD[t].mk='';}
 FIELDS.column.splice(FIELDS.column.findIndex(f=>f[0]==='rot'),0,['ang','Rotation','°']);TD.column.ang=0;
 const refOf=(e,n)=>e.p&&String(e.p.mk||'').trim()?String(e.p.mk).trim():TYPES[e.type].key.toUpperCase()+String(n).padStart(2,'0');
@@ -756,7 +768,7 @@ const RWHERE={column:'columns',beam:'beams',strip:'foundations',pad:'foundations
 const SUBD={egl:-0.3,topsoil:0.15,hc:0.2,ws:0.3,ews:'yes',termite:'yes',disp:'off'};
 const MATC={blockwork:'#BDB2A4',brick:'#C47A5E',concrete:'#96A2A6',drywall:'#DCD4BC'};
 const ECOLS=[
-  ['Substructure',[['strip','Strip footing','#A0906F'],['stone','Stone strip footing','#8C7A55'],['pad','Pad footing','#B0935F'],['gbeam','Ground beam','#7C8B92'],['fwall','Foundation wall','#8C7B68'],['mh','Manhole','#5B4632']]],
+  ['Substructure',[['strip','Strip footing','#A0906F'],['stone','Stone strip footing','#8C7A55'],['pad','Pad footing','#B0935F'],['raft','Raft foundation','#9C8466'],['pile','Pile','#6E6258'],['gbeam','Ground beam','#7C8B92'],['fwall','Foundation wall','#8C7B68'],['mh','Manhole','#5B4632']]],
   ['Frame',[['column','Column','#6F7F86'],['beam','Beam','#8A9AA2']]],
   ['Floors & roof',[['slab','Slab','#A9B4B9'],['void','Slab opening','#D0453A'],['roof','Roof','#B5563F']]],
   ['Walls',[['wall:blockwork','Blockwork wall','#BDB2A4'],['wall:brick','Brick wall','#C47A5E'],['wall:concrete','Concrete wall','#96A2A6'],['wall:drywall','Drywall partition','#DCD4BC']]],
@@ -922,7 +934,16 @@ function paveQ(e){const p=e.p,pts=e.pts||[],A=pts.length>=3?area(pts):0,Pm=pts.l
 function fenceQ(e){const p=e.p,L=elLen(e),y=p.ftype||'mesh',pg=Math.max(0,Math.round(+p.pg||0)),vg=Math.max(0,Math.round(+p.vg||0)),gw=pg*1.0+vg*Math.max(1,+p.vgw||4);
   const Ln=Math.max(0,L-gw),sp=+p.sp||0,posts=sp>0?Math.ceil(L/sp)+1:0;return{L,Ln,y,pg,vg,posts,h:+p.h||1.8,mas:y==='bwall'||y==='wallrail'};}
 const midPt=e=>{const A=arcOf(e);return A?A.M.slice():[(e.pts[0][0]+e.pts[1][0])/2,(e.pts[0][1]+e.pts[1][1])/2];};
-function gSlabT(level,pt){const s=onLevel(level).filter(x=>x.type==='slab'&&inPoly(pt,x.pts))[0];return s?+s.p.t:0;}
+function raftQ(e){const p=e.pts,t=+e.p.t||0.3,ew=Math.max(0,+e.p.ew||0),ed=Math.max(0,+e.p.ed||0),A=area(p),Pm=perim(p),Pc=Math.max(0,Pm-4*ew),vE=Pc*ew*ed;
+  let Li=0;const iw=Math.max(0,+e.p.iw||0),sp=Math.max(1,+e.p.isp||6);if(iw>0){const b=bbox(p);for(let x=b.x0+sp;x<b.x1-ew-0.01;x+=sp)Li+=b.h-2*ew;for(let y=b.y0+sp;y<b.y1-ew-0.01;y+=sp)Li+=b.w-2*ew;Li=Math.max(0,Li)*Math.min(1,A/(b.w*b.h||1));}
+  const vI=Li*iw*ed;return{t,ew,ed,iw,A,Pm,Pc,vE,Li,vI,V:A*t+vE+vI};}
+function pileLay(p){const n=Math.max(1,+p.pn||1),d=Math.max(0.15,+p.dia||0.6),s=+p.psp>0?+p.psp:3*d;
+  const L={1:[[0,0]],2:[[-.5,0],[.5,0]],3:[[-.5,-.289],[.5,-.289],[0,.577]],4:[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]],5:[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5],[0,0]],6:[[-1,-.5],[0,-.5],[1,-.5],[-1,.5],[0,.5],[1,.5]],8:[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]],9:[[-1,-1],[0,-1],[1,-1],[-1,0],[0,0],[1,0],[-1,1],[0,1],[1,1]]}[n]||[[0,0]];
+  const pts=L.map(([u,v])=>[u*s,v*s]),b=bbox(pts.map(q=>[q[0],q[1]])),edge=d/2+0.15;return{n:pts.length,d,s,pts,cw:b.w+2*edge,cl:b.h+2*edge};}
+function pileQ(e){const p=e.pts?e.p:e,La=pileLay(p),len=Math.max(0,+p.len||0),sq=p.pty==='driven'||p.pty==='steelh',Ap=sq?La.d*La.d:Math.PI*La.d*La.d/4,capOn=p.pcap!=='no',cd=Math.max(0.3,+p.cd||0.9);
+  return{...La,len,Ap,Vp:La.n*Ap*len,capOn,cd,Vc:capOn?La.cw*La.cl*cd:0,sq};}
+const area2=p=>{let s=0;for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];s+=a[0]*b[1]-b[0]*a[1];}return s/2;};
+function gSlabT(level,pt){const s=onLevel(level).filter(x=>(x.type==='slab'||x.type==='raft')&&inPoly(pt,x.pts))[0];return s?+s.p.t:0;}
 function stripUnder(fw){const m=midPt(fw);return onLevel(fw.level).find(s=>s.type==='strip'&&projEl(m,s).d<s.p.w/2)||null;}
 function fwallGeom(fw){const egl=+P.sub.egl,st=stripUnder(fw);const top=-gSlabT(fw.level,midPt(fw));let base=st?egl-st.p.exc+stripSec(st.p).H:egl-0.6;if(+fw.p.hh>0)base=top-fw.p.hh;
   return{top,base,H:Math.max(0,top-base),below:Math.max(0,Math.min(top,egl)-base),strip:st};}
@@ -1069,8 +1090,43 @@ function linesFor(e){
     if(pg&&pg.slope)add('1.1',23,'padslope','Formwork to sloping top surfaces of pad footings','m²',pg.slope,38);
     if(!pad&&stripSec(p).c==='stepped')add('1.1',23,'stripstep','Formwork to sides of upper tier of stepped strip footings','m²',2*L*p.d2,34);
     if(sg&&sg.h>0){const v=sg.A*sg.h;add('1.1',25,'stubc','Reinforced in-situ concrete C30/37 in column stubs from pad to ground floor','m³',v,195);add('1.1',26,'stubfw','Formwork to sides of column stubs','m²',sg.Pm*sg.h,45);add('1.1',27,'stubr','High-yield bar reinforcement B500B to column stubs (allowance 180 kg/m³)','t',v*0.18,1900);}
+  }else if(e.type==='raft'){
+    if(e.pts.length<3)return out;const Q=raftQ(e),SB=P.sub,T=mm(Q.t),hc=+SB.hc||0,egl=+SB.egl,top=0,form=top-Q.t-0.05-hc,dRL=Math.max(0,egl-(+SB.topsoil||0)-form);
+    add('1.1',1,'topsoil'+mm(+SB.topsoil)+SB.disp,`Excavate topsoil average ${mm(+SB.topsoil)} mm deep and ${SB.disp==='site'?'deposit in spoil heaps on site':'remove from site'}`,'m²',Q.A,SB.disp==='site'?3.5:5.5);
+    add('1.1',2,'rlraft','Excavate to reduce levels to formation under raft foundation, maximum depth ≤ 1.0 m','m³',Q.A*dRL,14);
+    const vT=(Q.Pc*Q.ew+Q.Li*Q.iw)*Q.ed;add('1.1',3,'exraftth','Excavate trenches for raft edge and internal thickenings, maximum depth ≤ 1.0 m','m³',vT,28);
+    if(SB.ews==='yes')add('1.1',15,'ews','Earthwork support to faces of excavation, maximum depth ≤ 2.0 m, opposing faces ≤ 2.0 m apart','m²',Q.Pm*(Q.ed+Q.t),6);
+    add('1.1',17,'disp'+SB.disp,SB.disp==='site'?'Disposal of surplus excavated material, spread and level on site':'Disposal of surplus excavated material off site','m³',Q.A*dRL+vT,SB.disp==='site'?8:24);
+    if(hc>0)add('1.1',4,'hc'+mm(hc),`Hardcore bed ${mm(hc)} mm thick under raft, compacted, blinded with 50 mm sand`,'m²',Q.A,+(4+50*hc).toFixed(2));
+    if(SB.termite==='yes')add('1.1',19,'termite','Anti-termite treatment to bottoms of excavations, applied by licensed specialist','m²',Q.A+Q.Pc*Q.ed,4.5);
+    add('1.1',20,'blind','Concrete blinding C12/15, 50 mm thick','m²',Q.A+2*Q.Pc*Q.ed,9);
+    if(p.rwp==='tank')add('1.1',5,'rafttank','Bituminous self-adhesive tanking membrane under raft and up the edges, with protection board, laps sealed','m²',Q.A+Q.Pm*(Q.t+Q.ed),32);
+    else if(p.rwp!=='none')add('1.1',5,'dpm','Polythene damp-proof membrane 1200 gauge, lapped and sealed','m²',Q.A+Q.Pm*(Q.t+Q.ed),3.5);
+    add('1.1',30,'raftc'+T,`Reinforced in-situ concrete C30/37 in raft foundation ${T} mm thick, including edge${Q.iw>0?' and internal':''} thickenings`,'m³',Q.V,178);
+    add('1.1',31,'raftfw','Formwork to edges of raft foundation, height ≤ 500 mm','m',Q.Pm,22);
+    add('1.1',32,`ra_raft_${+p.ra}`,`High-yield bar reinforcement B500B to raft foundation (allowance ${+p.ra} kg/m³)`,'t',Q.V*(+p.ra||0)/1000,1900);
+    if(p.rfin!=='none')add('1.1',33,'raftflt','Power-floated finish to top of raft foundation','m²',Q.A,4.5);
+  }else if(e.type==='pile'){
+    const Q=pileQ(e),y=p.pty||'bored',D=mm(Q.d),Lg=Q.n*Q.len;
+    if(y==='bored'||y==='cfa'){add('1.1',70,`pile_${y}_${D}`,`${y==='cfa'?'CFA pile':'Bored cast-in-place pile'} Ø${D} mm, bore and form to ${fmtN(Q.len,1)} m below cut-off, including temporary casing`,'m',Lg,Math.round(28+110*Q.d));
+      add('1.1',71,`pilec_${y}`,`In-situ concrete C30/37 in ${y==='cfa'?'CFA':'bored'} piles, placed by tremie / pumped`,'m³',Q.Vp,170);
+      add('1.1',72,`piler_${+p.ra}`,`High-yield bar reinforcement B500B cages to piles (allowance ${+p.ra} kg/m³)`,'t',Q.Vp*(+p.ra||0)/1000,1950);
+      add('1.1',73,'pilesp','Disposal of spoil from pile bores off site','m³',Q.Vp*1.2,24);}
+    else if(y==='driven')add('1.1',70,`pile_pc_${D}`,`Precast reinforced concrete pile ${D} × ${D} mm, supply, pitch and drive to ${fmtN(Q.len,1)} m below cut-off`,'m',Lg,Math.round(20+420*Q.d*Q.d+25));
+    else if(y==='steelh')add('1.1',70,`pile_h_${D}`,`Steel H-pile ${D} mm serial size, supply, pitch and drive to ${fmtN(Q.len,1)} m below cut-off`,'m',Lg,Math.round(60+260*Q.d));
+    else add('1.1',70,`pile_micro_${D}`,`Micropile Ø${D} mm, drill, install bar reinforcement and pressure-grout to ${fmtN(Q.len,1)} m`,'m',Lg,Math.round(55+300*Q.d));
+    add('1.1',75,`pilecut_${y}_${D}`,y==='steelh'?`Cut off steel H-pile heads ${D} mm to level, dispose of offcuts`:`Cut off pile heads ${y==='driven'?D+' × '+D:'Ø'+D} mm to level, prepare and bend reinforcement, dispose of debris`,'nr',Q.n,Math.round(35+90*Q.d));
+    if(y!=='steelh')add('1.1',76,'piletest','Pile integrity testing (low-strain sonic)','nr',Q.n,40);
+    if(Q.capOn){const top=-gSlabT(e.level,e.pts[0]),bot=top-Q.cd,exD=Math.max(0,+P.sub.egl-bot),Ac=Q.cw*Q.cl,vE=Ac*exD,inC=Ac*Math.min(exD,Q.cd);
+      add('1.1',10,'expcap','Excavate pits for pile caps, maximum depth ≤ 2.0 m','m³',vE,32);
+      add('1.1',17,'disp'+P.sub.disp,P.sub.disp==='site'?'Disposal of surplus excavated material, spread and level on site':'Disposal of surplus excavated material off site','m³',inC,P.sub.disp==='site'?8:24);
+      add('1.1',18,'bfill','Backfill with selected excavated material, compacted in 150 mm layers','m³',Math.max(0,vE-inC),16);
+      add('1.1',20,'blind','Concrete blinding C12/15, 50 mm thick','m²',Ac,9);
+      add('1.1',80,'pcapc','Reinforced in-situ concrete C30/37 in pile caps','m³',Q.Vc,185);
+      add('1.1',81,'pcapfw','Formwork to sides of pile caps','m²',2*(Q.cw+Q.cl)*Q.cd,38);
+      add('1.1',82,`ra_pcap_${+p.cra}`,`High-yield bar reinforcement B500B to pile caps (allowance ${+p.cra} kg/m³)`,'t',Q.Vc*(+p.cra||0)/1000,1900);}
   }else if(e.type==='fwall'){
-    const L=elLen(e),g2=fwallGeom(e),t=+p.t,T=mm(t),A=L*g2.H;
+    const L=elLen(e),g2=fwallGeom(e),t=+p.t,T=mm(t),A=L*g2.H;if(p.tank==='yes')add('1.1',35,'fwtank','Tanking to outer face of foundation / basement walls: bituminous membrane, protection board and drainage layer','m²',A,38);
     if(p.fmat==='concrete'){add('1.1',30,'fwc','Reinforced in-situ concrete C25/30 in foundation walls','m³',A*t,175);add('1.1',31,'fwfw','Formwork to faces of foundation walls','m²',2*A,36);reb('1.1',32);}
     else{const M={block:['fwb','Solid concrete blockwork',20+150*t],stone:['fws','Natural stone masonry, squared and dressed,',30+160*t],brick:['fwk','Class B engineering brickwork',30+210*t]}[p.fmat]||['fwb','Solid concrete blockwork',20+150*t];
       add('1.1',30,M[0]+T,`${M[1]} ${T} mm thick in foundation walls, in cement mortar (1:3), from top of footing to underside of ground slab`,'m²',A,+M[2].toFixed(2));}
@@ -1209,6 +1265,9 @@ function takeoff(){
   AUTO=new Map();const map=new Map();
   for(const e of P.elements){if(!lvl(e.level))continue;if(e.host&&!byId(e.host))continue;
     for(const l of linesFor(e)){const k=l.sec+'|'+l.key;let it=map.get(k);if(!it){it={...l,qty:0,els:[]};map.set(k,it);}it.qty+=l.qty;it.els.push(e.id);}}
+  {const piles=P.elements.filter(e=>e.type==='pile'&&lvl(e.level));if(piles.length){const ty=[...new Set(piles.map(e=>e.p.pty||'bored'))];
+    map.set('1.1|plt_pilemob',{sec:'1.1',o:68,key:'plt_pilemob',desc:`Mobilise and demobilise piling rig and equipment (${ty.map(t=>OPT.pty[t].toLowerCase()).join(', ')})`,unit:'item',qty:1,rate:{bored:6000,cfa:7000,driven:5000,steelh:5500,micro:3000}[ty[0]]*(ty.length>1?1.6:1),els:piles.map(e=>e.id)});
+    map.set('1.1|plt_piletest',{sec:'1.1',o:77,key:'plt_piletest',desc:'Static load test on working pile, maintained load to 1.5 × working load, including reaction system and report',unit:'nr',qty:Math.max(1,Math.ceil(piles.reduce((a,e)=>a+pileLay(e.p).n,0)/100)),rate:4500,els:[]});}}
   if(P.plAuto!=='no'){const E2=P.elements.filter(e=>lvl(e.level)),Lp=f=>E2.filter(e=>e.type==='pipe'&&f(e.p.sys)).reduce((a,e)=>a+elLen(e)+(+e.p.vert||0),0),San=E2.filter(e=>e.type==='sanitary'&&!['tank','solar','heater','inst'].includes(e.p.fx));
     const pl=(sec,o,key,desc,unit,qty,rate,els)=>{if(!(qty>0))return;map.set(sec+'|'+key,{sec,o,key,desc,unit,qty,rate,els:els||[]});};
     const Lw=Lp(y=>y==='cw'||y==='hw'),Ld=Lp(y=>y==='w'||y==='sw'||y==='vent'),Lu=Lp(y=>y==='ud');
@@ -1223,7 +1282,7 @@ function takeoff(){
   for(const s of secs){s.items.sort((a,b)=>a.o-b.o||a.key.localeCompare(b.key,undefined,{numeric:true}));
     s.items.forEach((it,i)=>{it.ref=s.code+'.'+String(i+1).padStart(2,'0');it.q=roundQ(it.qty,it.unit);it.r=rateOf(it);it.amt=it.q*it.r;s.total+=it.amt;});works+=s.total;}
   const prelims=works*(+P.prelims||0)/100,cont=(works+prelims)*(+P.contingency||0)/100,net=works+prelims+cont,vat=net*(+P.vat||0)/100;
-  const roofOnly=new Set(P.levels.filter(l=>P.elements.some(e=>e.level===l.id&&e.type==='roof')&&!P.elements.some(e=>e.level===l.id&&e.type==='room')).map(l=>l.id));const gfa=P.elements.filter(e=>e.type==='slab'&&lvl(e.level)&&!roofOnly.has(e.level)).reduce((s,e)=>s+area(e.pts)-voidsIn(e).filter(v=>v.p.vkind==='atrium').reduce((a,v)=>a+area(v.pts),0),0);
+  const roofOnly=new Set(P.levels.filter(l=>P.elements.some(e=>e.level===l.id&&e.type==='roof')&&!P.elements.some(e=>e.level===l.id&&e.type==='room')).map(l=>l.id));const gfa=P.elements.filter(e=>(e.type==='slab'||e.type==='raft')&&lvl(e.level)&&!roofOnly.has(e.level)).reduce((s,e)=>s+area(e.pts)-voidsIn(e).filter(v=>v.p.vkind==='atrium').reduce((a,v)=>a+area(v.pts),0),0);
   return{secs,works,prelims,cont,net,vat,total:net+vat,gfa};
 }
 const NFC={};function money(v,dec=0){try{const k=(P.currency||'EUR')+dec;return(NFC[k]||(NFC[k]=new Intl.NumberFormat('en-GB',{style:'currency',currency:P.currency||'EUR',minimumFractionDigits:dec,maximumFractionDigits:dec}))).format(v);}catch(e){return (P.currency||'')+' '+v.toFixed(dec);}}
@@ -1379,6 +1438,8 @@ const ICON={
   fence:'<path d="M4 5v14M11 5v14M18 5v14"/><path d="M2 9h18M2 15h18" stroke-width="1.1"/><path d="M4 5l-1 1.5M11 5l-1 1.5M18 5l-1 1.5" stroke-width="1"/>',
   fwall:'<path d="M2 12.5h18" stroke-dasharray="2 1.5" stroke-width="1"/><path d="M8 4h6v11H8z"/><path d="M5 15h12v3H5z"/><path d="M8 7.5h6M8 11h6" stroke-width="1"/>',
   pad:'<path d="M4 14h14v4H4z"/><path d="M9 14V5h4v9" stroke-width="1"/>',
+  raft:'<path d="M2 9h18v5H2z"/><path d="M2 14v3h4v-3M16 14v3h4v-3" stroke-width="1.2"/>',
+  pile:'<path d="M4 4h14v5H4z"/><path d="M7 9v11M15 9v11" stroke-width="1.6"/><path d="M6 20h2M14 20h2" stroke-width="1"/>',
   stair:'<path d="M3 19h4v-4h4v-4h4V7h4V3"/><path d="M3 19 19 3" stroke-width="1" stroke-dasharray="2 2"/>',
   ramp:'<path d="M2 18h18L20 8z"/><path d="M6 16l8-4" stroke-width="1"/><path d="M12 11.5l2 .5-1 1.8" stroke-width="1"/>',
   rail:'<path d="M2 7h18"/><path d="M4 7v12M9 7v12M14 7v12M19 7v12" stroke-width="1.2"/><path d="M2 17h18" stroke-width="1"/>',
@@ -1388,10 +1449,10 @@ const ICON={
   calibrate:'<path d="M3 11h16"/><path d="M3 7v8M19 7v8" /><path d="M6 9l-3 2 3 2M16 9l3 2-3 2" stroke-width="1"/>',
   align:'<path d="M11 2v18M2 11h18"/><path d="M8 5l3-3 3 3M8 17l3 3 3-3M5 8l-3 3 3 3M17 8l3 3-3 3" stroke-width="1"/>',
 };
-const SHORT={pave:'Paving',fence:'Fence',stair:'Stair',ramp:'Ramp',rail:'Rail',cwall:'Curtain',louvre:'Louvre',grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
+const SHORT={raft:'Raft',pile:'Pile',pave:'Paving',fence:'Fence',stair:'Stair',ramp:'Ramp',rail:'Rail',cwall:'Curtain',louvre:'Louvre',grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
 const TT=t=>[t,TYPES[t].label,TYPES[t].key];
 const TOOLS=[['','',[['select','Select / move','v'],['grid','Structural grid line','l']]],
-  ['1','Substructure',['strip','pad','gbeam','fwall'].map(TT)],
+  ['1','Substructure',['strip','pad','raft','pile','gbeam','fwall'].map(TT)],
   ['2.1','Frame',['column','beam'].map(TT)],
   ['2.2','Floors',['slab','void'].map(TT)],
   ['2.3','Roof',['roof'].map(TT)],
@@ -1442,7 +1503,7 @@ $('#levels').addEventListener('focusin',e=>{const row=e.target.closest('.lv');if
 function setLevel(id){S.level=id;if(TEAM.room)setTimeout(()=>teamPresence(true));S.sel=null;S.hl=null;S.draft=null;updateRailCounts();renderLevels();renderProps();renderSub();renderUnder();drawPlan();queue3D();}
 $('#addLevel').onclick=()=>{const top=levelsSorted().at(-1);const n=P.levels.length;const l={id:uid(),name:n===1?'First Floor':`Level ${n}`,elev:+(top.elev+top.h).toFixed(3),h:3.0};mutate(()=>P.levels.push(l));setLevel(l.id);};
 $('#dupLevel').onclick=()=>{const src=lvl(S.level);const top=levelsSorted().at(-1);const l={id:uid(),name:`Level ${P.levels.length}`,elev:+(top.elev+top.h).toFixed(3),h:src.h};
-  mutate(()=>{P.levels.push(l);const map={};const els=onLevel(src.id).filter(e=>!['strip','pad','gbeam','fwall','mh','fence','ramp','pave'].includes(e.type));
+  mutate(()=>{P.levels.push(l);const map={};const els=onLevel(src.id).filter(e=>!['strip','pad','raft','pile','gbeam','fwall','mh','fence','ramp','pave'].includes(e.type));
     for(const e of els){map[e.id]=uid();}
     for(const e of els){const c=JSON.parse(JSON.stringify(e));c.id=map[e.id];c.level=l.id;if(c.host)c.host=map[c.host];P.elements.push(c);}});
   setLevel(l.id);toast(`Copied ${src.name} to ${l.name} above. Foundations, ground beams and external works were left out.`);};
@@ -1499,6 +1560,8 @@ function fieldOn(t,k,o){
   if(t==='stair'){const y=o.stype||'straight';if(k==='turn')return y!=='straight';if(k==='split')return['L','LW','U','U3'].includes(y);if(k==='ld'||k==='gap')return y==='U'||y==='U3'&&k==='gap';if(k==='lt'||k==='g')return y!=='spiral'&&(k==='g'||y==='straight');
     if(k==='dia'||k==='rin'||k==='sa')return y==='spiral';if(k==='t'||k==='ra'||k==='sof')return o.stmat==='rc';if(k==='stfin'||k==='nos')return['rc','pc','ext','steelpan'].includes(o.stmat);if(k==='bal')return o.rails!=='0';}
   if(t==='ramp'&&k==='bal')return o.rails!=='0';
+  if(t==='raft'&&k==='isp')return +o.iw>0;
+  if(t==='pile'){if(k==='psp')return o.pn!=='1';if(k==='cd'||k==='cra')return o.pcap!=='no';if(k==='ra')return['bored','cfa','micro'].includes(o.pty);}
   if(t==='sanitary'){if(k==='cap')return['heater','solar','tank'].includes(o.fx);if(k==='acc')return!!(FIT[o.fx]&&FIT[o.fx].acc);}
   if(t==='mh'){const y=o.mhk||'mh';if(k==='mhs')return y==='mh'||y==='brick';if(k==='dep')return['mh','brick','ic','soak'].includes(y);if(k==='cap')return['septic','grease','oil','rwh'].includes(y);if(k==='sd')return y==='soak';}
   if(t==='pave'){const soft=o.pvs==='lawn';if(k==='sb'||k==='kerb'||k==='bays')return!soft;if(['bw','bl','ai','acc','cars'].includes(k))return!soft&&o.bays!=='none';}
@@ -1507,7 +1570,7 @@ function fieldOn(t,k,o){
   if(t==='strip'){const c=o.ss||'rect';if(k==='w2')return c!=='rect';if(k==='d2')return c==='stepped';}
   if(t==='pad'){const c=o.ps||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='l')return c!=='circle';if(k==='w2'||k==='l2'||k==='d2')return c==='stepped'||c==='sloped';}
   return true;}
-const SHAPEKEYS=['cs','ss','ps','wall','rm','sys','material','fmat','smat','kind'];
+const SHAPEKEYS=['cs','ss','ps','wall','rm','sys','material','fmat','smat','kind','pty','pn','pcap','fx','mhk','iw'];
 const SYS={cw:{sec:'5.4',o:10,col:'#2F7FD1',h:2.5,mat:'ppr',dia:'20',fix:'fixed with clips to walls and soffits'},hw:{sec:'5.4',o:20,col:'#D1452F',h:2.4,mat:'ppr',dia:'20',fix:'with 13 mm pipe insulation, fixed with clips'},
   w:{sec:'5.3',o:10,col:'#9A6B35',h:0.35,mat:'upvc',dia:'40',fix:'solvent-welded, fixed with clips at falls'},sw:{sec:'5.3',o:20,col:'#6B4A26',h:0.15,mat:'upvc',dia:'110',fix:'solvent-welded, including access doors and vent terminal'},
   vent:{sec:'5.3',o:25,col:'#8E7CC3',h:2.7,mat:'upvc',dia:'50',fix:'solvent-welded, fixed with clips, terminated with vent cowl'},
@@ -1570,11 +1633,12 @@ function pipeFitHTML(){return`<div class="field" style="margin-bottom:10px"><lab
 function wirePipeFit(el){el.querySelectorAll('[data-pipefit]').forEach(x=>x.onchange=()=>mutate(()=>P.pipeFit=x.value));el.querySelectorAll('[data-plauto]').forEach(x=>x.onchange=()=>mutate(()=>P.plAuto=x.value));}
 function onField(t,obj,k){if((t==='pipe'||t==='pfit')&&k==='sys'){const d=SYS[obj.sys];if(t==='pipe')obj.mat=d.mat;obj.dia=d.dia;}
   if(t==='sanitary'&&k==='fx'){const F=FIT[obj.fx];obj.cap=F&&F.cap?F.cap:0;}
-  if(t==='mh'&&k==='mhk'){obj.cap={septic:6,grease:1,oil:2,rwh:10}[obj.mhk]||obj.cap;if(obj.mhk==='soak'){obj.sd=2;obj.dep=3;}if(obj.mhk==='ic')obj.dep=Math.min(+obj.dep||0.9,1.2);}}
+  if(t==='mh'&&k==='mhk'){obj.cap={septic:6,grease:1,oil:2,rwh:10}[obj.mhk]||obj.cap;if(obj.mhk==='soak'){obj.sd=2;obj.dep=3;}if(obj.mhk==='ic')obj.dep=Math.min(+obj.dep||0.9,1.2);}
+  if(t==='pile'&&k==='pty'){const D={bored:0.6,cfa:0.45,driven:0.3,steelh:0.305,micro:0.2}[obj.pty];if(D)obj.dia=D;}}
 function fieldHTML(t,obj,prefix){
   return `<div class="fields">`+FIELDS[t].filter(([k])=>fieldOn(t,k,obj)).map(([k,label,kind])=>{
     const id=`${prefix}-${k}`;
-    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','acc','sys','mat','mhs','mhk','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh','stype','turn','whr','rails','ftype','ftop','fcoat','vgk','bmat','bfin','cop'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
+    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','acc','sys','mat','mhs','mhk','pk','rwp','rfin','pty','pcap','tank','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh','stype','turn','whr','rails','ftype','ftop','fcoat','vgk','bmat','bfin','cop'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
     if(kind==='txt')return`<div class="field wide"><label for="${id}">${label}</label><input id="${id}" data-k="${k}" value="${esc(obj[k])}"></div>`;
     return`<div class="field"><label for="${id}">${label}</label><div class="unitwrap"><input id="${id}" type="number" step="${kind==='°'?1:0.01}" min="0" data-k="${k}" data-num value="${obj[k]}"><span>${kind}</span></div></div>`;
   }).join('')+`</div>`;
@@ -1597,6 +1661,8 @@ function elemDims0(e){const p=e.p;switch(e.type){
   case'room':{const n=netArea(e),g=area(e.pts),q=roomQ(e);return`${fmtN(n)} m²${Math.abs(n-g)>0.005?` net (${fmtN(g)} gross)`:''} · perimeter ${fmtN(q.Pm)} m · ${+e.p.ch>0?`walls finished to ${fmtN(q.H)} m`:`walls finished full height ${fmtN(q.H)} m`} · walls ${fmtN(q.net)} m² net (${q.ops.length} openings on boundary)`;}
   case'void':{const s=hostSlab(e);const a=area(e.pts);return`${fmtN(a)} m² · ${OPT.vkind[p.vkind]}`+(!s?' · not over a slab':voidCounts(e)?` · deducts ${fmtN(a*s.p.t,3)} m³ concrete`:' · ≤ 1 m², not deducted');}
   case'roof':return`${fmtN(area(e.pts))} m² on plan · ${OPT.type[p.type]}`;
+  case'raft':{const Q=raftQ(e);return`${fmtN(Q.A)} m² × ${mm(Q.t)} mm · edge thickening ${mm(Q.ew)} × ${mm(Q.ed)} mm${Q.iw>0?` · internal ${fmtN(Q.Li,1)} m`:''} · ${fmtN(Q.V,2)} m³ concrete`;}
+  case'pile':{const Q=pileQ(e);return`${Q.n} × ${OPT.pty[p.pty]} ${Q.sq?mm(Q.d)+' × '+mm(Q.d):'Ø'+mm(Q.d)} mm × ${fmtN(Q.len,1)} m = ${fmtN(Q.n*Q.len,1)} m${Q.capOn?` · cap ${mm(Q.cw)} × ${mm(Q.cl)} × ${mm(Q.cd)} mm`:''}`;}
   case'pave':{const Q=paveQ(e);return`${fmtN(Q.A)} m² · ${OPT.pvs[p.pvs]}${Q.nb?` · ${Q.nb} parking bay${Q.nb===1?'':'s'}${Q.acc?` (${Q.acc} accessible)`:''}`:''}${+p.trees?` · ${+p.trees} trees`:''} · edge ${fmtN(Q.Pm)} m`;}
   case'door':case'window':return`${mm(p.w)} × ${mm(p.h)} mm`;
   case'stair':{const M=stairModel(e),fr=M.flights.map(fl=>fl.c+(fl.end?1:0));return`${OPT.stype[M.st]||'Straight'} · ${OPT.stmat[p.stmat]} · ${mm(M.w)} mm wide · ${M.n} risers × ${mm(M.r)} mm · going ${mm(M.g)} mm${M.st==='spiral'?` at walkline · Ø${mm(2*M.R)} mm, turns ${Math.round(M.turnDeg)}°`:''}${fr.length>1?' · flights of '+fr.join(' + ')+' risers'+(M.st==='LW'?' + 3 winders':''):''} · rise ${fmtN(M.H)} m${M.warn.length?' · ⚠ '+M.warn.join('; '):''}`;}
@@ -1810,11 +1876,17 @@ function drawPlanNow(){IXG++;
     ctx.restore();}
   const els=onLevel(S.level).filter(vis);const isSel=e=>e.id===S.sel||(S.hl&&S.hl.has(e.id));
   drawGrids('lines');
-  const order=['pave','roof','slab','room','void','fence','ramp','stair','strip','pad','gbeam','beam','wall','cwall','louvre','fwall','rail','column','mh','pipe','pfit','sanitary'];
+  const order=['pave','raft','roof','slab','room','void','fence','ramp','stair','strip','pad','pile','gbeam','beam','wall','cwall','louvre','fwall','rail','column','mh','pipe','pfit','sanitary'];
   let ri=0;
   for(const ty of order)for(const e of els.filter(x=>x.type===ty)){
     const sel=isSel(e);
-    if(ty==='pave'){if(e.pts.length<3)continue;const D=PVD[e.p.pvs]||PVD.asphalt,own=isHex(e.c)||isHex(P.colors?.pave),C=own?colE(e):D[2],Q=paveQ(e);poly(e.pts);ctx.globalAlpha=e.p.pvs==='lawn'?0.28:0.2;ctx.fillStyle=C;ctx.fill();ctx.globalAlpha=1;if(e.p.pvs==='lawn'||e.p.pvs==='grasspave'){ctx.fillStyle=hatch(C,0.35,7);ctx.fill();}ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:(e.p.kerb!=='no'&&e.p.pvs!=='lawn'?1.8:1);ctx.stroke();
+    if(ty==='raft'){if(e.pts.length<3)continue;const C=colE(e)||'#9C8466',Q=raftQ(e);poly(e.pts);ctx.globalAlpha=.12;ctx.fillStyle=C;ctx.fill();ctx.globalAlpha=1;ctx.fillStyle=hatch(C,0.45,10);ctx.fill();ctx.setLineDash([8,3]);ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.6;ctx.stroke();ctx.setLineDash([]);
+      if(Q.ew>0){const sg=area2(e.pts)>0?1:-1;ctx.setLineDash([3,3]);ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<e.pts.length;i++){const a=e.pts[i],b=e.pts[(i+1)%e.pts.length],L=d2(a,b)||1,nx=-(b[1]-a[1])/L*sg*Q.ew,ny=(b[0]-a[0])/L*sg*Q.ew;ctx.moveTo(...w2s([a[0]+nx,a[1]+ny]));ctx.lineTo(...w2s([b[0]+nx,b[1]+ny]));}ctx.stroke();ctx.setLineDash([]);}
+      if(z>6){const [cx,cy]=w2s(centroid(e.pts));ctx.font='600 12px "Barlow Condensed",sans-serif';ctx.textAlign='center';ctx.fillStyle=C;ctx.fillText(`RAFT ${mm(Q.t)} · EDGE ${mm(Q.ew)}×${mm(Q.ed)}`,cx,cy);}}
+    else if(ty==='pile'){const C=colE(e)||'#6E6258',[x,y]=e.pts[0],Q=pileQ(e);ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.3;
+      if(Q.capOn){poly([[x-Q.cw/2,y-Q.cl/2],[x+Q.cw/2,y-Q.cl/2],[x+Q.cw/2,y+Q.cl/2],[x-Q.cw/2,y+Q.cl/2]]);ctx.setLineDash([6,4]);ctx.stroke();ctx.setLineDash([]);}
+      for(const [u,v] of Q.pts){const [sx,sy]=w2s([x+u,y+v]);ctx.beginPath();if(Q.sq)ctx.rect(sx-Q.d/2*z,sy-Q.d/2*z,Q.d*z,Q.d*z);else ctx.arc(sx,sy,Math.max(2,Q.d/2*z),0,Math.PI*2);ctx.fillStyle=hatch(C,0.5,5);ctx.fill();ctx.stroke();}}
+    else if(ty==='pave'){if(e.pts.length<3)continue;const D=PVD[e.p.pvs]||PVD.asphalt,own=isHex(e.c)||isHex(P.colors?.pave),C=own?colE(e):D[2],Q=paveQ(e);poly(e.pts);ctx.globalAlpha=e.p.pvs==='lawn'?0.28:0.2;ctx.fillStyle=C;ctx.fill();ctx.globalAlpha=1;if(e.p.pvs==='lawn'||e.p.pvs==='grasspave'){ctx.fillStyle=hatch(C,0.35,7);ctx.fill();}ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:(e.p.kerb!=='no'&&e.p.pvs!=='lawn'?1.8:1);ctx.stroke();
       if(Q.nb&&z>3){ctx.lineWidth=1;Q.bays.forEach((b,k)=>{poly(b.poly);if(k<Q.acc){ctx.globalAlpha=0.35;ctx.fillStyle='#2F6FB8';ctx.fill();ctx.globalAlpha=1;}ctx.strokeStyle=TH.dark?'#d8dde0':'#6b7479';ctx.stroke();});}
       for(const t of Q.trees){const [tx,ty2]=w2s(t);ctx.beginPath();ctx.arc(tx,ty2,Math.max(3,1.8*z),0,Math.PI*2);ctx.fillStyle='rgba(76,140,60,.28)';ctx.fill();ctx.strokeStyle='#4C8C3C';ctx.lineWidth=1;ctx.stroke();}
       if(z>6){const [cx,cy]=w2s(centroid(e.pts));const txt=(e.p.name||OPT.pvs[e.p.pvs]).toUpperCase();ctx.font='600 12px "Barlow Condensed",sans-serif';ctx.textAlign='center';const tw=ctx.measureText(txt).width+8;ctx.fillStyle=TH.paper;ctx.globalAlpha=0.85;ctx.fillRect(cx-tw/2,cy-16,tw,28);ctx.globalAlpha=1;ctx.fillStyle=TH.ink;ctx.fillText(txt,cx,cy-4);ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TH.ink2;ctx.fillText(fmtN(Q.A)+' m²'+(Q.nb?' · '+Q.nb+' bays':''),cx,cy+9);}}
@@ -1943,7 +2015,7 @@ function drawOpening(w,o,sel){
 }
 
 /* ---------- snapping & hit test ---------- */
-const POLYT=['room','slab','roof','void','pave'],LINET=['wall','beam','strip','fwall','gbeam','pipe','cwall','louvre','rail','stair','ramp','fence'];
+const POLYT=['room','slab','roof','void','pave','raft'],LINET=['wall','beam','strip','fwall','gbeam','pipe','cwall','louvre','rail','stair','ramp','fence'];
 /* ---------- curve panel for walls, beams, strips, foundation walls ---------- */
 function curveHTML(e){if(!ARCT.includes(e.type)||!e.pts||e.pts.length<2)return'';const A=arcOf(e);const c=d2(e.pts[0],e.pts[1]);
   return `<div class="curve-box"><div class="curve-hd"><span>Plan shape</span><span class="seg"><button data-cv="straight" aria-pressed="${!A}">Straight</button><button data-cv="curved" aria-pressed="${!!A}">Curved</button></span></div>
@@ -2092,8 +2164,8 @@ function visChanged(){saveVis();const gone=selIds().filter(id=>!vis(byId(id)));i
 function showAll(){S.hideT.clear();S.hideId.clear();S.hideL.clear();visChanged();toast('Everything is visible again.');}
 function hideIds(ids){ids.forEach(id=>S.hideId.add(id));setSel([]);visChanged();toast(`${ids.length} element${ids.length>1?'s':''} hidden. Quantities still count them. Use Show all to bring them back.`);}
 function isolateIds(ids){const keep=new Set(ids);P.elements.forEach(e=>{if(!keep.has(e.id)&&!(e.host&&keep.has(e.host)))S.hideId.add(e.id);});visChanged();toast('Showing only the selection. Use Show all to bring the rest back.');}
-const VISG=[['Substructure',['strip','pad','gbeam','fwall']],['Frame',['column','beam']],['Floors & roof',['slab','void','roof']],['Walls & façade',['wall','cwall','louvre']],['Doors & windows',['door','window']],['Stairs & balustrades',['stair','ramp','rail']],['Room finishes',['room']],['Services',['sanitary','pipe','pfit','mh']],['External works',['pave','fence']]];
-const VISP={all:['Show all',[]],str:['Structure only',['wall','cwall','louvre','door','window','rail','room','sanitary','pipe','pfit','mh','pave','fence','roof']],arch:['No structure',['strip','pad','gbeam','fwall','column','beam']],svc:['Services only',['strip','pad','gbeam','fwall','column','beam','slab','void','roof','wall','cwall','louvre','door','window','stair','ramp','rail','room','pave','fence']],noslab:['Hide slabs & roofs',['slab','roof']],nowall:['Hide walls',['wall','cwall','louvre','door','window']]};
+const VISG=[['Substructure',['strip','pad','raft','pile','gbeam','fwall']],['Frame',['column','beam']],['Floors & roof',['slab','void','roof']],['Walls & façade',['wall','cwall','louvre']],['Doors & windows',['door','window']],['Stairs & balustrades',['stair','ramp','rail']],['Room finishes',['room']],['Services',['sanitary','pipe','pfit','mh']],['External works',['pave','fence']]];
+const VISP={all:['Show all',[]],str:['Structure only',['wall','cwall','louvre','door','window','rail','room','sanitary','pipe','pfit','mh','pave','fence','roof']],arch:['No structure',['strip','pad','raft','pile','gbeam','fwall','column','beam']],svc:['Services only',['strip','pad','raft','pile','gbeam','fwall','column','beam','slab','void','roof','wall','cwall','louvre','door','window','stair','ramp','rail','room','pave','fence']],noslab:['Hide slabs & roofs',['slab','roof']],nowall:['Hide walls',['wall','cwall','louvre','door','window']]};
 function visPopHTML(){if(!S.hideT)loadVis();const cnt={};P.elements.forEach(e=>{cnt[e.type]=(cnt[e.type]||0)+1;});
   return`<h4>Show / hide <button class="btn sm" data-vclose aria-label="Close">×</button></h4><div class="vis-pre">${Object.entries(VISP).map(([k,[n]])=>`<button class="btn sm" data-vpre="${k}">${n}</button>`).join('')}</div>`+
   VISG.map(([g,ts])=>{const on=ts.filter(t=>!S.hideT.has(t)).length;return`<div class="vis-g"><label><input type="checkbox" data-vgrp="${ts.join(',')}" ${on===ts.length?'checked':''} ${on&&on<ts.length?'data-mixed="1"':''}>${g}</label><div class="vis-ts">${ts.map(t=>`<label class="${S.hideT.has(t)?'off':''}"><input type="checkbox" data-vt="${t}" ${S.hideT.has(t)?'':'checked'}>${esc(TYPES[t].label)}<i>${cnt[t]||0}</i></label>`).join('')}</div></div>`;}).join('')+
@@ -2123,7 +2195,7 @@ function boxPick(a,b,crossing){const x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0
   for(const e of onLevel(S.level).filter(vis)){const o=outlineOf(e);if(!o.length)continue;if(o.every(inR)){out.push(e.id);continue;}if(!crossing)continue;
     if(o.some(inR)){out.push(e.id);continue;}const closed=o.length>2&&e.type!=='pipe';let hit=false;
     for(let i=0;i<o.length-(closed?0:1)&&!hit;i++){const p1=o[i],p2=o[(i+1)%o.length];for(let k=0;k<4&&!hit;k++)if(segX(p1,p2,R[k],R[(k+1)%4]))hit=true;}
-    if(!hit&&POLYT.includes(e.type)&&inPoly([(x0+x1)/2,(y0+y1)/2],e.pts)&&e.type!=='room'&&e.type!=='slab'&&e.type!=='roof'&&e.type!=='pave')hit=true;
+    if(!hit&&POLYT.includes(e.type)&&inPoly([(x0+x1)/2,(y0+y1)/2],e.pts)&&e.type!=='room'&&e.type!=='slab'&&e.type!=='roof'&&e.type!=='pave'&&e.type!=='raft')hit=true;
     if(hit)out.push(e.id);}
   return out;}
 function deleteIds(ids){const set=new Set(ids);mutate(()=>{P.elements=P.elements.filter(x=>!set.has(x.id)&&!set.has(x.host));});setSel([]);renderProps();toast(`Deleted ${ids.length} element${ids.length>1?'s':''}.`);}
@@ -2217,10 +2289,11 @@ function hitAll(pt){
   for(const e of els.filter(e=>e.type==='pfit')){if(d2(pt,e.pts[0])<0.14+tol)out.push(e);}
   for(const e of els.filter(e=>e.type==='sanitary'||e.type==='mh')){const [x,y]=e.pts[0];const h=e.type==='mh'?(G=>[G.w/2,G.l/2])(mhGeo(e.p)):fitSz(FIT[e.p.fx]||FIT.wc,e.p).map(v=>v/2);const r2=Math.max(...h)+tol;if(Math.abs(pt[0]-x)<r2&&Math.abs(pt[1]-y)<r2)out.push(e);}
   {const hs=[];for(const e of els.filter(x=>x.type==='pipe')){const r=projEl(pt,e);if(r.d<0.06+tol)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
+  for(const e of els.filter(e=>e.type==='pile')){const [x,y]=e.pts[0],Q=pileQ(e),hw=(Q.capOn?Q.cw:Q.d*2)/2+tol,hl=(Q.capOn?Q.cl:Q.d*2)/2+tol;if(Math.abs(pt[0]-x)<hw&&Math.abs(pt[1]-y)<hl)out.push(e);}
   for(const e of els.filter(e=>e.type==='column'||e.type==='pad')){const [x,y]=e.pts[0];const ex=e.type==='pad'?padGeo(e.p):colSec(e);const hw=ex.hw+tol,hd=(e.type==='pad'?ex.hl:ex.hd)+tol;if(Math.abs(pt[0]-x)<hw&&Math.abs(pt[1]-y)<hd)out.push(e);}
   for(const e of els.filter(x=>x.type==='stair')){const M=stairModel(e);if(M.planW.some(pl=>inPoly(pt,pl)))out.push(e);}
   for(const ty of ['fence','rail','cwall','louvre','wall','fwall','gbeam','beam','strip','ramp']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:ty==='fence'?Math.max(0.14,+e.p.t||0):ty==='cwall'?0.12:ty==='louvre'?0.16:ty==='rail'?0.08:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
-  for(const ty of ['void','room','slab','roof','pave'])els.filter(e=>e.type===ty&&inPoly(pt,e.pts)).sort((a,b)=>area(a.pts)-area(b.pts)).forEach(e=>out.push(e));
+  for(const ty of ['void','room','slab','raft','roof','pave'])els.filter(e=>e.type===ty&&inPoly(pt,e.pts)).sort((a,b)=>area(a.pts)-area(b.pts)).forEach(e=>out.push(e));
   gridHit(pt).forEach(g=>out.push(g));
   return out;
 }
@@ -2516,6 +2589,12 @@ function build3D(){IXG++;
           if(pg.c==='stepped')box(pg.w2,+p.d2,pg.l2,x,base+ +p.d+p.d2/2,y,0,pc,e.id);
           if(pg.c==='sloped'){const m=addMesh(frustumGeo(+p.w,+p.l,pg.w2,pg.l2,+p.d2),pc,e.id);m.position.set(x,base+ +p.d,y);}}
         if(p.stub==='yes'){const sg=stubGeom(e);if(sg.h>0){if(sg.cs.c==='circle'){const m=addMesh(new THREE.CylinderGeometry(sg.cs.D/2,sg.cs.D/2,sg.h,32),C3.column,e.id);m.position.set(x,sg.padTop+sg.h/2,y);}else if(sg.cs.c==='L')extrude(sg.cs.poly,sg.h,sg.top,C3.column,e.id);else box(sg.w,sg.h,sg.d,x,sg.padTop+sg.h/2,y,0,C3.column,e.id);}}}
+      else if(e.type==='raft'&&e.pts.length>=3){const Q=raftQ(e),rc=c3(e,C3.found),sg=area2(e.pts)>0?1:-1;extrude(e.pts,Q.t,el0,rc,e.id);
+        if(Q.ew>0&&Q.ed>0)for(let i=0;i<e.pts.length;i++){const a=e.pts[i],b=e.pts[(i+1)%e.pts.length],L=d2(a,b);if(L<0.05)continue;const nx=-(b[1]-a[1])/L*sg,ny=(b[0]-a[0])/L*sg;box(L,Q.ed,Q.ew,(a[0]+b[0])/2+nx*Q.ew/2,el0-Q.t-Q.ed/2,(a[1]+b[1])/2+ny*Q.ew/2,-Math.atan2(b[1]-a[1],b[0]-a[0]),rc,e.id);}
+        if(Q.iw>0&&Q.ed>0){const b=bbox(e.pts),sp=Math.max(1,+p.isp||6);for(let x=b.x0+sp;x<b.x1-Q.ew-0.01;x+=sp)for(let y=b.y0+Q.ew;y<b.y1-Q.ew;y+=0.5)if(inPoly([x,y+0.25],e.pts))box(Q.iw,Q.ed,0.5,x,el0-Q.t-Q.ed/2,y+0.25,0,rc,e.id,{noEdge:true});for(let y=b.y0+sp;y<b.y1-Q.ew-0.01;y+=sp)for(let x=b.x0+Q.ew;x<b.x1-Q.ew;x+=0.5)if(inPoly([x+0.25,y],e.pts))box(0.5,Q.ed,Q.iw,x+0.25,el0-Q.t-Q.ed/2,y,0,rc,e.id,{noEdge:true});}}
+      else if(e.type==='pile'){const [x,y]=e.pts[0],Q=pileQ(e),top=el0-gSlabT(l.id,e.pts[0]),capBot=Q.capOn?top-Q.cd:Math.min(top,+P.sub.egl-0.3),pc=c3(e,0x7E7266);
+        if(Q.capOn)box(Q.cw,Q.cd,Q.cl,x,top-Q.cd/2,y,0,c3(e,C3.found),e.id);
+        for(const [u,v] of Q.pts){if(Q.sq)box(Q.d,Q.len,Q.d,x+u,capBot-Q.len/2,y+v,0,pc,e.id);else{const m=addMesh(new THREE.CylinderGeometry(Q.d/2,Q.d/2,Q.len,18),pc,e.id);m.position.set(x+u,capBot-Q.len/2,y+v);}}}
       else if(e.type==='fwall'){const L=elLen(e);if(L<1e-3)continue;const g=fwallGeom(e);if(g.H>0)sweep(e,-p.t/2,L+p.t/2,+p.t,g.H,g.base,c3(e,0x9C8F80),e.id);}
       else if(e.type==='pipe'){const [a,b]=e.pts,L=d2(a,b);const S2=SYS[p.sys]||SYS.cw;const y=p.sys==='ud'?+P.sub.egl+S2.h:el0+S2.h;const r=Math.max(0.02,+p.dia/2000*1.4);const col=c3(e,parseInt(S2.col.slice(1),16));
         if(L>1e-3){const g=new THREE.CylinderGeometry(r,r,L,10);g.rotateZ(Math.PI/2);const m=addMesh(g,col,e.id,{noEdge:true});m.position.set((a[0]+b[0])/2,y,(a[1]+b[1])/2);m.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);}
@@ -3852,7 +3931,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-showhide';
+const APP_VER='2026.09.26-foundations';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
