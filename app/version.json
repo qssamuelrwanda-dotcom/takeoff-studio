@@ -1,1 +1,1 @@
-{"version": "2026.09.26-sharpdrawings", "notes": "Sharper drawings: PDF re-rendered at screen resolution on zoom, darker lines, lighter grid over drawings, clearer page thumbnails"}
+{"version": "2026.09.26-boqborders", "notes": "BOQ: item codes A, B, C (restart on each PDF page), page borders and double vertical lines in PDF, Excel and on screen"}
