@@ -100,13 +100,19 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .gal figure.big{grid-column:1/-1}.gal img{display:block;width:100%;height:auto}
 .gal figcaption{padding:10px 14px;font-size:14px;color:var(--ink2);border-top:1px solid var(--line)}
 .facts{display:flex;flex-wrap:wrap;gap:10px 22px;margin:22px 0 0;padding:0;list-style:none;color:var(--ink2);font-size:15px}.facts b{color:var(--ink);font-family:var(--f-mono)}
-@media (max-width:760px){.gal{grid-template-columns:1fr}}
+.gal-h{font-family:var(--f-cond);text-transform:uppercase;font-size:22px;margin:40px 0 0;color:var(--ink)}
+.gal.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.gal.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.gal img{cursor:zoom-in}.gal.pages figcaption{text-align:center}
+.lb{position:fixed;inset:0;z-index:100;background:rgba(8,20,18,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.lb img{max-width:100%;max-height:calc(100vh - 90px);border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#fff}.lb p{color:#e8efec;margin:12px 0 0;font-size:15px;text-align:center;max-width:900px}
+@media (max-width:1000px){.gal.g3{grid-template-columns:repeat(2,minmax(0,1fr))}.gal.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.gal,.gal.g3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <nav class="nav"><div class="wrap">
   <a class="logo" href="#top" aria-label="AgileBOQ home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9z" fill="#0F6B63"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9" stroke="#fff" stroke-width="1.6" fill="none"/></svg>AgileBOQ</a>
-  <div class="links"><a href="#features">Features</a><a href="#sample">Sample project</a><a href="#how">How it works</a><a href="#who">Who it's for</a><a href="#faq">FAQ</a></div>
+  <div class="links"><a href="#features">Features</a><a href="#sample">Sample project</a><a href="#reports">Reports</a><a href="#how">How it works</a><a href="#who">Who it's for</a><a href="#faq">FAQ</a></div>
   <div class="sp"></div>
   <a class="btn primary" href="app/">Open the app</a>
 </div></nav>
@@ -144,17 +150,65 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
   <h2>A 12-storey apartment block, fully measured and priced</h2>
   <p class="intro">Open the app and this building is ready to explore: an L-shaped block of 110 flats with balconies, big windows, a glazed stair tower, a roof with plant screen, car parks, gardens and a boundary fence. Every element is in the NRM bill, so you can click anything and see what it costs.</p>
   <ul class="facts"><li><b>12</b> storeys</li><li><b>110</b> flats and studios</li><li><b>13,348 m²</b> GFA</li><li><b>56</b> parking bays</li><li><b>4,400+</b> measured elements</li></ul>
+  <h3 class="gal-h">The building in 3D</h3>
   <div class="gal">
-    <figure class="big"><img src="media/apt-front.jpg" alt="3D view of the 12-storey L-shaped apartment block from the street, with balconies, a glazed stair tower, forecourt trees, visitor parking and lawns" width="1440" height="956" loading="lazy"><figcaption>Street side: rendered façades with terracotta balcony bays, floor-to-ceiling windows and a full-height glass stair tower.</figcaption></figure>
-    <figure><img src="media/apt-courtyard.jpg" alt="3D aerial view of the courtyard car park behind the apartment block" width="1440" height="956" loading="lazy"><figcaption>Courtyard: 44-bay residents' car park with accessible bays, footpaths and kerbs.</figcaption></figure>
-    <figure><img src="media/apt-parking.jpg" alt="3D view of the apartment block from the car park side" width="1440" height="956" loading="lazy"><figcaption>Balconies with glass balustrades on every flat above the ground floor.</figcaption></figure>
-    <figure><img src="media/apt-facade.jpg" alt="Close-up 3D view of the ground floor entrance, trees and boundary railing" width="1440" height="956" loading="lazy"><figcaption>Ground floor: entrance lobby, residents' lounge, dwarf wall with railings and a motorised gate.</figcaption></figure>
-    <figure><img src="media/apt-plan.jpg" alt="Typical floor plan with two-bedroom flats, studios, corridors, stair and lift core" width="1440" height="1020" loading="lazy"><figcaption>Typical floor: eight 2-bed flats, two studios, a stair core and two lifts, on a structural grid.</figcaption></figure>
+    <figure class="big"><img src="media/apt-front.jpg" alt="3D street view of the 12-storey L-shaped apartment block with balconies, a glazed stair tower, forecourt trees, visitor parking and lawns" width="1440" height="956" loading="lazy"><figcaption>Street side: rendered façades with terracotta balcony bays, floor-to-ceiling windows and a full-height glass stair tower.</figcaption></figure>
+  </div>
+  <div class="gal g3">
+    <figure><img src="media/apt-courtyard.jpg" alt="Aerial view of the courtyard car park behind the block" width="1440" height="956" loading="lazy"><figcaption>Courtyard: 44-bay residents' car park with accessible bays, footpaths and kerbs.</figcaption></figure>
+    <figure><img src="media/apt-parking.jpg" alt="The block seen from the car park side" width="1440" height="956" loading="lazy"><figcaption>Balconies with glass balustrades on every flat above the ground floor.</figcaption></figure>
+    <figure><img src="media/apt-east.jpg" alt="East view with the access road and visitor parking" width="1440" height="999" loading="lazy"><figcaption>East side: access road, visitor parking and the gable windows.</figcaption></figure>
+    <figure><img src="media/apt-northwest.jpg" alt="North-west view over the gardens" width="1440" height="999" loading="lazy"><figcaption>North-west: gardens with trees, mesh boundary fence and the glazed corner studios.</figcaption></figure>
+    <figure><img src="media/apt-top.jpg" alt="Top-down view of the whole site" width="1440" height="999" loading="lazy"><figcaption>Whole site from above: building, roof, car parks, gardens and fence.</figcaption></figure>
+    <figure><img src="media/apt-roof.jpg" alt="Roof with parapets, stair and lift overrun and a louvred plant screen" width="1440" height="999" loading="lazy"><figcaption>Roof: flat membrane roof, parapets, stair and lift overrun and a louvred plant screen.</figcaption></figure>
+  </div>
+  <div class="gal">
+    <figure class="big"><img src="media/apt-cutaway.jpg" alt="Cut-away 3D view at level 5 showing flats, rooms, bathrooms and the stair" width="1440" height="999" loading="lazy"><figcaption>Cut-away at Level 5: “Cut above active level” shows every flat, room finish, bathroom and the stair core.</figcaption></figure>
+  </div>
+  <div class="gal g3">
+    <figure><img src="media/apt-flat.jpg" alt="Close-up inside the cut-away: stair core, partitions and floor finishes" width="1440" height="999" loading="lazy"><figcaption>Close-up: stair core, beams, partitions, balcony and floor finishes.</figcaption></figure>
+    <figure><img src="media/apt-facade.jpg" alt="Ground-floor entrance, trees and the front railing" width="1440" height="956" loading="lazy"><figcaption>Ground floor: entrance lobby, residents' lounge, dwarf wall with railings and a motorised gate.</figcaption></figure>
+    <figure><img src="media/apt-frame.jpg" alt="Structural frame only: columns, beams, slabs and stairs" width="1440" height="999" loading="lazy"><figcaption>Structure only: hide the architecture to check the frame, slabs and stairs.</figcaption></figure>
+    <figure><img src="media/apt-foundations.jpg" alt="Substructure: stepped pad footings and ground beams" width="1440" height="999" loading="lazy"><figcaption>Substructure: 48 stepped pad footings with stubs and the ground-beam grid.</figcaption></figure>
+    <figure><img src="media/apt-plan-gf.jpg" alt="Ground-floor site plan with car parks, gardens and footpaths" width="1440" height="1063" loading="lazy"><figcaption>Site plan: every paved area, lawn, bay and tree is measured into the bill.</figcaption></figure>
+    <figure><img src="media/apt-plan.jpg" alt="Typical floor plan with two-bedroom flats, studios, corridors, stair and lifts" width="1440" height="1020" loading="lazy"><figcaption>Typical floor: eight 2-bed flats, two studios, a stair core and two lifts, on a structural grid.</figcaption></figure>
   </div>
   <div class="cta" style="margin-top:28px"><a class="btn primary lg" href="app/">Open the sample in the app</a></div>
 </div></section>
 
-<section class="alt"><div class="wrap">
+<section id="reports" class="alt" style="scroll-margin-top:70px"><div class="wrap">
+  <span class="kicker">Reports</span>
+  <h2>Every report for this building, ready to send</h2>
+  <p class="intro">All of these come straight from the model above, priced for Rwanda. Nothing is typed twice: change the building and every report updates.</p>
+  <h3 class="gal-h">In the app</h3>
+  <div class="gal">
+    <figure class="big"><img src="media/rep-select.jpg" alt="Split view with plan, live 3D and the properties panel" width="1440" height="860" loading="lazy"><figcaption>Split view: trace on the plan, check in 3D, edit sizes and see quantities for any element.</figcaption></figure>
+    <figure><img src="media/rep-bill.jpg" alt="Bill of Quantities by NRM element with rates and collection" width="1440" height="860" loading="lazy"><figcaption>Bill of Quantities: NRM items with quantities, rates, amounts and the collection.</figcaption></figure>
+    <figure><img src="media/rep-cover.jpg" alt="Cover page with cost by element chart" width="1440" height="860" loading="lazy"><figcaption>Cover page with your logo, project details and a cost-by-element chart.</figcaption></figure>
+    <figure><img src="media/rep-bom.jpg" alt="Bill of Materials with waste, order quantities and prices" width="1440" height="860" loading="lazy"><figcaption>Bill of Materials: cement bags, sand, blocks, steel and more, with waste and order quantities.</figcaption></figure>
+    <figure><img src="media/rep-schedule.jpg" alt="Element schedule listing every modelled element with cost" width="1440" height="860" loading="lazy"><figcaption>Element schedule: every footing, column, wall and room with its quantity and cost.</figcaption></figure>
+    <figure><img src="media/rep-rebar.jpg" alt="Bar schedule with bar marks, lengths and weights" width="1440" height="860" loading="lazy"><figcaption>Bar schedule: bar by bar, with summary by diameter and kg/m³ ratio check.</figcaption></figure>
+    <figure><img src="media/rep-finishes.jpg" alt="Room finishes schedule" width="1440" height="860" loading="lazy"><figcaption>Room finishes: floors, skirtings, walls and ceilings for every room.</figcaption></figure>
+    <figure><img src="media/rep-ratelist.jpg" alt="Rate analysis with materials, labour and plant" width="1440" height="860" loading="lazy"><figcaption>Rate analysis: every rate built up from materials, labour and plant.</figcaption></figure>
+    <figure><img src="media/rep-prices.jpg" alt="Country price database with flags" width="1440" height="860" loading="lazy"><figcaption>Country price database: the same resources priced for 27 countries.</figcaption></figure>
+    <figure><img src="media/rep-country.jpg" alt="Country picker with flags for East, Central and West Africa" width="1440" height="860" loading="lazy"><figcaption>Pick the country: currency and prices switch in one click.</figcaption></figure>
+    <figure><img src="media/rep-bank.jpg" alt="Project data bank of materials, labour and plant" width="1440" height="860" loading="lazy"><figcaption>Data bank: edit any price, import from CSV and add your own resources.</figcaption></figure>
+  </div>
+  <h3 class="gal-h">PDF report pages</h3>
+  <div class="gal g4 pages">
+    <figure><img src="media/pdf-cover.jpg" alt="PDF cover page of the Bills of Quantities" width="760" height="1074" loading="lazy"><figcaption>Cover page</figcaption></figure>
+    <figure><img src="media/pdf-summary.jpg" alt="PDF summary and collection page" width="760" height="1074" loading="lazy"><figcaption>Summary & collection</figcaption></figure>
+    <figure><img src="media/pdf-bill.jpg" alt="PDF Bill of Quantities page" width="760" height="1074" loading="lazy"><figcaption>Bill of Quantities</figcaption></figure>
+    <figure><img src="media/pdf-bom-cover.jpg" alt="PDF Bill of Materials cover page" width="760" height="1074" loading="lazy"><figcaption>Bill of Materials cover</figcaption></figure>
+    <figure><img src="media/pdf-bom.jpg" alt="PDF Bill of Materials page" width="760" height="1074" loading="lazy"><figcaption>Bill of Materials</figcaption></figure>
+    <figure><img src="media/pdf-rebar.jpg" alt="PDF bar schedule page" width="760" height="1074" loading="lazy"><figcaption>Bar schedule</figcaption></figure>
+    <figure><img src="media/pdf-finishes.jpg" alt="PDF room finishes page" width="760" height="1074" loading="lazy"><figcaption>Room finishes</figcaption></figure>
+    <figure><img src="media/pdf-schedule.jpg" alt="PDF element schedule page" width="760" height="1074" loading="lazy"><figcaption>Element schedule</figcaption></figure>
+  </div>
+  <p class="small" style="margin-top:18px">The same documents export to Excel with live formulas, a summary sheet and every schedule. Click any picture to see it full size.</p>
+</div></section>
+
+<section><div class="wrap">
   <div class="show"><div class="txt" style="--c:#8150C0"><span class="kicker">Bill of Quantities</span><h3>A priced bill you can hand over</h3><p>Every item is numbered by NRM element and linked to the elements it measures. Click "show in model" to see them highlighted.</p>
     <ul><li>Type over rates or build them up in a rate analysis</li><li>Optional cost per m² of GFA, or of any area you choose</li><li>Add missed items from the item library, or check for missing ones</li><li>Excel export keeps live formulas, a summary and all the schedules</li></ul></div>
     <div class="shot"><img src="/shot-boq.jpg" alt="Bill of Quantities grouped by NRM element with rates, amounts and a collection" loading="lazy"></div></div>
@@ -215,5 +269,10 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 
 <footer><div class="wrap"><span>© <span id="yr">2026</span> AgileBOQ</span><span><a href="#privacy">Privacy</a> · <a href="app/">Open the app</a></span></div></footer>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+<script>
+document.addEventListener('click',e=>{const im=e.target.closest('.gal img');if(!im)return;const cap=im.closest('figure')?.querySelector('figcaption')?.textContent||'';
+  const d=document.createElement('div');d.className='lb';d.setAttribute('role','dialog');d.setAttribute('aria-label','Picture');d.innerHTML='<img alt=""><p></p>';d.querySelector('img').src=im.currentSrc||im.src;d.querySelector('img').alt=im.alt;d.querySelector('p').textContent=cap;
+  const close=()=>{d.remove();removeEventListener('keydown',k);};const k=ev=>{if(ev.key==='Escape')close();};d.onclick=close;addEventListener('keydown',k);document.body.appendChild(d);});
+</script>
 </body>
 </html>
