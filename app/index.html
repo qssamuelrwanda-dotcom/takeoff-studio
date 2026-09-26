@@ -3079,7 +3079,7 @@ async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await
     const fr=(l,v,sty,cmv)=>[{content:'',styles:sty},{content:pT(l),styles:sty},{content:priced?v:'',styles:{...sty,...R}},...(cm?[{content:priced&&cmv!=null?cmV(cmv):'',styles:{...sty,...R}}]:[]),{content:'',styles:sty}];
     const bold={fontStyle:'bold',fillColor:TINT2},gr={fontStyle:'bold',fillColor:PR,textColor:ONP,fontSize:10};
     body.push(fr('Building works',n2(t.works),bold,t.works),fr(`Preliminaries ${P.prelims}%`,n2(t.prelims),{}),fr(`Contingency ${P.contingency}%`,n2(t.cont),{}),fr('Total excl. VAT',n2(t.net),bold,t.net),fr(`VAT ${P.vat}%`,n2(t.vat),{}),fr('Total incl. VAT',priced?pT(`${cur} ${n2(t.total)}`):'',gr,t.total));
-    tbl({startY:y,head,body,columnStyles:{0:{cellWidth:16,textColor:PR,fontStyle:'bold'},2:{halign:'right',cellWidth:32},...(cm?{3:{halign:'right',cellWidth:30},4:{halign:'right',cellWidth:16}}:{3:{halign:'right',cellWidth:16}})}});
+    tbl({startY:y,head,body,columnStyles:{0:{cellWidth:16,textColor:PR,fontStyle:'bold'},2:{halign:'right',cellWidth:(+P.factor||1)>=50?44:32},...(cm?{3:{halign:'right',cellWidth:30},4:{halign:'right',cellWidth:16}}:{3:{halign:'right',cellWidth:16}})}});
     const yy=doc.lastAutoTable.finalY+8;doc.setFontSize(9);doc.setTextColor(...INK2);doc.text(pT(`Gross floor area ${fmtN(t.gfa)} m²${priced&&t.gfa?` · ${cur} ${fmtN(t.net/t.gfa)} per m² GFA excl. VAT`:''}`),M,yy);}
   // ---- bill of quantities
   if(o.bill){const secs=TO.secs.filter(x=>x.items.length);const cols=[{content:'Item'},{content:'Description'},{content:'Unit'},{content:'Quantity',styles:R},{content:'Rate',styles:R},{content:'Amount',styles:R},...(cm?[{content:pT(`/m² ${cmLabel()}`),styles:R}]:[])];const NC=cols.length;
@@ -3306,8 +3306,10 @@ const catPrice=(price,cat)=>{const c=curCtry();if(!c)return price*(+P.factor||1)
 function bankFor(c,old){const f=cFactor(c),base=BASERES(),codes=new Set(base.map(b=>b[0]));
   const res=base.map(([code,t,n,u,p])=>({c:code,t,n,u,p:dbPrice(c,code,p)}));(old?.res||[]).forEach(r=>{if(!codes.has(r.c))res.push(r);});
   const icodes=new Set(ITEMLIB.map(x=>x[0]));const items=ITEMLIB.map(([code,sec,d,u,r])=>({c:code,sec,d,u,r:niceP(r*f)}));(old?.items||[]).forEach(x=>{if(!icodes.has(x.c))items.push(x);});return{res,items};}
-function applyCountry(c){const C=CTRY[c];if(!C)return;mutate(()=>{P.country=c;P.currency=C.cur;P.factor=cFactor(c);P.bank=bankFor(c,P.bank);if(P.autoRates==null)P.autoRates=true;});try{localStorage.setItem('takeoffstudio.lastcountry',c);}catch(e){}toast(`Priced for ${C.n}: ${C.cur}, ${C.n} prices from the database.`);}
-function projectFor(c){const C=CTRY[c]||CTRY.xx,p=emptyProject();p.country=C.c;p.currency=C.cur;p.factor=cFactor(C.c);p.bank=bankFor(C.c);p.autoRates=true;try{localStorage.setItem('takeoffstudio.lastcountry',C.c);}catch(e){}return p;}
+/* standard VAT / sales-tax rates (2026) used as the default when a country is chosen; edit in Settings > Costs & taxes */
+const VATC={rw:18,ke:16,ug:18,tz:18,bi:18,cd:16,ss:18,et:15,ng:7.5,gh:20,sn:18,cm:19.25,za:15,zm:16,mw:16.5,mz:16,zw:15.5,bw:14,eg:14,de:19,fr:20,nl:21,gb:20,us:0,ae:5,in:18};
+function applyCountry(c){const C=CTRY[c];if(!C)return;const v=VATC[c];mutate(()=>{P.country=c;P.currency=C.cur;P.factor=cFactor(c);P.bank=bankFor(c,P.bank);if(P.autoRates==null)P.autoRates=true;if(v!=null)P.vat=v;});try{localStorage.setItem('takeoffstudio.lastcountry',c);}catch(e){}toast(`Priced for ${C.n}: ${C.cur}, ${C.n} prices from the database${v!=null?`, VAT ${v}%`:''}.`);}
+function projectFor(c){const C=CTRY[c]||CTRY.xx,p=emptyProject();p.country=C.c;p.currency=C.cur;p.factor=cFactor(C.c);p.bank=bankFor(C.c);p.autoRates=true;if(VATC[C.c]!=null)p.vat=VATC[C.c];try{localStorage.setItem('takeoffstudio.lastcountry',C.c);}catch(e){}return p;}
 let AUTO=new Map();
 function autoLines(it){const L=[];let sup=false;const put=(c,t,n,u,p,q)=>{const x=L.find(y=>y.c===c);if(x)x.q+=q;else L.push({c,t,n,u,p,q});};
   mapMats({key:it.key,q:1,desc:it.desc,unit:it.unit,r:baseRate(it),els:[]},(cat,key,name,spec,unit,qty,waste,price)=>{if(!(qty>1e-12))return;if(cat==='sup'){sup=true;return;}const c='M:'+key,r=bankRes(c);put(c,'mat',r?r.n:name+(spec?' · '+spec:''),r?r.u:unit,r?+r.p:Math.round(catPrice(price,cat)*100)/100,qty*(1+waste/100));},
@@ -3714,7 +3716,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-apartments3';
+const APP_VER='2026.09.26-vat';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
