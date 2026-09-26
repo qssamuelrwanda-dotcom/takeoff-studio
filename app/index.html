@@ -1960,7 +1960,7 @@ function renderProps(){
   el.innerHTML=`<h3>${S.tool==='select'?'Selection':TOOLS.flatMap(g=>g[2]).find(x=>x[0]===S.tool)?.[1]||''} <span class="sub">${esc(lvl(S.level)?.name||'')}</span></h3>
     <p class="hint" style="margin-top:0">${S.tool==='select'?'Click an element on the plan or in 3D to edit its size and see its quantities. Drag a selected element to move it.':toolHelp(S.tool)}</p>
     ${Object.keys(cnt).length?`<div class="vis-hd"><span>On this level</span><span class="vis-act"><button class="linkbtn" id="visCol">Colours…</button>${nh?` · <button class="linkbtn" id="visAll">Show all</button>`:''}</span></div>`:''}
-    <div class="counts vis">${Object.keys(TYPES).filter(k=>cnt[k]).map(k=>{const off=S.hideT.has(k);return`<button class="eye" data-eye="${k}" aria-pressed="${!off}" title="${off?'Show':'Hide'} ${esc(TYPES[k].label.toLowerCase())}s on plan and 3D">${off?EYEOFF:EYE}</button><span class="${off?'off':''}"><i class="cdot" style="background:${colE(L.find(x=>x.type===k))||'conic-gradient(#8FC1B5,#E2C27A,#A9B8DE,#D9A3A0,#8FC1B5)'}"></i>${TYPES[k].label}${cnt[k]>1&&k!=='strip'&&k!=='pad'?'s':''}${hid[k]&&!off?` <small>${hid[k]} hidden</small>`:''}</span><span class="vc${off?' off':''}">${cnt[k]}</span>`;}).join('')||'<span class="hint">Nothing on this level yet. Pick a tool on the left.</span>'}</div>
+    <div class="counts vis">${Object.keys(TYPES).filter(k=>cnt[k]).map(k=>{const off=S.hideT.has(k);return`<button class="eye" data-eye="${k}" aria-pressed="${!off}" title="${off?'Show':'Hide'} ${esc(TYPES[k].label.toLowerCase())}s on plan and 3D">${off?EYEOFF:EYE}</button><span class="${off?'off':''}"><i class="cdot" style="background:${colE(L.find(x=>x.type===k))||'conic-gradient(#8FC1B5,#E2C27A,#A9B8DE,#D9A3A0,#8FC1B5)'}"></i>${TYPES[k].label}${cnt[k]>1&&k!=='strip'&&k!=='pad'?'s':''}${hid[k]&&!off?` <small>${hid[k]} hidden</small>`:''}</span><span class="vc${off?' off':''}">${cnt[k]}</span>`;}).join('')||'<span class="hint" style="grid-column:1/-1">Nothing on this level yet. Pick a tool on the left.</span>'}</div>
     ${S.tool==='select'&&L.length?'<p class="hint" style="margin-top:10px">Tip: drag a box on empty space to select many. Left to right picks what is fully inside; right to left also picks what it touches. <kbd>Ctrl</kbd>+<kbd>A</kbd> selects everything visible.</p>':''}`;
   el.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>{const k=b.dataset.eye;if(S.hideT.has(k))S.hideT.delete(k);else S.hideT.add(k);visChanged();});
   el.querySelector('#visAll')?.addEventListener('click',showAll);el.querySelector('#visCol')?.addEventListener('click',()=>{S.set='colors';setView('settings');});
@@ -2012,7 +2012,7 @@ function autoStrips(){const g=levelsSorted()[0];const ws=onLevel(g.id).filter(w=
 
 /* ---------- underlay (PDF / image) ---------- */
 const PT_M=0.0254/72; // one PDF point on paper, metres
-const RS=2; // render scale px per pt
+const RS=2; // render scale px per pt (calibration unit; do not change)
 function renderUnder(){
   const el=$('#underPanel');const l=lvl(S.level);if(!l){el.innerHTML='';return;}
   const u=l.underlay,has=UL[S.level];
@@ -2027,6 +2027,7 @@ function renderUnder(){
       ${u.kind==='pdf'?`<div class="field"><label for="uPage">Page</label><select id="uPage">${Array.from({length:u.pages||1},(_,i)=>`<option ${u.page===i+1?'selected':''}>${i+1}</option>`).join('')}</select></div>
       <div class="field"><label for="uScale">Drawing scale</label><select id="uScale">${scales.map(s=>`<option value="${s}" ${u.scale===s?'selected':''}>1:${s}</option>`).join('')}<option value="0" ${!u.scale?'selected':''}>Calibrated</option></select></div>`:''}
       <div class="field wide"><label for="uOp">Opacity</label><input type="range" id="uOp" min="0.1" max="1" step="0.05" value="${u.opacity}"></div>
+      <label class="field wide" style="display:flex;gap:8px;align-items:center;flex-direction:row"><input type="checkbox" id="uBoost" ${u.boost!==false?'checked':''} style="width:auto"> Darken lines (clearer drawing)</label>
     </div>
     <p class="hint mono" style="font-size:11.5px">1 px = ${fmtN(u.mpp*1000,2)} mm</p>
     <div class="row"><button class="btn sm" data-t="calibrate">Calibrate</button><button class="btn sm" data-t="align">Move</button><button class="btn sm" id="uRep">Replace</button><button class="btn sm" id="uDel">Remove</button></div>
@@ -2036,6 +2037,7 @@ function renderUnder(){
   $('#uDel').onclick=()=>mutate(()=>{delete l.underlay;delete UL[l.id];});
   $('#uOp').oninput=e=>{u.opacity=+e.target.value;drawPlan();};
   $('#uOp').onchange=()=>changed();
+  $('#uBoost').onchange=e=>{u.boost=e.target.checked;drawPlan();changed();};
   if($('#uPage'))$('#uPage').onchange=async e=>{u.page=+e.target.value;if(u.did){const d=(P.drawings||[]).find(x=>x.id===u.did);if(d)u.name=`${d.name} · p${u.page}`;}await renderPdfPage(l.id);changed();};
   if($('#uScale'))$('#uScale').onchange=e=>{const s=+e.target.value;if(!s)return;mutate(()=>{u.scale=s;u.mpp=PT_M*s/RS;});};
 }
@@ -2067,7 +2069,7 @@ function ensureUnder(id){const l=lvl(id),u=l?.underlay;if(!u?.did)return Promise
   return ULL[id]=(async()=>{try{const r=await getDoc(u.did);if(!r){UL[id]={missing:true,did:u.did};}else if(r.canvas){UL[id]={canvas:r.canvas,did:u.did,page:1};}else{UL[id]={doc:r.doc,did:u.did};await renderPdfPage(id);}}finally{delete ULL[id];}
     if(id===S.level){renderUnder();drawPlan();const h=$('#hudUnder');if(h)h.textContent=u?('· '+u.name):'';}})();}
 async function assignPage(lvId,did,n,fit){const l=lvl(lvId),d=(P.drawings||[]).find(x=>x.id===did);if(!l||!d)return;const prev=l.underlay;delete UL[lvId];
-  mutate(()=>{l.underlay={kind:d.kind,did,name:d.kind==='img'?d.name:`${d.name} · p${n}`,pages:d.pages,page:d.kind==='img'?1:n,scale:d.kind==='img'?0:(prev?.kind==='pdf'?prev.scale:100),mpp:prev&&prev.kind===d.kind?prev.mpp:(d.kind==='img'?0.01:PT_M*100/RS),ox:prev?.ox??0,oy:prev?.oy??0,opacity:prev?.opacity??0.6};});
+  mutate(()=>{l.underlay={kind:d.kind,did,name:d.kind==='img'?d.name:`${d.name} · p${n}`,pages:d.pages,page:d.kind==='img'?1:n,scale:d.kind==='img'?0:(prev?.kind==='pdf'?prev.scale:100),mpp:prev&&prev.kind===d.kind?prev.mpp:(d.kind==='img'?0.01:PT_M*100/RS),ox:prev?.ox??0,oy:prev?.oy??0,opacity:prev?.opacity??0.9};});
   await ensureUnder(lvId);if(fit&&lvId===S.level)fitPlan(true);}
 async function importUnder(files){files=[].concat(files);const ds=await addDrawingFiles(files);if(!ds.length)return;const l=lvl(S.level),d=ds[0];
   await assignPage(S.level,d.id,1,true);const tot=ds.reduce((a,x)=>a+(x.pages||1),0);
@@ -2083,9 +2085,9 @@ async function deleteDrawing(did){const d=(P.drawings||[]).find(x=>x.id===did);i
   mutate(()=>{for(const l of P.levels)if(l.underlay?.did===did){delete l.underlay;delete UL[l.id];}P.drawings=P.drawings.filter(x=>x.id!==did);});
   if(!drawingUsedElsewhere(did)){try{await DDB.del(did);}catch(e){}}delete DOCS[did];for(const k in THUMB)if(k.startsWith(did+':'))delete THUMB[k];toast(d.name+' deleted.');}
 async function thumbFor(did,n,im){const k=did+':'+n;if(!THUMB[k]){const r=await getDoc(did);if(!r)return;let c;
-    if(r.canvas){const sc=200/Math.max(r.canvas.width,r.canvas.height);c=document.createElement('canvas');c.width=Math.max(1,Math.round(r.canvas.width*sc));c.height=Math.max(1,Math.round(r.canvas.height*sc));c.getContext('2d').drawImage(r.canvas,0,0,c.width,c.height);}
-    else{const pg=await r.doc.getPage(n),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:260/Math.max(v0.width,v0.height)});c=document.createElement('canvas');c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:vp}).promise;}
-    THUMB[k]=c.toDataURL('image/jpeg',0.75);}
+    if(r.canvas){const sc=Math.min(1,480/Math.max(r.canvas.width,r.canvas.height));c=document.createElement('canvas');c.width=Math.max(1,Math.round(r.canvas.width*sc));c.height=Math.max(1,Math.round(r.canvas.height*sc));c.getContext('2d').drawImage(r.canvas,0,0,c.width,c.height);}
+    else{const pg=await r.doc.getPage(n),v0=pg.getViewport({scale:1}),vp=pg.getViewport({scale:480/Math.max(v0.width,v0.height)});c=document.createElement('canvas');c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await pg.render({canvasContext:g,viewport:vp}).promise;}
+    THUMB[k]=c.toDataURL('image/png');}
   if(im.isConnected)im.src=THUMB[k];}
 async function storageLine(el){const own=(P.drawings||[]).reduce((a,d)=>a+(+d.size||0),0);let t=`Drawings in this project: ${fmtBytes(own)}`;
   try{const e=await navigator.storage?.estimate?.();if(e&&e.quota)t+=` · browser storage used ${fmtBytes(e.usage)} of about ${fmtBytes(e.quota)}`;}catch(e){}if(el.isConnected)el.textContent=t;}
@@ -2193,13 +2195,25 @@ async function freeUpSpace(){clearTimeout(saveT);libSave();const items=[],list=l
     close();toast(n?`Deleted ${n} item${n===1?'':'s'}. Storage space freed.`:'Nothing was deleted.');};}
 async function renderPdfPage(id){
   const l=lvl(id),u=l.underlay,rec=UL[id];if(!rec?.doc)return;
-  const page=await rec.doc.getPage(u.page||1);let vp=page.getViewport({scale:RS});
-  const maxDim=7000;let k=1;if(Math.max(vp.width,vp.height)>maxDim){k=maxDim/Math.max(vp.width,vp.height);vp=page.getViewport({scale:RS*k});}
+  const page=await rec.doc.getPage(u.page||1);let k=1.5,vp=page.getViewport({scale:RS*k});
+  const maxDim=9000;if(Math.max(vp.width,vp.height)>maxDim){k=k*maxDim/Math.max(vp.width,vp.height);vp=page.getViewport({scale:RS*k});}
   const c=document.createElement('canvas');c.width=Math.floor(vp.width);c.height=Math.floor(vp.height);
   const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
   await page.render({canvasContext:ctx,viewport:vp}).promise;
   rec.canvas=c;rec.k=k;rec.page=u.page||1;rec.did=u.did;drawPlan();
 }
+/* sharp underlay: re-render the visible part of the PDF page at screen resolution after each zoom / pan */
+const CRISP={c:null,t:0,task:null,key:''};
+async function crispUnder(){const l=lvl(S.level),u=l?.underlay,rec=UL[S.level];if(!u||u.kind!=='pdf'||!rec?.doc||cv.offsetParent===null)return;
+  const page=await rec.doc.getPage(u.page||1),v1=page.getViewport({scale:1}),mpt=u.mpp*RS,z=S.cam.z,dp=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  const [a0,b0]=s2w(0,0),[a1,b1]=s2w(W,H),px0=Math.max(0,(a0-u.ox)/mpt),py0=Math.max(0,(b0-u.oy)/mpt),px1=Math.min(v1.width,(a1-u.ox)/mpt),py1=Math.min(v1.height,(b1-u.oy)/mpt);
+  if(px1<=px0||py1<=py0)return;let sc=mpt*z*dp;const pw=(px1-px0)*sc,ph=(py1-py0)*sc;if(pw*ph>40e6)sc*=Math.sqrt(40e6/(pw*ph));
+  const key=[S.level,u.did,u.page,u.mpp,u.ox,u.oy,px0.toFixed(1),py0.toFixed(1),px1.toFixed(1),py1.toFixed(1),sc.toFixed(4)].join('|');if(key===CRISP.key)return;CRISP.key=key;
+  try{CRISP.task?.cancel();}catch(e){}
+  const c=document.createElement('canvas');c.width=Math.max(1,Math.ceil((px1-px0)*sc));c.height=Math.max(1,Math.ceil((py1-py0)*sc));const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);
+  const vp=page.getViewport({scale:sc,offsetX:-px0*sc,offsetY:-py0*sc});const t=CRISP.task=page.render({canvasContext:g,viewport:vp});
+  try{await t.promise;}catch(e){return;}if(CRISP.task!==t||CRISP.key!==key)return;
+  Object.assign(CRISP,{c,lv:S.level,did:u.did||'',page:u.page||1,mpp:u.mpp,ox:u.ox,oy:u.oy,wx:u.ox+px0*mpt,wy:u.oy+py0*mpt,ww:(px1-px0)*mpt,wh:(py1-py0)*mpt});drawPlan();}
 function underPx(u,rec){return u.mpp/(rec.k||1);} // metres per canvas pixel
 
 /* ---------- plan canvas ---------- */
@@ -2216,14 +2230,20 @@ function drawPlanNow(){IXG++;
   const W=cv.clientWidth,H=cv.clientHeight,z=S.cam.z;
   ctx.fillStyle=TH.paper;ctx.fillRect(0,0,W,H);
   const l=lvl(S.level);const u=l?.underlay,rec=UL[S.level];
-  if(u&&rec?.canvas){ctx.save();ctx.globalAlpha=u.opacity;if(TH.dark)ctx.filter='invert(1) hue-rotate(180deg)';const [x,y]=w2s([u.ox,u.oy]);const m=underPx(u,rec);ctx.imageSmoothingQuality='high';ctx.drawImage(rec.canvas,x,y,rec.canvas.width*m*z,rec.canvas.height*m*z);ctx.restore();}
+  if(u&&rec?.canvas){ctx.save();ctx.globalAlpha=u.opacity;const flt=[TH.dark?'invert(1) hue-rotate(180deg)':'',u.boost!==false?'contrast(1.9) brightness(0.97)':''].filter(Boolean).join(' ');if(flt)ctx.filter=flt;const [x,y]=w2s([u.ox,u.oy]);const m=underPx(u,rec);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    const C=CRISP.c&&CRISP.lv===S.level&&CRISP.did===(u.did||'')&&CRISP.page===(u.page||1)&&CRISP.mpp===u.mpp&&CRISP.ox===u.ox&&CRISP.oy===u.oy?CRISP:null;
+    if(C){const [cx,cy]=w2s([C.wx,C.wy]),cw=C.ww*z,ch=C.wh*z;ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.rect(cx,cy,cw,ch);ctx.clip('evenodd');ctx.drawImage(rec.canvas,x,y,rec.canvas.width*m*z,rec.canvas.height*m*z);ctx.restore();ctx.drawImage(C.c,cx,cy,cw,ch);}
+    else ctx.drawImage(rec.canvas,x,y,rec.canvas.width*m*z,rec.canvas.height*m*z);ctx.restore();
+    if(u.kind==='pdf'&&rec.doc){clearTimeout(CRISP.t);CRISP.t=setTimeout(crispUnder,160);}}
   // grid
   const steps=[0.1,0.5,1,5,10,50];let minor=steps.find(s=>s*z>=14)||50;const major=minor*(minor===0.5||minor===5||minor===50?2:5);
   const [x0,y0]=s2w(0,0),[x1,y1]=s2w(W,H);
   ctx.lineWidth=1;
+  ctx.save();if(u&&rec?.canvas)ctx.globalAlpha=0.35;
   for(const [st,col] of [[minor,TH.grid],[major,TH.grid2]]){ctx.strokeStyle=col;ctx.beginPath();
     for(let x=Math.floor(x0/st)*st;x<=x1;x+=st){const sx=Math.round(w2s([x,0])[0])+.5;ctx.moveTo(sx,0);ctx.lineTo(sx,H);}
     for(let y=Math.floor(y0/st)*st;y<=y1;y+=st){const sy=Math.round(w2s([0,y])[1])+.5;ctx.moveTo(0,sy);ctx.lineTo(W,sy);}ctx.stroke();}
+  ctx.restore();
   // origin
   const [ox,oy]=w2s([0,0]);ctx.strokeStyle=TH.ink3;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ox-8,oy);ctx.lineTo(ox+8,oy);ctx.moveTo(ox,oy-8);ctx.lineTo(ox,oy+8);ctx.stroke();
   // level below ghost
@@ -4335,7 +4355,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-drawfolders';
+const APP_VER='2026.09.26-sharpdrawings';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
