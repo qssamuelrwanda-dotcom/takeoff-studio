@@ -481,7 +481,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
       <div class="hud">
         <span class="chip"><span class="dot"></span><b id="hudLevel">Level</b><span id="hudUnder" class="mono" style="color:var(--ink3)"></span></span>
         <button class="chip hud-hid" id="hudHidden" hidden title="Show everything again"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 3l14 14M8.2 4.5A8.9 8.9 0 0110 4.2c5.4 0 8.5 5.8 8.5 5.8a15 15 0 01-2.6 3.3M5.2 6.2C2.9 7.8 1.5 10 1.5 10s3.1 5.8 8.5 5.8c1.3 0 2.5-.3 3.5-.8"/></svg><span></span><u>Show all</u></button>
-        <span class="chip legend" id="hudLegend" hidden><i style="background:#2F7FD1"></i>CW<i style="background:#D1452F"></i>HW<i style="background:#9A6B35"></i>W<i style="background:#6B4A26"></i>S<i style="background:#2A9D8F"></i>RW<i style="background:#5B4632"></i>UD<i style="background:#B0122E"></i>FIRE<i style="background:#C9A20B"></i>GAS<i style="background:#E07B24"></i>HTG<i style="background:#1F9CB8"></i>CHW</span>
+        <span class="chip legend" id="hudLegend" hidden><i style="background:#2F7FD1"></i>CW<i style="background:#D1452F"></i>HW<i style="background:#9A6B35"></i>W<i style="background:#6B4A26"></i>S<i style="background:#8E7CC3"></i>V<i style="background:#2A9D8F"></i>RW<i style="background:#5B4632"></i>UD<i style="background:#B0122E"></i>FIRE<i style="background:#C9A20B"></i>GAS<i style="background:#E07B24"></i>HTG<i style="background:#1F9CB8"></i>CHW</span>
         <span class="right">
           <button class="btn sm" id="zFit" title="Zoom to fit (Home)">Fit</button>
           <button class="btn sm" id="zIn" title="Zoom in" aria-label="Zoom in">+</button>
@@ -596,7 +596,7 @@ const TYPES={
   fwall:{label:'Foundation wall',key:'u',mode:'chain'},
   sanitary:{label:'Sanitary fitting',key:'a',mode:'point'},
   pipe:{label:'Pipe run',key:'e',mode:'chain'},
-  mh:{label:'Manhole',key:'h',mode:'point'},
+  mh:{label:'Manhole / drainage chamber',key:'h',mode:'point'},
   pfit:{label:'Valve / pipe fitting',key:'x',mode:'point'},
   stair:{label:'Staircase',key:'i',mode:'chain'},
   ramp:{label:'Ramp',key:'j',mode:'chain'},
@@ -619,14 +619,16 @@ const OPT={
   smat:{rc:'Reinforced concrete',mass:'Mass concrete (unreinforced)',stone:'Rubble stone masonry'},
   ss:{rect:'Rectangular',stepped:'Stepped (two tiers)',tapered:'Tapered (trapezoidal)'},
   ps:{rect:'Rectangular',circle:'Circular',stepped:'Stepped (two tiers)',sloped:'Sloped top'},
-  fx:{wc:'WC suite',basin:'Wash hand basin',sink:'Kitchen sink',shower:'Shower tray + mixer',bath:'Bath',urinal:'Urinal',gully:'Floor gully',heater:'Water heater 80 L',tank:'Storage tank 2000 L'},
+  fx:{wc:'WC suite, close-coupled',wcwh:'WC, wall-hung with concealed cistern frame',wcacc:'Accessible WC pack (grab rails, alarm)',squat:'Squatting pan with cistern',bidet:'Bidet',urinal:'Urinal bowl',urinaltr:'Urinal trough / slab 1.2 m',basin:'Wash hand basin on pedestal',basinvan:'Counter-top basin in vanity unit',basinacc:'Accessible basin, lever tap',sink:'Kitchen sink, single bowl',sink2:'Kitchen sink, double bowl',cleaner:"Cleaner's sink (bucket sink)",shower:'Shower tray + mixer',showerch:'Walk-in shower with linear drain',bath:'Bath',ablution:'Ablution tap / bidet spray',fountain:'Drinking fountain',wm:'Washing machine point',dw:'Dishwasher point',gully:'Floor gully',gtrap:'Grease trap, under sink',heater:'Water heater, storage',inst:'Instant water heater (point of use)',solar:'Solar water heater (roof)',tank:'Water storage tank'},
+  acc:{yes:'Include accessories',no:'No accessories'},
   conn:{yes:'Include allowance',no:'Drawn pipes only'},
-  sys:{cw:'Cold water',hw:'Hot water',w:'Waste',sw:'Soil',rw:'Rainwater',ud:'Underground drainage',fire:'Fire (sprinkler / hydrant)',gas:'Gas',htg:'Heating (LTHW)',chw:'Chilled water',cond:'Condensate'},
-  mat:{ppr:'PPR (PN20)',pex:'PEX-AL-PEX',cu:'Copper',upvc:'uPVC',hdpe:'HDPE',gs:'Galvanised steel, screwed',bs:'Black steel, welded'},
-  pk:{gate:'Gate valve',stop:'Stop valve',ball:'Ball valve',check:'Non-return valve',prv:'Pressure-reducing valve',strainer:'Y-strainer',meter:'Water meter',pump:'Booster pump set',elbow:'Elbow 90°',tee:'Equal tee',reducer:'Reducer',cap:'End cap',landing:'Fire landing valve',sprinkler:'Sprinkler head',hosereel:'Fire hose reel'},
+  sys:{cw:'Cold water',hw:'Hot water',w:'Waste',sw:'Soil',vent:'Vent',rw:'Rainwater',ud:'Underground drainage',fire:'Fire (sprinkler / hydrant)',gas:'Gas',htg:'Heating (LTHW)',chw:'Chilled water',cond:'Condensate'},
+  mat:{ppr:'PPR (PN20)',pex:'PEX-AL-PEX',cu:'Copper',upvc:'uPVC',hdpe:'HDPE',ci:'Cast iron (SML), coupled',gs:'Galvanised steel, screwed',bs:'Black steel, welded'},
+  pk:{gate:'Gate valve',stop:'Stop valve',ball:'Ball valve',check:'Non-return valve',prv:'Pressure-reducing valve',tmv:'Thermostatic mixing valve',strainer:'Y-strainer',meter:'Water meter',pump:'Booster pump set',expv:'Expansion vessel',filter:'Water filter unit',softener:'Water softener',bibtap:'Bib tap / garden tap',ce:'Cleaning eye / rodding point',aav:'Air admittance valve',vtc:'Vent terminal / cowl',sleeve:'Pipe sleeve through wall / floor',elbow:'Elbow 90°',tee:'Equal tee',reducer:'Reducer',cap:'End cap',landing:'Fire landing valve',sprinkler:'Sprinkler head',hosereel:'Fire hose reel',hydrant:'External fire hydrant'},
   pipefit:{auto:'Count automatically (elbows, tees, reducers)',incl:'Included in pipe rates'},
-  dia:{'15':'Ø15 mm','20':'Ø20 mm','22':'Ø22 mm','25':'Ø25 mm','32':'Ø32 mm','40':'Ø40 mm','50':'Ø50 mm','63':'Ø63 mm','75':'Ø75 mm','110':'Ø110 mm','160':'Ø160 mm'},
+  dia:{'15':'Ø15 mm','16':'Ø16 mm','20':'Ø20 mm','22':'Ø22 mm','25':'Ø25 mm','32':'Ø32 mm','40':'Ø40 mm','50':'Ø50 mm','63':'Ø63 mm','75':'Ø75 mm','90':'Ø90 mm','100':'Ø100 mm','110':'Ø110 mm','125':'Ø125 mm','160':'Ø160 mm','200':'Ø200 mm'},
   mhs:{'600x450':'600 × 450 mm','900x600':'900 × 600 mm','1200x750':'1200 × 750 mm'},
+  mhk:{mh:'Manhole, precast concrete',brick:'Manhole, brick / blockwork',ic:'Inspection chamber, plastic Ø450',gt:'Gully trap with sealed cover',septic:'Septic tank, two chambers',soak:'Soakaway pit',grease:'Grease trap / interceptor',oil:'Oil / petrol interceptor',rwh:'Rainwater harvesting tank, underground'},
   fmat:{block:'Solid concrete blockwork',stone:'Natural stone masonry',brick:'Engineering brickwork',concrete:'Reinforced concrete'},
   stub:{yes:'Yes',no:'No'},
   vkind:{lift:'Lift shaft',stair:'Stair opening',riser:'Service riser / duct',atrium:'Atrium / double-height void'},
@@ -675,9 +677,9 @@ const FIELDS={
   pad:[['ps','Shape','sel'],['w','Base width','m'],['l','Base length','m'],['dia','Diameter','m'],['d','Base depth','m'],['w2','Upper / top width','m'],['l2','Upper / top length','m'],['d2','Upper tier depth / slope rise','m'],['exc','Excavation depth below ground','m'],['stub','Column stub up to ground slab','sel']],
   gbeam:[['w','Width','m'],['d','Depth','m']],
   fwall:[['fmat','Material','sel'],['t','Thickness','m'],['hh','Height (0 = auto)','m']],
-  sanitary:[['fx','Fitting','sel'],['rot','Rotation','sel'],['conn','Connection pipework','sel']],
+  sanitary:[['fx','Fitting','sel'],['cap','Capacity','L'],['rot','Rotation','sel'],['conn','Connection pipework','sel'],['acc','Accessories','sel']],
   pipe:[['sys','System','sel'],['mat','Material','sel'],['dia','Diameter','sel'],['vert','Extra vertical length','m']],
-  mh:[['mhs','Internal size','sel'],['dep','Depth to invert','m']],
+  mh:[['mhk','Type','sel'],['mhs','Internal size','sel'],['dep','Depth to invert','m'],['cap','Capacity','m³'],['sd','Diameter','m']],
   pfit:[['pk','Valve / fitting','sel'],['sys','System','sel'],['dia','Diameter','sel']],
   stair:[['stype','Stair type','sel'],['turn','Turn','sel'],['stmat','Construction','sel'],['w','Width','m'],['h','Rise (0 = level height)','m'],['rmax','Maximum riser height','m'],['g','Going (straight: 0 = fit to drawn length)','m'],['split','Risers in first flight (0 = auto)','nr'],['ld','Half-landing depth (0 = stair width)','m'],['gap','Well gap between flights','m'],['lt','Top landing length','m'],['dia','Outer diameter','m'],['rin','Inner radius (column / open well)','m'],['sa','Angle per tread','°'],['t','Waist thickness','m'],['ra','Reinforcement allowance','kg/m³'],['stfin','Tread & riser finish','sel'],['nos','Nosings','sel'],['sof','Soffit finish','sel'],['rails','Balustrade','sel'],['bal','Balustrade type','sel'],['whr','Wall handrail','sel']],
   ramp:[['rpmat','Construction','sel'],['w','Width','m'],['h','Rise','m'],['t','Slab thickness','m'],['rpfin','Surface finish','sel'],['rails','Balustrade','sel'],['bal','Balustrade type','sel']],
@@ -701,9 +703,9 @@ const TD={
   pad:{ps:'rect',w:1.2,l:1.2,dia:1.2,d:0.4,w2:0.6,l2:0.6,d2:0.25,exc:1.2,stub:'yes',rm:'bars',ra:60,md:12,ms:0.15,ly:1,cv:0.05},
   gbeam:{w:0.23,d:0.4,rm:'bars',ra:120,mb:[{pos:'top',n:2,d:12},{pos:'bot',n:2,d:12}],lk:[{t:'closed',d:8,s:0.2,s2:0.2}],cv:0.05,lap:40},
   fwall:{fmat:'block',t:0.2,hh:0,rm:'bars',ra:60,vd:12,vs:0.2,hd:10,hs:0.25,ly:2,td:8,tn:4,trd:12,trn:0,cv:0.05,lap:40},
-  sanitary:{fx:'wc',rot:'0',conn:'yes'},
+  sanitary:{fx:'wc',cap:0,rot:'0',conn:'yes',acc:'no'},
   pipe:{sys:'cw',mat:'ppr',dia:'20',vert:0},
-  mh:{mhs:'600x450',dep:0.9},
+  mh:{mhk:'mh',mhs:'600x450',dep:0.9,cap:6,sd:2},
   pfit:{pk:'gate',sys:'cw',dia:'20'},
   stair:{stype:'straight',turn:'right',stmat:'rc',w:1.2,h:0,rmax:0.175,g:0.275,split:0,ld:0,gap:0.1,lt:0,dia:2,rin:0.1,sa:26,t:0.15,ra:110,stfin:'terr',nos:'yes',sof:'yes',rails:'R',bal:'steel',whr:'no'},
   ramp:{rpmat:'grade',w:1.5,h:0.45,t:0.15,rpfin:'broom',rails:'2',bal:'steel'},
@@ -1066,16 +1068,23 @@ function linesFor(e){
     const auto=P.pipeFit!=='incl';
     const pl=(sys,mat,dia,len)=>{const S2=SYS[sys];if(!S2)return;add(S2.sec,S2.o+dia/1000,`pp_${sys}_${mat}_${dia}${auto?'x':''}`,`${OPT.sys[sys]} pipework, ${OPT.mat[mat]} Ø${dia} mm, ${S2.fix}, ${auto?'including supports; fittings measured separately':'including fittings and supports'}`,'m',len,pipeRate(sys,mat,dia));};
     const fl=(kind,sys,mat,dia,q)=>{const S2=SYS[sys];if(!S2)return;add(S2.sec,S2.o+0.4+dia/1000,`pf_${kind}_${sys}_${mat}_${dia}`,`${FITN[kind]}, ${OPT.mat[mat]} Ø${dia} mm, to ${OPT.sys[sys].toLowerCase()} pipework`,'nr',q,fitRate(kind,mat,dia));};
-    if(e.type==='sanitary'){const F=FIT[p.fx];if(F){add('5.1',F.o,'san_'+p.fx,F.desc,'nr',1,F.rate);if(p.conn!=='no')for(const [sy,di,ln] of F.conns){pl(sy,SYS[sy].mat,+di,ln);if(auto)fl('elbow',sy,SYS[sy].mat,+di,2);}}}
+    if(e.type==='sanitary'){const F=FIT[p.fx];if(F){add(['heater','inst','solar','tank'].includes(p.fx)?'5.4':'5.1',F.o,'san_'+p.fx+(F.cap?'_'+(+p.cap||F.cap):''),fitD(F,p),'nr',1,fitR(F,p));if(F.acc&&p.acc==='yes')add('5.1',F.o+0.5,'sacc_'+p.fx,F.acc[0],'nr',1,F.acc[1]);if(p.conn!=='no')for(const [sy,di,ln] of F.conns){pl(sy,SYS[sy].mat,+di,ln);if(auto)fl('elbow',sy,SYS[sy].mat,+di,2);}}}
     else{pl(p.sys,p.mat,+p.dia,elLen(e)+(+p.vert||0));
       if(auto)for(const n of pipeNodes(e.level))if(n.owner===e)for(const [k,d] of n.fits)fl(k,n.sys,n.mat,d,1);}
   }else if(e.type==='pfit'){
     const S2=SYS[p.sys]||SYS.cw,dia=+p.dia;
     if(FITN[p.pk])add(S2.sec,S2.o+0.4+dia/1000,`pf_${p.pk}_${p.sys}_${S2.mat}_${dia}`,`${FITN[p.pk]}, ${OPT.mat[S2.mat]} Ø${dia} mm, to ${OPT.sys[p.sys].toLowerCase()} pipework`,'nr',1,fitRate(p.pk,S2.mat,dia));
-    else add(S2.sec,S2.o+0.6+dia/1000,`pv_${p.pk}_${p.sys}_${dia}`,p.pk==='sprinkler'?'Sprinkler head, pendant, 68 °C glass bulb, chrome, including drop pipe and escutcheon':p.pk==='hosereel'?'Fire hose reel, 30 m × 25 mm, swinging, with valve and cabinet':`${OPT.pk[p.pk]} Ø${dia} mm, to ${OPT.sys[p.sys].toLowerCase()} pipework, including jointing and isolating unions`,'nr',1,valveRate(p.pk,dia));
+    else add(S2.sec,S2.o+0.6+dia/1000,`pv_${p.pk}_${p.sys}_${dia}`,PVDESC[p.pk]?PVDESC[p.pk](dia,OPT.sys[p.sys].toLowerCase()):p.pk==='sprinkler'?'Sprinkler head, pendant, 68 °C glass bulb, chrome, including drop pipe and escutcheon':p.pk==='hosereel'?'Fire hose reel, 30 m × 25 mm, swinging, with valve and cabinet':`${OPT.pk[p.pk]} Ø${dia} mm, to ${OPT.sys[p.sys].toLowerCase()} pipework, including jointing and isolating unions`,'nr',1,valveRate(p.pk,dia));
   }else if(e.type==='mh'){
-    const band=[1,1.5,2,3].find(b=>+p.dep<=b)||3,base={'600x450':[380,220],'900x600':[620,300],'1200x750':[950,380]}[p.mhs]||[380,220];
-    add('8.6',50,`mh${p.mhs}_${band}`,`Inspection chamber, internal size ${OPT.mhs[p.mhs]}, depth to invert ≤ ${band.toFixed(1)} m, precast concrete on concrete base, benching and channels, heavy-duty cover and frame, including excavation and backfill`,'nr',1,Math.round(base[0]+base[1]*band));
+    const y=p.mhk||'mh',band=[1,1.5,2,3].find(b=>+p.dep<=b)||3,base={'600x450':[380,220],'900x600':[620,300],'1200x750':[950,380]}[p.mhs]||[380,220],cap=Math.max(0.5,+p.cap||6),C=fmtN(cap,cap%1?1:0);
+    if(y==='mh'||y==='brick')add('8.6',50,`mh${y==='brick'?'b':''}${p.mhs}_${band}`,`${y==='brick'?'Manhole in 200 mm blockwork, rendered inside':'Inspection chamber / manhole'}, internal size ${OPT.mhs[p.mhs]}, depth to invert ≤ ${band.toFixed(1)} m, ${y==='brick'?'':'precast concrete rings '}on concrete base, benching and channels, heavy-duty cover and frame, including excavation and backfill`,'nr',1,Math.round((base[0]+base[1]*band)*(y==='brick'?1.15:1)));
+    else if(y==='ic')add('8.6',51,`mhic_${band}`,`Inspection chamber, plastic Ø450 mm, depth to invert ≤ ${band.toFixed(1)} m, with raising pieces, concrete surround and ductile iron cover`,'nr',1,Math.round(180+60*band));
+    else if(y==='gt')add('8.6',52,'mhgt','Gully trap 100 mm, precast, with sealed cover or grating, concrete surround, connected to drain','nr',1,160);
+    else if(y==='septic')add('8.6',60,`mhseptic_${C}`,`Septic tank ${C} m³, two chambers, reinforced concrete or precast, with baffles, inspection covers, inlet and outlet, including excavation and disposal`,'nr',1,Math.round(900+380*cap));
+    else if(y==='soak'){const d=Math.max(1,+p.sd||2),h=Math.max(1,+p.dep||3);add('8.6',61,`mhsoak_${mm(d)}_${mm(h)}`,`Soakaway pit Ø${fmtN(d,1)} m × ${fmtN(h,1)} m deep, honeycomb blockwork lining, filled with hardcore, geotextile and reinforced concrete cover slab with access cover`,'nr',1,Math.round(250+95*d*d*h));}
+    else if(y==='grease')add('8.6',62,`mhgrease_${C}`,`Grease trap / interceptor ${C} m³, precast, with baffles and access covers, connected to drain`,'nr',1,Math.round(600+900*cap));
+    else if(y==='oil')add('8.6',63,`mhoil_${C}`,`Oil / petrol interceptor ${C} m³, full retention, with alarm and access covers`,'nr',1,Math.round(1800+1200*cap));
+    else if(y==='rwh')add('8.6',64,`mhrwh_${C}`,`Rainwater harvesting tank ${C} m³, underground, with filter, calmed inlet, overflow, submersible pump and controls, including excavation`,'nr',1,Math.round(700+420*cap));
   }else if(e.type==='stair'||e.type==='ramp'||e.type==='rail'){
     const BALR={steel:150,ss:360,timber:130,hr:55};
     const bal=(len,o)=>{if(+p.rails===0&&e.type!=='rail')return;const k=p.bal||'steel',hr=k==='hr';add('2.4',o,'bal_'+k+(e.type==='rail'?'f':''),hr?`Handrail Ø50 mm on wall brackets at 1.0 m centres${e.type==='rail'?'':', to stairs and ramps (measured on slope)'}`:`${OPT.bal[k]}, ${e.type==='rail'?fmtN(+p.h,2)+' m high, to balconies, landings and voids':'1.1 m high, with handrail, to stairs and ramps (measured on slope)'}, including fixings`,'m',len,BALR[k]||150);};
@@ -1182,6 +1191,13 @@ function takeoff(){
   AUTO=new Map();const map=new Map();
   for(const e of P.elements){if(!lvl(e.level))continue;if(e.host&&!byId(e.host))continue;
     for(const l of linesFor(e)){const k=l.sec+'|'+l.key;let it=map.get(k);if(!it){it={...l,qty:0,els:[]};map.set(k,it);}it.qty+=l.qty;it.els.push(e.id);}}
+  if(P.plAuto!=='no'){const E2=P.elements.filter(e=>lvl(e.level)),Lp=f=>E2.filter(e=>e.type==='pipe'&&f(e.p.sys)).reduce((a,e)=>a+elLen(e)+(+e.p.vert||0),0),San=E2.filter(e=>e.type==='sanitary'&&!['tank','solar','heater','inst'].includes(e.p.fx));
+    const pl=(sec,o,key,desc,unit,qty,rate,els)=>{if(!(qty>0))return;map.set(sec+'|'+key,{sec,o,key,desc,unit,qty,rate,els:els||[]});};
+    const Lw=Lp(y=>y==='cw'||y==='hw'),Ld=Lp(y=>y==='w'||y==='sw'||y==='vent'),Lu=Lp(y=>y==='ud');
+    pl('5.4',95,'plt_testw','Testing, flushing and disinfection (chlorination) of cold and hot water installations, including water samples and certificates','item',Lw>0?1:0,Math.round(150+1.5*Lw));
+    pl('5.3',95,'plt_testd','Air and water testing of soil, waste and vent installations, including certificates','item',Ld>0?1:0,Math.round(120+1.0*Ld));
+    pl('5.1',95,'plt_bwic',"Builder's work in connection with plumbing: form holes and chases, cut and make good, for each sanitary point",'nr',San.length,25,San.map(e=>e.id));
+    pl('8.6',95,'plt_cctv','CCTV survey and testing of underground drainage','m',Lu,3.5);}
   (P.extra||[]).forEach((x,i)=>{const k='x|x_'+x.id;map.set(k,{sec:SEC.some(z=>z[0]===x.sec)?x.sec:'9',o:900+i,key:'x_'+x.id,desc:x.d||'',unit:x.u||'item',rate:+x.r||0,qty:+x.q||0,els:[],manual:true,xid:x.id});});
   const secs=SEC.map(([code,name])=>({code,name,items:[],total:0}));
   for(const it of map.values())secs.find(s=>s.code===it.sec).items.push(it);
@@ -1226,6 +1242,7 @@ function sampleProject(){
   UP.forEach(lv=>{add('slab',lv,FP.map(q=>q.slice()),{t:0.2});add('void',lv,R(8.75,0.25,12.95,3.15),{name:'Stair opening',vkind:'stair'});add('void',lv,R(8.4,8.4,14.1,10.8),{name:'Lift shafts',vkind:'lift'});add('void',lv,R(12.3,11.3,14.1,12.5),{name:'Service riser',vkind:'riser'});});
   // --- one storey of architecture
   const frame=(o,u,v)=>(x,y)=>[rd(o[0]+u[0]*x+v[0]*y),rd(o[1]+u[1]*x+v[1]*y)];
+  const TOP='l'+(NF-1),VST=[];
   const flat=(lv,f,tag,gf)=>{const T=(x,y)=>f(x,y),Rl=(x0,y0,x1,y1)=>R(x0,y0,x1,y1).map(([x,y])=>T(x,y)),Pl=pl=>pl.map(([x,y])=>T(x,y));
     const fa=W(lv,T(0,0),T(7.2,0),{...EXT},gf?{c:PLINTH}:{c:ACCENT}),fb=W(lv,T(7.2,0),T(14.4,0),{...EXT},gf?{c:PLINTH}:{});
     op('window',fa,4.3,{w:3.0,h:2.4,sill:0});op('window',fb,1.8,{w:2.1,h:1.8,sill:0.6});op('window',fb,5.4,{w:2.1,h:1.8,sill:0.6});
@@ -1236,7 +1253,11 @@ function sampleProject(){
     add('room',lv,Rl(7.25,0.1,10.75,4.45),{name:`${tag} Bed 1`,floor:'timber',ceiling:'gypsum'});
     add('room',lv,Rl(10.85,0.1,14.3,4.45),{name:`${tag} Bed 2`,floor:'timber',ceiling:'gypsum'});
     add('room',lv,Rl(12.05,4.55,14.3,6.2),{name:`${tag} Bath`,floor:'porcelain',wall:'tilesFull',ceiling:'mf'});
-    add('sanitary',lv,[T(13.85,5.75)],{fx:'wc'});add('sanitary',lv,[T(12.6,5.95)],{fx:'basin'});add('sanitary',lv,[T(13.75,4.95)],{fx:'shower'});add('sanitary',lv,[T(12.35,4.8)],{fx:'gully'});add('sanitary',lv,[T(4.8,5.95)],{fx:'sink'});add('sanitary',lv,[T(6.2,5.9)],{fx:'heater'});
+    add('sanitary',lv,[T(13.85,5.75)],{fx:'wc',acc:'yes'});add('sanitary',lv,[T(12.6,5.95)],{fx:'basin',acc:'yes'});add('sanitary',lv,[T(13.75,4.95)],{fx:'shower',acc:'yes'});add('sanitary',lv,[T(12.35,4.8)],{fx:'gully'});add('sanitary',lv,[T(4.8,5.95)],{fx:'sink'});add('sanitary',lv,[T(3.4,6.05)],{fx:'wm'});add('sanitary',lv,[T(6.2,5.9)],{fx:'heater',cap:100});
+    {const SV=gf?1.0:HT,Pp=(sys,a,b,dia,mat,vert)=>add('pipe',lv,[T(...a),T(...b)],{sys,dia:String(dia),mat:mat||SYS[sys].mat,vert:vert||0});
+      Pp('sw',[13.85,5.75],[14.15,6.1],110,'upvc',SV);Pp('w',[12.35,4.8],[14.15,4.8],50);Pp('w',[14.15,4.8],[14.15,6.0],50);Pp('w',[4.8,6.0],[0.35,6.0],50,'upvc',SV);
+      Pp('cw',[6.0,6.2],[13.8,6.2],25,'ppr');Pp('cw',[6.0,6.2],[3.4,6.2],20,'ppr');Pp('hw',[6.2,5.9],[12.6,5.9],20,'ppr');Pp('hw',[6.2,5.8],[4.8,5.8],20,'ppr');
+      add('pfit',lv,[T(6.0,6.45)],{pk:'meter',sys:'cw',dia:'25'});add('pfit',lv,[T(6.15,6.2)],{pk:'ball',sys:'cw',dia:'25'});if(lv===TOP)VST.push(T(14.15,6.1),T(0.35,6.0));}
     if(!gf){add('slab',lv,Rl(2.0,-1.8,6.6,0),{t:0.2});add('rail',lv,[T(2.0,0),T(2.0,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(2.0,-1.8),T(6.6,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(6.6,-1.8),T(6.6,0)],{bal:'ss',h:1.1});}};
   const studio=(lv,f,tag,glazed,gf)=>{const T=(x,y)=>f(x,y),Rl=(x0,y0,x1,y1)=>R(x0,y0,x1,y1).map(([x,y])=>T(x,y));
     if(glazed){add('cwall',lv,[T(0,0),T(6.3,0)],{sp:0.9,mv:1.575,tv:0,ov:2});add('cwall',lv,[T(0,6.3),T(0,0)],{sp:0.9,mv:1.575,tv:0,ov:1});}
@@ -1245,7 +1266,10 @@ function sampleProject(){
     W(lv,T(3.9,4.2),T(6.3,4.2),PART);const pb=W(lv,T(3.9,4.2),T(3.9,6.3),PART);op('door',pb,1.05,{w:0.7,h:2.1});
     add('room',lv,[[0.1,0.1],[6.2,0.1],[6.2,4.15],[3.85,4.15],[3.85,6.2],[0.1,6.2]].map(([x,y])=>T(x,y)),{name:`Studio ${tag}`,floor:'timber',ceiling:'gypsum'});
     add('room',lv,Rl(3.95,4.25,6.2,6.2),{name:`${tag} Shower`,floor:'porcelain',wall:'tilesFull',ceiling:'mf'});
-    add('sanitary',lv,[T(5.85,5.8)],{fx:'wc'});add('sanitary',lv,[T(4.45,5.95)],{fx:'basin'});add('sanitary',lv,[T(5.75,4.7)],{fx:'shower'});add('sanitary',lv,[T(1.0,5.95)],{fx:'sink'});
+    add('sanitary',lv,[T(5.85,5.8)],{fx:'wc',acc:'yes'});add('sanitary',lv,[T(4.45,5.95)],{fx:'basin',acc:'yes'});add('sanitary',lv,[T(5.75,4.7)],{fx:'shower',acc:'yes'});add('sanitary',lv,[T(1.0,5.95)],{fx:'sink'});add('sanitary',lv,[T(2.4,6.0)],{fx:'heater',cap:50});
+    {const SV=gf?1.0:HT,Pp=(sys,a,b,dia,mat,vert)=>add('pipe',lv,[T(...a),T(...b)],{sys,dia:String(dia),mat:mat||SYS[sys].mat,vert:vert||0});
+      Pp('sw',[5.85,5.8],[6.15,6.1],110,'upvc',SV);Pp('w',[5.75,4.7],[6.15,4.7],50);Pp('w',[6.15,4.7],[6.15,6.0],50);Pp('w',[1.0,6.0],[0.35,6.0],50,'upvc',SV);
+      Pp('cw',[1.8,6.15],[5.6,6.15],20,'ppr');Pp('hw',[2.4,5.9],[5.6,5.9],20,'ppr');add('pfit',lv,[T(1.8,6.45)],{pk:'meter',sys:'cw',dia:'20'});if(lv===TOP)VST.push(T(6.15,6.1),T(0.35,6.0));}
     if(!gf){add('slab',lv,Rl(0.9,-1.8,5.4,0),{t:0.2});add('rail',lv,[T(0.9,0),T(0.9,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(0.9,-1.8),T(5.4,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(5.4,-1.8),T(5.4,0)],{bal:'ss',h:1.1});}};
   FLOORS.forEach((lv,i)=>{const gf=i===0,n=i===0?'G':String(i),F2=(o,u,v)=>frame(o,u,v);
     const APT=[['A1',[14.4,0],[1,0],[0,1]],['A2',[28.8,0],[1,0],[0,1]],['A3',[14.4,14.4],[1,0],[0,-1]],['A4',[28.8,14.4],[1,0],[0,-1]],['B1',[0,14.4],[0,1],[1,0]],['B2',[0,28.8],[0,1],[1,0]],['B3',[14.4,14.4],[0,1],[-1,0]],['B4',[14.4,28.8],[0,1],[-1,0]]];
@@ -1268,12 +1292,24 @@ function sampleProject(){
     // corridor ends and gable walls
     for(const [a,b] of [[[6.3,0],[8.1,0]],[[0,8.1],[0,6.3]],[[43.2,6.3],[43.2,8.1]],[[8.1,43.2],[6.3,43.2]]]){const w=W(lv,a,b,EXT,gf?{c:PLINTH}:{});if(gf)op('door',w,0.9,{kind:'external',w:1.2,h:2.4});else op('window',w,0.9,{w:1.2,h:1.8,sill:0.6});}
     for(const [a,b,at] of [[[43.2,0],[43.2,6.3],2.2],[[43.2,8.1],[43.2,14.4],4.1],[[0,43.2],[6.3,43.2],2.2],[[8.1,43.2],[14.4,43.2],4.1]]){const w=W(lv,a,b,EXT,gf?{c:PLINTH}:{});op('window',w,at,{w:1.5,h:1.8,sill:0.6});}
-    add('room',lv,[[6.3,0],[8.1,0],[8.1,6.3],[43.2,6.3],[43.2,8.1],[8.1,8.1],[8.1,43.2],[6.3,43.2],[6.3,8.1],[0,8.1],[0,6.3],[6.3,6.3]],{name:gf?'Ground floor corridors':'Corridors',floor:'porcelain',ceiling:'gypsum'});});
+    add('room',lv,[[6.3,0],[8.1,0],[8.1,6.3],[43.2,6.3],[43.2,8.1],[8.1,8.1],[8.1,43.2],[6.3,43.2],[6.3,8.1],[0,8.1],[0,6.3],[6.3,6.3]],{name:gf?'Ground floor corridors':'Corridors',floor:'porcelain',ceiling:'gypsum'});
+    // building services on every storey: cold water riser and corridor mains, wet fire riser, landing valve, hose reel, cleaner's sink
+    const Pw=(sys,a,b,dia,mat,vert)=>add('pipe',lv,[a,b],{sys,dia:String(dia),mat:mat||SYS[sys].mat,vert:vert||0});
+    Pw('cw',[13.3,11.9],[12.8,11.9],63,'ppr',gf?0:HT);Pw('cw',[12.8,11.9],[7.2,11.9],50,'ppr');Pw('cw',[7.2,7.2],[7.2,11.9],40,'ppr');Pw('cw',[7.2,11.9],[7.2,42.5],40,'ppr');Pw('cw',[7.2,7.2],[42.5,7.2],40,'ppr');
+    add('pfit',lv,[[12.1,11.9]],{pk:'gate',sys:'cw',dia:'50'});add('pfit',lv,[[7.6,11.9]],{pk:'prv',sys:'cw',dia:'50'});
+    Pw('fire',[13.3,5.7],[13.8,5.7],100,'gs',gf?0:HT);add('pfit',lv,[[13.3,5.7]],{pk:'landing',sys:'fire',dia:'65'});add('pfit',lv,[[6.6,6.0]],{pk:'hosereel',sys:'fire',dia:'25'});
+    add('sanitary',lv,[[9.0,13.95]],{fx:'cleaner'});add('pfit',lv,[[9.8,14.1]],{pk:'bibtap',sys:'cw',dia:'15'});
+    if(gf){add('sanitary',lv,[[27.6,5.6]],{fx:'wcacc',acc:'yes'});add('sanitary',lv,[[26.3,5.95]],{fx:'basinacc',acc:'yes'});add('pfit',lv,[[12.9,12.9]],{pk:'pump',sys:'cw',dia:'63'});add('pfit',lv,[[10.6,11.9]],{pk:'filter',sys:'cw',dia:'50'});}});
   // --- roof
   add('roof','rf',FP.map(q=>q.slice()),{type:'flat-membrane'});
   for(const [a,b] of [[[0,0],[8.1,0]],[[14.4,0],[43.2,0]],[[43.2,0],[43.2,14.4]],[[43.2,14.4],[14.4,14.4]],[[14.4,14.4],[14.4,43.2]],[[14.4,43.2],[0,43.2]],[[0,43.2],[0,0]]])W('rf',a,b,{...EXT,h:1.1});
   add('cwall','rf',[[8.1,0],[14.4,0]],{sp:0,mv:1.575,tv:1.6});const rw=W('rf',[14.4,0],[14.4,14.4],EXT);op('door',rw,4.4,{kind:'external',w:1.0,h:2.1});W('rf',[14.4,14.4],[8.1,14.4],EXT);W('rf',[8.1,14.4],[8.1,0],EXT);
   for(const [a,b] of [[[24,3.5],[34,3.5]],[[34,3.5],[34,10.5]],[[34,10.5],[24,10.5]],[[24,10.5],[24,3.5]]])add('louvre','rf',[a,b],{h:2.2,lvmat:'alu'});
+  add('sanitary','rf',[[26.5,7]],{fx:'tank',cap:10000,conn:'no'});add('sanitary','rf',[[31.5,7]],{fx:'tank',cap:10000,conn:'no'});
+  add('pipe','rf',[[26.5,7],[31.5,7]],{sys:'cw',dia:'63',mat:'ppr'});add('pipe','rf',[[26.5,7],[13.3,11.9]],{sys:'cw',dia:'63',mat:'ppr',vert:HT});add('pfit','rf',[[25.2,7.4]],{pk:'gate',sys:'cw',dia:'63'});
+  for(const [x,y] of VST){add('pipe','rf',[[x,y],[x+0.02,y]],{sys:'vent',dia:'110',mat:'upvc',vert:1.2});add('pfit','rf',[[x,y]],{pk:'vtc',sys:'vent',dia:'110'});}
+  for(const [x,y,dx,dy] of [[-0.25,-0.25,0.6,0],[21.6,-0.25,0.6,0],[43.45,-0.25,-0.6,0],[43.45,14.65,-0.6,0],[29,14.65,0.6,0],[14.65,29,0,0.6],[14.65,43.45,0,-0.6],[-0.25,43.45,0,-0.6],[-0.25,21.6,0,0.6]]){
+    add('pipe','rf',[[x+dx,y+dy],[x,y]],{sys:'rw',dia:'110',mat:'upvc',vert:rd(NF*HT+2.8+0.3)});add('mh','gf',[[x,y]],{mhk:'gt'});}
   add('slab','ph',R(7.9,-0.2,14.6,14.6),{t:0.2});add('roof','ph',R(7.9,-0.2,14.6,14.6),{type:'flat-membrane'});
   // --- external works
   add('pave','gf',R(45,-22,51,52),{name:'Access road',pvs:'asphalt',bays:'none'});
@@ -1285,6 +1321,11 @@ function sampleProject(){
   add('pave','gf',R(-12,-22,14,-9),{name:'Front garden',pvs:'lawn',trees:5});add('pave','gf',R(-12,-9,-2.2,52),{name:'West garden',pvs:'lawn',trees:9});add('pave','gf',R(-2.2,45,17,52),{name:'North garden',pvs:'lawn',trees:4});
   add('fence','gf',[[-12,-22],[51,-22]],{ftype:'wallrail',h:1.2,dh:0.6,sp:3,pg:1,vg:1,vgw:6,vgk:'motor'});
   for(const [a,b] of [[[51,-22],[51,52]],[[51,52],[-12,52]],[[-12,52],[-12,-22]]])add('fence','gf',[a,b],{ftype:'mesh',h:2.1,sp:2.5});
+  for(const [x,y,d] of [[-1.5,7.2,1.0],[44.6,7.2,1.3],[7.2,44.6,1.0]])add('mh','gf',[[x,y]],{mhk:'mh',mhs:'600x450',dep:d});
+  for(const [a,b] of [[[-1.5,7.2],[7.2,7.2]],[[7.2,7.2],[44.6,7.2]],[[7.2,44.6],[7.2,7.2]],[[44.6,7.2],[46,-2]],[[46,-20],[46,-23.5]]])add('pipe','gf',[a,b],{sys:'ud',mat:'upvc',dia:'160'});
+  add('mh','gf',[[5,48.5]],{mhk:'rwh',cap:30});add('mh','gf',[[-7,47]],{mhk:'soak',sd:2.5,dep:3});
+  add('pfit','gf',[[47.5,-21.2]],{pk:'meter',sys:'cw',dia:'63'});add('pfit','gf',[[47.5,-20.4]],{pk:'gate',sys:'cw',dia:'63'});add('pfit','gf',[[44,-12]],{pk:'hydrant',sys:'fire',dia:'100'});
+  for(const [x,y] of [[-2.1,20],[16.9,30],[-2.1,-5]])add('pfit','gf',[[x,y]],{pk:'bibtap',sys:'cw',dia:'20'});
   add('mh','gf',[[46,16]],{mhs:'900x600',dep:1.2});add('mh','gf',[[46,-2]],{mhs:'900x600',dep:1.5});add('mh','gf',[[46,-20]],{mhs:'1200x750',dep:1.8});
   add('pipe','gf',[[46,16],[46,-2]],{sys:'ud',mat:'upvc',dia:'160'});add('pipe','gf',[[46,-2],[46,-20]],{sys:'ud',mat:'upvc',dia:'160'});
   const GRIDS=makeGrids([6.3,1.8,6.3,7.2,7.2,7.2,7.2],[6.3,1.8,6.3,7.2,7.2,7.2,7.2],0,0,2);
@@ -1440,6 +1481,8 @@ function fieldOn(t,k,o){
   if(t==='stair'){const y=o.stype||'straight';if(k==='turn')return y!=='straight';if(k==='split')return['L','LW','U','U3'].includes(y);if(k==='ld'||k==='gap')return y==='U'||y==='U3'&&k==='gap';if(k==='lt'||k==='g')return y!=='spiral'&&(k==='g'||y==='straight');
     if(k==='dia'||k==='rin'||k==='sa')return y==='spiral';if(k==='t'||k==='ra'||k==='sof')return o.stmat==='rc';if(k==='stfin'||k==='nos')return['rc','pc','ext','steelpan'].includes(o.stmat);if(k==='bal')return o.rails!=='0';}
   if(t==='ramp'&&k==='bal')return o.rails!=='0';
+  if(t==='sanitary'){if(k==='cap')return['heater','solar','tank'].includes(o.fx);if(k==='acc')return!!(FIT[o.fx]&&FIT[o.fx].acc);}
+  if(t==='mh'){const y=o.mhk||'mh';if(k==='mhs')return y==='mh'||y==='brick';if(k==='dep')return['mh','brick','ic','soak'].includes(y);if(k==='cap')return['septic','grease','oil','rwh'].includes(y);if(k==='sd')return y==='soak';}
   if(t==='pave'){const soft=o.pvs==='lawn';if(k==='sb'||k==='kerb'||k==='bays')return!soft;if(['bw','bl','ai','acc','cars'].includes(k))return!soft&&o.bays!=='none';}
   if(t==='fence'){const y=o.ftype||'mesh',mas=y==='bwall'||y==='wallrail';if(['bmat','t','bfin','cop','fw','fd','exc'].includes(k))return mas;if(k==='dh')return y==='wallrail';if(k==='fcoat')return!['bwall','glass','precast','wire'].includes(y);if(k==='vgw'||k==='vgk')return +o.vg>0;}
   if(t==='column'){const c=o.cs||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='d')return c!=='circle';if(k==='t'||k==='rot')return c==='L';}
@@ -1449,24 +1492,51 @@ function fieldOn(t,k,o){
 const SHAPEKEYS=['cs','ss','ps','wall','rm','sys','material','fmat','smat','kind'];
 const SYS={cw:{sec:'5.4',o:10,col:'#2F7FD1',h:2.5,mat:'ppr',dia:'20',fix:'fixed with clips to walls and soffits'},hw:{sec:'5.4',o:20,col:'#D1452F',h:2.4,mat:'ppr',dia:'20',fix:'with 13 mm pipe insulation, fixed with clips'},
   w:{sec:'5.3',o:10,col:'#9A6B35',h:0.35,mat:'upvc',dia:'40',fix:'solvent-welded, fixed with clips at falls'},sw:{sec:'5.3',o:20,col:'#6B4A26',h:0.15,mat:'upvc',dia:'110',fix:'solvent-welded, including access doors and vent terminal'},
+  vent:{sec:'5.3',o:25,col:'#8E7CC3',h:2.7,mat:'upvc',dia:'50',fix:'solvent-welded, fixed with clips, terminated with vent cowl'},
   rw:{sec:'5.3',o:30,col:'#2A9D8F',h:2.8,mat:'upvc',dia:'75',fix:'downpipes with brackets and shoes'},
   fire:{sec:'5.11',o:10,col:'#B0122E',h:2.9,mat:'gs',dia:'50',fix:'painted red, with hangers to soffit'},gas:{sec:'5.9',o:10,col:'#C9A20B',h:2.2,mat:'cu',dia:'22',fix:'with brackets, sleeved through walls'},
   htg:{sec:'5.6',o:10,col:'#E07B24',h:0.25,mat:'bs',dia:'25',fix:'with 25 mm insulation, fixed with brackets'},chw:{sec:'5.6',o:20,col:'#1F9CB8',h:2.8,mat:'bs',dia:'50',fix:'with 30 mm closed-cell insulation and vapour barrier'},
   cond:{sec:'5.6',o:30,col:'#7F8C8D',h:2.6,mat:'upvc',dia:'32',fix:'laid to falls, fixed with clips'},ud:{sec:'8.6',o:10,col:'#5B4632',h:-0.75,mat:'upvc',dia:'110',fix:'in trench average 0.75 m deep, including excavation, granular bedding and backfill'}};
-const FIT={wc:{o:10,desc:'Close-coupled WC suite, vitreous china, dual-flush cistern, seat and cover, pan connector',rate:380,sz:[0.4,0.7],h:0.8,code:'WC',conns:[['sw','110',1.5],['cw','15',1.5]]},
-  basin:{o:20,desc:'Wash hand basin 550 mm, vitreous china on pedestal, mixer tap, 32 mm bottle trap',rate:260,sz:[0.55,0.45],h:0.85,code:'WHB',conns:[['w','32',1.5],['cw','15',2],['hw','15',2]]},
+const FIT={wc:{o:10,desc:'Close-coupled WC suite, vitreous china, dual-flush cistern, seat and cover, pan connector',rate:380,sz:[0.4,0.7],h:0.8,code:'WC',conns:[['sw','110',1.5],['cw','15',1.5]],acc:['WC accessories: toilet roll holder and toilet brush set, stainless steel',45]},
+  wcwh:{o:11,desc:'Wall-hung WC pan, vitreous china, with concealed cistern and support frame, dual-flush plate, seat and cover',rate:620,sz:[0.38,0.55],h:0.45,code:'WC',conns:[['sw','110',1.5],['cw','15',1.5]],acc:['WC accessories: toilet roll holder and toilet brush set, stainless steel',45]},
+  wcacc:{o:12,desc:'Accessible WC pack: raised WC with lever flush, hinged and fixed grab rails, emergency alarm pull cord, backrest',rate:1350,sz:[0.4,0.75],h:0.85,code:'AWC',conns:[['sw','110',1.5],['cw','15',1.5]],acc:['Accessible WC accessories: mirror, soap dispenser, paper towel holder, coat hook',140]},
+  squat:{o:13,desc:'Squatting pan (Asian WC), vitreous china, with foot treads, high-level cistern and flush pipe',rate:240,sz:[0.45,0.6],h:0.2,code:'SQ',conns:[['sw','110',1.5],['cw','15',1.5]],acc:['Squatting WC accessories: toilet roll holder and ablution hose',35]},
+  bidet:{o:14,desc:'Bidet, vitreous china, floor-standing, with mixer tap and 32 mm trap',rate:340,sz:[0.36,0.55],h:0.4,code:'BD',conns:[['w','32',1.5],['cw','15',1.5],['hw','15',1.5]]},
+  urinal:{o:15,desc:'Urinal bowl, vitreous china, sensor flush valve and 40 mm trap',rate:450,sz:[0.4,0.35],h:0.6,code:'U',conns:[['w','40',1.5],['cw','15',2]]},
+  urinaltr:{o:16,desc:'Urinal trough / slab 1.2 m, stainless steel, with flushing cistern, spreader and 40 mm trap',rate:780,sz:[1.2,0.35],h:0.9,code:'UT',conns:[['w','40',1.5],['cw','15',2]]},
+  basin:{o:20,desc:'Wash hand basin 550 mm, vitreous china on pedestal, mixer tap, 32 mm bottle trap',rate:260,sz:[0.55,0.45],h:0.85,code:'WHB',conns:[['w','32',1.5],['cw','15',2],['hw','15',2]],acc:['Basin accessories: mirror 600 × 800 mm, soap dispenser and towel ring',85]},
+  basinvan:{o:21,desc:'Counter-top basin in vanity unit 800 mm with worktop, mixer tap and 32 mm bottle trap',rate:560,sz:[0.8,0.5],h:0.85,code:'VB',conns:[['w','32',1.5],['cw','15',2],['hw','15',2]],acc:['Basin accessories: mirror 800 × 800 mm, soap dispenser and towel ring',95]},
+  basinacc:{o:22,desc:'Accessible wash basin, wall-hung, lever mixer tap, thermostatic control and 32 mm trap',rate:420,sz:[0.6,0.45],h:0.8,code:'AWB',conns:[['w','32',1.5],['cw','15',2],['hw','15',2]],acc:['Accessible basin accessories: tilting mirror, lever soap dispenser, grab rail',160]},
   sink:{o:30,desc:'Kitchen sink, stainless steel single bowl and drainer 1000 mm, mixer tap, 40 mm trap',rate:320,sz:[1.0,0.5],h:0.9,code:'KS',conns:[['w','40',2],['cw','15',2],['hw','15',2]]},
-  shower:{o:40,desc:'Shower tray 900 × 900 mm with thermostatic mixer, riser rail and 40 mm trap',rate:540,sz:[0.9,0.9],h:0.1,code:'SH',conns:[['w','40',2],['cw','15',2.5],['hw','15',2.5]]},
-  bath:{o:50,desc:'Steel bath 1700 × 700 mm with mixer, bath panel and 40 mm trap',rate:620,sz:[1.7,0.7],h:0.55,code:'BATH',conns:[['w','40',2],['cw','15',2.5],['hw','15',2.5]]},
-  urinal:{o:60,desc:'Urinal bowl, vitreous china, sensor flush valve and 40 mm trap',rate:450,sz:[0.4,0.35],h:0.6,code:'U',conns:[['w','40',1.5],['cw','15',2]]},
+  sink2:{o:31,desc:'Kitchen sink, stainless steel double bowl and drainer 1500 mm, mixer tap, 40 mm traps',rate:480,sz:[1.5,0.5],h:0.9,code:'KS2',conns:[['w','40',2.5],['cw','15',2],['hw','15',2]]},
+  cleaner:{o:32,desc:"Cleaner's sink (bucket sink), vitreous china, with hinged grating, bib taps and 40 mm trap",rate:380,sz:[0.5,0.45],h:0.6,code:'CS',conns:[['w','40',1.5],['cw','15',2],['hw','15',2]]},
+  shower:{o:40,desc:'Shower tray 900 × 900 mm with thermostatic mixer, riser rail and 40 mm trap',rate:540,sz:[0.9,0.9],h:0.1,code:'SH',conns:[['w','40',2],['cw','15',2.5],['hw','15',2.5]],acc:['Shower accessories: glass screen 900 mm, towel rail and soap shelf',260]},
+  showerch:{o:41,desc:'Walk-in shower: linear drain channel 800 mm with grate, thermostatic concealed mixer, overhead and hand shower',rate:780,sz:[1.2,0.9],h:0.02,code:'WIS',conns:[['w','50',2],['cw','15',2.5],['hw','15',2.5]],acc:['Shower accessories: fixed glass screen 1200 mm, towel rail and niche shelf',420]},
+  bath:{o:50,desc:'Steel bath 1700 × 700 mm with mixer, bath panel and 40 mm trap',rate:620,sz:[1.7,0.7],h:0.55,code:'BATH',conns:[['w','40',2],['cw','15',2.5],['hw','15',2.5]],acc:['Bath accessories: shower screen, towel rail and grab handle',240]},
+  ablution:{o:55,desc:'Ablution tap / bidet spray (shattaf) with hose, holder and angle valve',rate:45,sz:[0.12,0.12],h:0.5,code:'AB',conns:[['cw','15',1.5]]},
+  fountain:{o:56,desc:'Drinking fountain, stainless steel, wall-mounted, push-button valve and 32 mm trap',rate:520,sz:[0.4,0.35],h:0.9,code:'DF',conns:[['w','32',1.5],['cw','15',2]]},
+  wm:{o:57,desc:'Washing machine point: recessed valve box with hot and cold valves and 40 mm standpipe trap',rate:95,sz:[0.3,0.12],h:0.5,code:'WM',conns:[['w','40',1.5],['cw','15',2],['hw','15',2]]},
+  dw:{o:58,desc:'Dishwasher point: angle valve and 40 mm waste connection with non-return valve',rate:55,sz:[0.2,0.12],h:0.4,code:'DW',conns:[['w','40',1.5],['cw','15',2]]},
   gully:{o:70,desc:'Floor gully 100 mm with stainless steel grating and trap',rate:85,sz:[0.2,0.2],h:0.02,code:'FG',conns:[['w','50',1.5]]},
-  heater:{o:80,desc:'Electric water heater 80 L, wall-mounted, with safety valve and isolating valves',rate:480,sz:[0.5,0.5],h:0.8,code:'WH',conns:[['cw','22',1.5],['hw','22',1.5]]},
-  tank:{o:90,desc:'Water storage tank 2000 L, polyethylene, on stand, with float valve, overflow and outlet',rate:650,sz:[1.3,1.3],h:1.6,code:'TANK',conns:[['cw','25',3]]}};
-function pipeRate(sys,mat,dia){dia=+dia;let r=(mat==='gs'||mat==='bs')?12+0.9*dia:mat==='cu'?8+1.1*dia:mat==='pex'?6+0.45*dia:mat==='ppr'?5+0.5*dia:mat==='hdpe'?6+0.35*dia:dia<=50?7+0.3*dia:12+0.2*dia;if(sys==='hw'||sys==='htg')r+=4;if(sys==='chw')r+=9;if(sys==='ud')r+=25;if(P&&P.pipeFit!=='incl')r*=0.85;return Math.round(r*100)/100;}
+  gtrap:{o:72,desc:'Grease trap under sink, stainless steel 25 L, with removable baffles and sealed lid',rate:420,sz:[0.5,0.35],h:0.35,code:'GT',conns:[['w','50',1]]},
+  heater:{o:80,cap:80,desc:p=>`Electric storage water heater ${+p.cap||80} L, wall-mounted, with safety valve, drain valve and isolating valves`,rate:p=>Math.round(220+3.3*(+p.cap||80)),sz:[0.5,0.5],h:0.8,code:'WH',conns:[['cw','22',1.5],['hw','22',1.5]]},
+  inst:{o:81,desc:'Instant electric water heater (point of use), 5–8 kW, with isolating valve',rate:180,sz:[0.25,0.12],h:0.35,code:'IWH',conns:[['cw','15',1],['hw','15',1]]},
+  solar:{o:82,cap:200,desc:p=>`Solar water heater ${+p.cap||200} L, thermosiphon, evacuated tubes on roof frame, electric back-up element, including fixing and connections`,rate:p=>Math.round(600+5.5*(+p.cap||200)),sz:[1.9,1.2],h:1.3,code:'SWH',conns:[['cw','22',4],['hw','22',4]]},
+  tank:{o:90,cap:2000,desc:p=>`Water storage tank ${fmtN(+p.cap||2000,0)} L, polyethylene, on stand or base, with float valve, overflow, drain and outlet`,rate:p=>Math.round(120+0.26*(+p.cap||2000)),sz:[1.3,1.3],h:1.6,code:'TANK',conns:[['cw','25',3]]}};
+const fitD=(F,p)=>typeof F.desc==='function'?F.desc(p):F.desc,fitR=(F,p)=>typeof F.rate==='function'?F.rate(p):F.rate;
+function fitSz(F,p){if(!F.cap)return F.sz;const c=+p.cap||F.cap,k=Math.cbrt(c/F.cap);return p.fx==='solar'?F.sz.map(v=>v*Math.sqrt(c/F.cap)):F.sz.map(v=>v*k);}
+function fitH(F,p){if(!F.cap||p.fx==='solar')return F.h;return F.h*Math.cbrt((+p.cap||F.cap)/F.cap);}
+function pipeRate(sys,mat,dia){dia=+dia;let r=mat==='ci'?18+0.55*dia:(mat==='gs'||mat==='bs')?12+0.9*dia:mat==='cu'?8+1.1*dia:mat==='pex'?6+0.45*dia:mat==='ppr'?5+0.5*dia:mat==='hdpe'?6+0.35*dia:dia<=50?7+0.3*dia:12+0.2*dia;if(sys==='hw'||sys==='htg')r+=4;if(sys==='chw')r+=9;if(sys==='ud')r+=25;if(P&&P.pipeFit!=='incl')r*=0.85;return Math.round(r*100)/100;}
 const FITN={elbow:'Elbow 90°',tee:'Equal tee',reducer:'Reducer',cap:'End cap'};
-function fitRate(kind,mat,dia){dia=+dia;let r=mat==='ppr'?1.5+0.08*dia:mat==='pex'?4+0.2*dia:mat==='cu'?3+0.18*dia:mat==='upvc'?3+0.1*dia:mat==='hdpe'?4+0.12*dia:6+0.35*dia;
+function fitRate(kind,mat,dia){dia=+dia;let r=mat==='ci'?12+0.3*dia:mat==='ppr'?1.5+0.08*dia:mat==='pex'?4+0.2*dia:mat==='cu'?3+0.18*dia:mat==='upvc'?3+0.1*dia:mat==='hdpe'?4+0.12*dia:6+0.35*dia;
   return Math.round(r*(kind==='tee'?1.6:kind==='reducer'?1.3:kind==='cap'?0.7:1)*100)/100;}
-function valveRate(k,dia){dia=+dia;const f={gate:[18,0.9],stop:[14,0.7],ball:[10,0.6],check:[16,0.8],prv:[60,2],strainer:[20,1],meter:[90,2.5],pump:[650,8],landing:[180,2],sprinkler:[28,0],hosereel:[420,0]}[k];return f?Math.round(f[0]+f[1]*dia):0;}
+const PVDESC={tmv:(d,s)=>`Thermostatic mixing valve Ø${d} mm to ${s} pipework, with strainers, check valves and isolating valves`,expv:(d,s)=>`Expansion vessel 24 L with Ø${d} mm connection, bracket and isolating valve, to ${s} system`,filter:(d,s)=>`Water filter unit, sediment and carbon cartridges, Ø${d} mm connections, with bypass valves`,softener:(d,s)=>`Water softener, twin-cylinder, Ø${d} mm connections, with bypass and brine tank`,bibtap:(d,s)=>`Bib tap / garden tap Ø${d} mm, brass, with hose union, wall plate and isolating valve`,ce:(d,s)=>`Cleaning eye / rodding point Ø${d} mm with screwed access cap, to ${s} pipework`,aav:(d,s)=>`Air admittance valve Ø${d} mm to ${s} stack, in accessible position`,vtc:(d,s)=>`Vent terminal / cowl Ø${d} mm with weather flashing through roof`,sleeve:(d,s)=>`Pipe sleeve through wall or floor for Ø${d} mm pipe, with fire-stopping and cover plates`,hydrant:(d,s)=>`External fire hydrant, pillar type, Ø${d} mm, with valve, thrust block and marker post`};
+function valveRate(k,dia){dia=+dia;const f={gate:[18,0.9],stop:[14,0.7],ball:[10,0.6],check:[16,0.8],prv:[60,2],tmv:[95,1],strainer:[20,1],meter:[90,2.5],pump:[650,8],expv:[140,1.5],filter:[180,2],softener:[750,6],bibtap:[22,0.3],ce:[14,0.12],aav:[28,0.1],vtc:[18,0.15],sleeve:[6,0.08],landing:[180,2],sprinkler:[28,0],hosereel:[420,0],hydrant:[1400,4]}[k];return f?Math.round(f[0]+f[1]*dia):0;}
+function mhGeo(p){const y=p.mhk||'mh',cap=Math.max(0.5,+p.cap||6);
+  if(y==='mh'||y==='brick'){const s2=String(p.mhs||'600x450').split('x').map(v=>+v/1000+(y==='brick'?0.4:0.3));return{w:s2[0],l:s2[1],d:+p.dep+0.2,code:'MH'};}
+  if(y==='ic')return{w:0.6,l:0.6,d:+p.dep+0.15,round:true,code:'IC'};if(y==='gt')return{w:0.45,l:0.45,d:0.6,code:'GT'};
+  if(y==='soak'){const D=Math.max(1,+p.sd||2);return{w:D,l:D,d:Math.max(1,+p.dep||3),round:true,code:'SA'};}
+  const W=cap>8?2.2:cap>3?1.6:1.2,L=cap/(W*1.6)+0.4;return{w:L,l:W,d:1.9,code:{septic:'ST',grease:'GI',oil:'OI',rwh:'RWH'}[y]||'MH'};}
 function pipeNodes(level){
   const ps=onLevel(level).filter(e=>e.type==='pipe'&&e.pts.length===2);const key=pt=>Math.round(pt[0]*200)+','+Math.round(pt[1]*200);const map=new Map();
   for(const e of ps)e.pts.forEach((pt,j)=>{const k=e.p.sys+'|'+key(pt);let n=map.get(k);if(!n){n={sys:e.p.sys,pt,ends:[]};map.set(k,n);}const o=e.pts[1-j];const L=d2(pt,o)||1e-9;n.ends.push({e,dir:[(o[0]-pt[0])/L,(o[1]-pt[1])/L],dia:+e.p.dia,mat:e.p.mat});});
@@ -1478,13 +1548,15 @@ function pipeNodes(level){
     if(fits.length)out.push({pt:n.pt,sys:n.sys,mat,owner,fits,n:E.length});}
   for(const e of ps)if(+e.p.vert>0)out.push({pt:e.pts[1],sys:e.p.sys,mat:e.p.mat,owner:e,fits:[['elbow',+e.p.dia]],riser:true});
   return out;}
-function pipeFitHTML(){return`<div class="field" style="margin-bottom:10px"><label for="pfm">Pipe fittings</label><select id="pfm" data-pipefit>${Object.entries(OPT.pipefit).map(([v,n])=>`<option value="${v}" ${(P.pipeFit||'auto')===v?'selected':''}>${n}</option>`).join('')}</select></div>`;}
-function wirePipeFit(el){el.querySelectorAll('[data-pipefit]').forEach(x=>x.onchange=()=>mutate(()=>P.pipeFit=x.value));}
-function onField(t,obj,k){if((t==='pipe'||t==='pfit')&&k==='sys'){const d=SYS[obj.sys];if(t==='pipe')obj.mat=d.mat;obj.dia=d.dia;}}
+function pipeFitHTML(){return`<div class="field" style="margin-bottom:10px"><label for="pfm">Pipe fittings</label><select id="pfm" data-pipefit>${Object.entries(OPT.pipefit).map(([v,n])=>`<option value="${v}" ${(P.pipeFit||'auto')===v?'selected':''}>${n}</option>`).join('')}</select></div><div class="field" style="margin-bottom:10px"><label for="pla">Testing &amp; builder's work items</label><select id="pla" data-plauto><option value="yes" ${P.plAuto!=='no'?'selected':''}>Add automatically (testing, disinfection, BWIC, CCTV)</option><option value="no" ${P.plAuto==='no'?'selected':''}>Do not add</option></select></div>`;}
+function wirePipeFit(el){el.querySelectorAll('[data-pipefit]').forEach(x=>x.onchange=()=>mutate(()=>P.pipeFit=x.value));el.querySelectorAll('[data-plauto]').forEach(x=>x.onchange=()=>mutate(()=>P.plAuto=x.value));}
+function onField(t,obj,k){if((t==='pipe'||t==='pfit')&&k==='sys'){const d=SYS[obj.sys];if(t==='pipe')obj.mat=d.mat;obj.dia=d.dia;}
+  if(t==='sanitary'&&k==='fx'){const F=FIT[obj.fx];obj.cap=F&&F.cap?F.cap:0;}
+  if(t==='mh'&&k==='mhk'){obj.cap={septic:6,grease:1,oil:2,rwh:10}[obj.mhk]||obj.cap;if(obj.mhk==='soak'){obj.sd=2;obj.dep=3;}if(obj.mhk==='ic')obj.dep=Math.min(+obj.dep||0.9,1.2);}}
 function fieldHTML(t,obj,prefix){
   return `<div class="fields">`+FIELDS[t].filter(([k])=>fieldOn(t,k,obj)).map(([k,label,kind])=>{
     const id=`${prefix}-${k}`;
-    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','sys','mat','mhs','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh','stype','turn','whr','rails','ftype','ftop','fcoat','vgk','bmat','bfin','cop'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
+    if(kind==='sel')return`<div class="field${['material','type','vkind','rule','vrooms','floor','wall','ceiling','fmat','stub','cs','ss','ps','fx','conn','acc','sys','mat','mhs','mhk','pk','smat','stmat','stfin','bal','rpmat','rpfin','cwsys','glz','lvmat','lvblade','mesh','stype','turn','whr','rails','ftype','ftop','fcoat','vgk','bmat','bfin','cop'].includes(k)?' wide':''}"><label for="${id}">${label}</label><select id="${id}" data-k="${k}">${Object.entries(OPT[k]).map(([v,n])=>`<option value="${v}" ${obj[k]===v?'selected':''}>${n}</option>`).join('')}</select></div>`;
     if(kind==='txt')return`<div class="field wide"><label for="${id}">${label}</label><input id="${id}" data-k="${k}" value="${esc(obj[k])}"></div>`;
     return`<div class="field"><label for="${id}">${label}</label><div class="unitwrap"><input id="${id}" type="number" step="${kind==='°'?1:0.01}" min="0" data-k="${k}" data-num value="${obj[k]}"><span>${kind}</span></div></div>`;
   }).join('')+`</div>`;
@@ -1496,9 +1568,9 @@ function elemDims0(e){const p=e.p;switch(e.type){
   case'beam':return`${fmtN(elLen(e))} m long · ${mm(p.w)} × ${mm(p.d)} mm`+(p.rm!=='allow'&&p.mb?.length?' · '+p.mb.map(b=>`${b.n}Ø${b.d} ${BPOSs[b.pos]||''}`).join(' + '):'');
   case'strip':{const ss=stripSec(p);return`${fmtN(elLen(e))} m long · ${OPT.smat[p.smat||'rc']} · ${OPT.ss[ss.c]} ${mm(p.w)}${ss.c!=='rect'?'/'+mm(p.w2):''} wide × ${mm(ss.H)} mm · section ${fmtN(ss.A,3)} m² · bottom at ${(+P.sub.egl-p.exc).toFixed(3)}`;}
   case'gbeam':return`${fmtN(elLen(e))} m long · ${mm(p.w)} × ${mm(p.d)} mm`+(p.rm!=='allow'&&p.mb?.length?' · '+p.mb.map(b=>`${b.n}Ø${b.d} ${BPOSs[b.pos]||''}`).join(' + '):'');
-  case'sanitary':return`${OPT.fx[p.fx]}${p.conn!=='no'?' · with connection pipework allowance':''}`;
+  case'sanitary':{const F=FIT[p.fx];return`${OPT.fx[p.fx]||p.fx}${F&&F.cap?` · ${fmtN(+p.cap||F.cap,0)} L`:''}${p.conn!=='no'?' · with connection pipework allowance':''}${F&&F.acc&&p.acc==='yes'?' · with accessories':''}`;}
   case'pipe':return`${OPT.sys[p.sys]} · ${OPT.mat[p.mat]} Ø${p.dia} · ${fmtN(elLen(e))} m on plan${+p.vert?` + ${fmtN(+p.vert)} m vertical`:''}`;
-  case'mh':return`${OPT.mhs[p.mhs]} · ${fmtN(+p.dep)} m deep`;
+  case'mh':{const y=p.mhk||'mh';return`${OPT.mhk[y]}${y==='mh'||y==='brick'?` · ${OPT.mhs[p.mhs]}`:''}${['mh','brick','ic','soak'].includes(y)?` · ${fmtN(+p.dep)} m deep`:''}${['septic','grease','oil','rwh'].includes(y)?` · ${fmtN(+p.cap,1)} m³`:''}${y==='soak'?` · Ø${fmtN(+p.sd,1)} m`:''}`;}
   case'pfit':return`${OPT.pk[p.pk]} · ${OPT.sys[p.sys]} Ø${p.dia}`;
   case'fwall':{const g=fwallGeom(e);return`${fmtN(elLen(e))} m long · ${mm(p.t)} mm · ${fmtN(g.H)} m high (${g.base.toFixed(3)} to ${g.top.toFixed(3)})${g.strip?'':' · no footing under it'} · ${OPT.fmat[p.fmat]}`;}
   case'column':{const c=colSec(e);return`${c.c==='circle'?'Ø'+mm(p.dia)+' mm circular':c.c==='L'?`L ${mm(p.w)} × ${mm(p.d)} × ${mm(c.t)} mm`:mm(p.w)+' × '+mm(p.d)+' mm'} · ${fmtN(c.A,4)} m² · ${fmtN(p.h)} m high`+(p.rm!=='allow'&&p.mb?.length?' · '+p.mb.map(b=>`${b.n}Ø${b.d}`).join(' + '):'');}
@@ -1537,7 +1609,7 @@ function renderProps(){
     el.innerHTML=`<h3>${esc(elemTitle(e))} <span class="sub">${esc(lvl(e.level)?.name||'')}</span></h3>
       ${fieldHTML(e.type,e.p,'sel')}${curveHTML(e)}${rebarHTML(e.type,e.p,'sel',e)}
       <p class="hint mono" style="font-size:12px">${esc(elemDims(e))}</p>
-      ${e.type==='pipe'||e.type==='pfit'?pipeFitHTML():''}${qaHTML([e],true)}${colorRowHTML(colE(e),isHex(e.c),'eCol')}${cornersHTML(e)}
+      ${e.type==='pipe'||e.type==='pfit'||e.type==='sanitary'?pipeFitHTML():''}${qaHTML([e],true)}${colorRowHTML(colE(e),isHex(e.c),'eCol')}${cornersHTML(e)}
       <table class="qty"><tbody>${ls.map(l=>`<tr><td>${esc(l.desc)}</td><td class="n">${fmtQ(roundQ(l.qty,l.unit),l.unit)}</td><td class="u">${l.unit}</td></tr>`).join('')||'<tr><td class="hint">No measurable quantities.</td></tr>'}</tbody></table>
       <div class="row"><button class="btn sm" id="selHide" title="Hide this element (it still counts in the bill)">${EYEOFF} Hide</button><button class="btn sm" id="selDel">Delete <kbd style="font-size:10px">Del</kbd></button>${e.pts&&e.type!=='door'?'<button class="btn sm" id="selDup">Duplicate</button>':''}<button class="btn sm" id="selDone">Deselect</button></div>`;
     el.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('change',()=>{const k=inp.dataset.k;const v=inp.dataset.num!=null?Math.max(0,parseFloat(inp.value)||0):inp.value;mutate(()=>{e.p[k]=v;onField(e.type,e.p,k);if((e.type==='door'||e.type==='window')){clampOpening(e);}});}));
@@ -1764,19 +1836,19 @@ function drawPlanNow(){IXG++;
     else if(ty==='pipe'){const S2={...(SYS[e.p.sys]||SYS.cw)};if(colE(e))S2.col=colE(e);ctx.beginPath();ctx.moveTo(...w2s(e.pts[0]));ctx.lineTo(...w2s(e.pts[1]));ctx.strokeStyle=sel?TH.mark:S2.col;ctx.lineWidth=sel?4:Math.max(2,Math.min(5,+e.p.dia/1000*z*2.5));ctx.setLineDash(e.p.sys==='ud'?[10,5]:[]);ctx.lineCap='round';ctx.stroke();ctx.setLineDash([]);ctx.lineCap='butt';
       if(+e.p.vert){const [x,y]=w2s(e.pts[1]);ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle=S2.col;ctx.fill();}
       if(z>28&&elLen(e)*z>70){const [a,b]=e.pts;const [x,y]=w2s([(a[0]+b[0])/2,(a[1]+b[1])/2]);ctx.font='600 10.5px "JetBrains Mono",monospace';const tx=`${e.p.sys.toUpperCase()} Ø${e.p.dia}`;const tw=ctx.measureText(tx).width+6;ctx.fillStyle=TH.paper;ctx.fillRect(x-tw/2,y-15,tw,13);ctx.fillStyle=S2.col;ctx.textAlign='center';ctx.fillText(tx,x,y-5);}}
-    else if(ty==='sanitary'){const C=colE(e);const F=FIT[e.p.fx]||FIT.wc;const [x,y]=e.pts[0],a=(+e.p.rot||0)*Math.PI/180,[w,d]=F.sz;const co=Math.cos(a),si=Math.sin(a);const loc=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]];
+    else if(ty==='sanitary'){const C=colE(e);const F=FIT[e.p.fx]||FIT.wc;const [x,y]=e.pts[0],a=(+e.p.rot||0)*Math.PI/180,[w,d]=fitSz(F,e.p);const co=Math.cos(a),si=Math.sin(a);const loc=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]];
       poly(loc.map(([u,v])=>[x+u*co-v*si,y+u*si+v*co]));ctx.fillStyle=TH.surface;ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.4;ctx.stroke();
-      if(e.p.fx==='wc'||e.p.fx==='basin'){const [sx,sy]=w2s([x+0*co-(d*0.1)*si,y+0*si+(d*0.1)*co]);ctx.beginPath();ctx.ellipse(sx,sy,w*0.36*z,d*0.3*z,a,0,Math.PI*2);ctx.stroke();}
-      if(z>22){const [sx,sy]=w2s([x,y]);ctx.font='600 10px "Barlow Condensed",sans-serif';ctx.fillStyle=C;ctx.textAlign='center';ctx.fillText(F.code,sx,sy+(e.p.fx==='wc'||e.p.fx==='basin'?-d*0.25*z:4));}}
+      if(['wc','wcwh','wcacc','basin','basinvan','basinacc','bidet'].includes(e.p.fx)){const [sx,sy]=w2s([x+0*co-(d*0.1)*si,y+0*si+(d*0.1)*co]);ctx.beginPath();ctx.ellipse(sx,sy,w*0.36*z,d*0.3*z,a,0,Math.PI*2);ctx.stroke();}
+      if(z>22){const [sx,sy]=w2s([x,y]);ctx.font='600 10px "Barlow Condensed",sans-serif';ctx.fillStyle=C;ctx.textAlign='center';ctx.fillText(F.code,sx,sy+(['wc','wcwh','wcacc','basin','basinvan','basinacc','bidet'].includes(e.p.fx)?-d*0.25*z:4));}}
     else if(ty==='pfit'){const S2={...(SYS[e.p.sys]||SYS.cw)};if(colE(e))S2.col=colE(e);const [x,y]=e.pts[0];const [sx,sy]=w2s([x,y]);let ang=0;const near=els.filter(o=>o.type==='pipe').map(o=>({o,r:projSeg([x,y],o.pts[0],o.pts[1])})).sort((a,b)=>a.r.d-b.r.d)[0];if(near&&near.r.d<0.1)ang=Math.atan2(near.o.pts[1][1]-near.o.pts[0][1],near.o.pts[1][0]-near.o.pts[0][0]);
       const r=Math.max(6,0.12*z);ctx.save();ctx.translate(sx,sy);ctx.rotate(ang);ctx.strokeStyle=sel?TH.mark:S2.col;ctx.fillStyle=TH.surface;ctx.lineWidth=sel?2.4:1.6;
-      if(['gate','stop','ball','check','prv'].includes(e.p.pk)){ctx.beginPath();ctx.moveTo(-r,-r*0.7);ctx.lineTo(r,r*0.7);ctx.lineTo(r,-r*0.7);ctx.lineTo(-r,r*0.7);ctx.closePath();ctx.fill();ctx.stroke();if(e.p.pk==='check'){ctx.beginPath();ctx.moveTo(-r*0.2,-r*1.1);ctx.lineTo(r*0.6,-r*1.1);ctx.stroke();}}
+      if(['gate','stop','ball','check','prv','tmv'].includes(e.p.pk)){ctx.beginPath();ctx.moveTo(-r,-r*0.7);ctx.lineTo(r,r*0.7);ctx.lineTo(r,-r*0.7);ctx.lineTo(-r,r*0.7);ctx.closePath();ctx.fill();ctx.stroke();if(e.p.pk==='check'){ctx.beginPath();ctx.moveTo(-r*0.2,-r*1.1);ctx.lineTo(r*0.6,-r*1.1);ctx.stroke();}}
       else if(FITN[e.p.pk]){ctx.beginPath();ctx.arc(0,0,r*0.55,0,Math.PI*2);ctx.fillStyle=S2.col;ctx.fill();}
-      else{ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.rotate(-ang);ctx.fillStyle=S2.col;ctx.font=`600 ${Math.max(8,r*0.9)}px "Barlow Condensed",sans-serif`;ctx.textAlign='center';ctx.fillText({meter:'M',pump:'P',strainer:'Y',landing:'LV',sprinkler:'SP',hosereel:'HR'}[e.p.pk]||'?',0,r*0.35);}
+      else{ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.rotate(-ang);ctx.fillStyle=S2.col;ctx.font=`600 ${Math.max(8,r*0.9)}px "Barlow Condensed",sans-serif`;ctx.textAlign='center';ctx.fillText({meter:'M',pump:'P',strainer:'Y',landing:'LV',sprinkler:'SP',hosereel:'HR',tmv:'TMV',expv:'EV',filter:'F',softener:'WS',bibtap:'BT',ce:'CE',aav:'AAV',vtc:'VT',sleeve:'SL',hydrant:'FH'}[e.p.pk]||'?',0,r*0.35);}
       ctx.restore();}
-    else if(ty==='mh'){const C=colE(e);const [x,y]=e.pts[0],sz=e.p.mhs.split('x').map(v=>+v/1000+0.3);poly([[x-sz[0]/2,y-sz[1]/2],[x+sz[0]/2,y-sz[1]/2],[x+sz[0]/2,y+sz[1]/2],[x-sz[0]/2,y+sz[1]/2]]);ctx.fillStyle=TH.surface;ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.5;ctx.stroke();
+    else if(ty==='mh'){const C=colE(e);const [x,y]=e.pts[0],G=mhGeo(e.p),sz=[G.w,G.l];if(G.round){const [sx,sy]=w2s([x,y]);ctx.beginPath();ctx.arc(sx,sy,G.w/2*z,0,Math.PI*2);}else poly([[x-sz[0]/2,y-sz[1]/2],[x+sz[0]/2,y-sz[1]/2],[x+sz[0]/2,y+sz[1]/2],[x-sz[0]/2,y+sz[1]/2]]);ctx.fillStyle=TH.surface;ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.5;ctx.stroke();
       ctx.beginPath();ctx.moveTo(...w2s([x-sz[0]/2,y-sz[1]/2]));ctx.lineTo(...w2s([x+sz[0]/2,y+sz[1]/2]));ctx.moveTo(...w2s([x+sz[0]/2,y-sz[1]/2]));ctx.lineTo(...w2s([x-sz[0]/2,y+sz[1]/2]));ctx.lineWidth=1;ctx.stroke();
-      if(z>22){const [sx,sy]=w2s([x,y+sz[1]/2]);ctx.font='600 10px "JetBrains Mono",monospace';ctx.fillStyle=C;ctx.textAlign='center';ctx.fillText('MH',sx,sy+11);}}
+      if(z>22){const [sx,sy]=w2s([x,y+sz[1]/2]);ctx.font='600 10px "JetBrains Mono",monospace';ctx.fillStyle=C;ctx.textAlign='center';ctx.fillText(G.code,sx,sy+11);}}
     else if(ty==='column'){const [x,y]=e.pts[0],cs=colSec(e);if(cs.c==='circle'){const [sx,sy]=w2s([x,y]);ctx.beginPath();ctx.arc(sx,sy,cs.D/2*z,0,Math.PI*2);}else poly(cs.poly);ctx.fillStyle=colE(e);ctx.fill();ctx.strokeStyle=sel?TH.mark:TH.ink;ctx.lineWidth=sel?2.5:1;ctx.stroke();}
   }
   drawGrids('labels');drawQuickGridPreview();
@@ -2095,7 +2167,7 @@ function hitAll(pt){
   const tol=6/S.cam.z;const els=onLevel(S.level).filter(vis);const out=[];
   for(const o of els.filter(e=>e.host)){const w=byId(o.host);if(!w)continue;const r=projEl(pt,w);const at=r.t*r.L;if(r.d<w.p.t/2+tol&&Math.abs(at-o.at)<o.p.w/2)out.push(o);}
   for(const e of els.filter(e=>e.type==='pfit')){if(d2(pt,e.pts[0])<0.14+tol)out.push(e);}
-  for(const e of els.filter(e=>e.type==='sanitary'||e.type==='mh')){const [x,y]=e.pts[0];const h=e.type==='mh'?e.p.mhs.split('x').map(v=>(+v/1000+0.3)/2):(FIT[e.p.fx]||FIT.wc).sz.map(v=>v/2);const r2=Math.max(...h)+tol;if(Math.abs(pt[0]-x)<r2&&Math.abs(pt[1]-y)<r2)out.push(e);}
+  for(const e of els.filter(e=>e.type==='sanitary'||e.type==='mh')){const [x,y]=e.pts[0];const h=e.type==='mh'?(G=>[G.w/2,G.l/2])(mhGeo(e.p)):fitSz(FIT[e.p.fx]||FIT.wc,e.p).map(v=>v/2);const r2=Math.max(...h)+tol;if(Math.abs(pt[0]-x)<r2&&Math.abs(pt[1]-y)<r2)out.push(e);}
   {const hs=[];for(const e of els.filter(x=>x.type==='pipe')){const r=projEl(pt,e);if(r.d<0.06+tol)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
   for(const e of els.filter(e=>e.type==='column'||e.type==='pad')){const [x,y]=e.pts[0];const ex=e.type==='pad'?padGeo(e.p):colSec(e);const hw=ex.hw+tol,hd=(e.type==='pad'?ex.hl:ex.hd)+tol;if(Math.abs(pt[0]-x)<hw&&Math.abs(pt[1]-y)<hd)out.push(e);}
   for(const e of els.filter(x=>x.type==='stair')){const M=stairModel(e);if(M.planW.some(pl=>inPoly(pt,pl)))out.push(e);}
@@ -2397,10 +2469,10 @@ function build3D(){IXG++;
       else if(e.type==='fwall'){const L=elLen(e);if(L<1e-3)continue;const g=fwallGeom(e);if(g.H>0)sweep(e,-p.t/2,L+p.t/2,+p.t,g.H,g.base,c3(e,0x9C8F80),e.id);}
       else if(e.type==='pipe'){const [a,b]=e.pts,L=d2(a,b);const S2=SYS[p.sys]||SYS.cw;const y=p.sys==='ud'?+P.sub.egl+S2.h:el0+S2.h;const r=Math.max(0.02,+p.dia/2000*1.4);const col=c3(e,parseInt(S2.col.slice(1),16));
         if(L>1e-3){const g=new THREE.CylinderGeometry(r,r,L,10);g.rotateZ(Math.PI/2);const m=addMesh(g,col,e.id,{noEdge:true});m.position.set((a[0]+b[0])/2,y,(a[1]+b[1])/2);m.rotation.y=-Math.atan2(b[1]-a[1],b[0]-a[0]);}
-        if(+p.vert){const g=new THREE.CylinderGeometry(r,r,+p.vert,10);const m=addMesh(g,col,e.id,{noEdge:true});const stack=p.sys==='sw'||p.sys==='rw';const bot=stack?+P.sub.egl:y-p.vert;m.position.set(b[0],bot+p.vert/2,b[1]);}}
-      else if(e.type==='sanitary'){const F=FIT[p.fx]||FIT.wc;const [x,y]=e.pts[0];box(F.sz[0],F.h,F.sz[1],x,el0+F.h/2+0.02,y,-(+p.rot||0)*Math.PI/180,p.fx==='tank'?0x2B3A40:(isHex(e.c)||isHex(P.colors?.sanitary)?c3(e):0xF3F6F7),e.id);}
+        if(+p.vert){const g=new THREE.CylinderGeometry(r,r,+p.vert,10);const m=addMesh(g,col,e.id,{noEdge:true});const stack=p.sys==='sw'||p.sys==='rw',egl=+P.sub.egl;const bot=p.sys==='vent'?y:stack&&+p.vert>=y-egl-0.05?egl:Math.max(egl-0.8,y-p.vert);m.position.set(b[0],bot+p.vert/2,b[1]);}}
+      else if(e.type==='sanitary'){const F=FIT[p.fx]||FIT.wc;const [x,y]=e.pts[0],sz=fitSz(F,p),hh=fitH(F,p),y0=el0+(p.fx==='wcwh'?0.35:0);box(sz[0],hh,sz[1],x,y0+hh/2+0.02,y,-(+p.rot||0)*Math.PI/180,p.fx==='tank'?0x2B3A40:p.fx==='solar'?0x2E4A62:(isHex(e.c)||isHex(P.colors?.sanitary)?c3(e):0xF3F6F7),e.id);}
       else if(e.type==='pfit'){const S2=SYS[p.sys]||SYS.cw;const [x,y]=e.pts[0];const yy=p.sys==='ud'?+P.sub.egl+S2.h:el0+S2.h;const s0=Math.max(0.08,+p.dia/1000*2.2);box(s0,s0,s0,x,yy,y,0,c3(e,parseInt(S2.col.slice(1),16)),e.id);}
-      else if(e.type==='mh'){const [x,y]=e.pts[0],sz=p.mhs.split('x').map(v=>+v/1000+0.3);box(sz[0],+p.dep+0.2,sz[1],x,+P.sub.egl-(+p.dep+0.2)/2+0.02,y,0,c3(e,0x8E969A),e.id);}
+      else if(e.type==='mh'){const [x,y]=e.pts[0],G=mhGeo(p),col=c3(e,0x8E969A);if(G.round){const m=addMesh(new THREE.CylinderGeometry(G.w/2,G.w/2,G.d,24),col,e.id);m.position.set(x,+P.sub.egl-G.d/2+0.02,y);}else box(G.w,G.d,G.l,x,+P.sub.egl-G.d/2+0.02,y,0,col,e.id);}
       else if(e.type==='pave'&&e.pts.length>=3){const D=PVD[p.pvs]||PVD.asphalt,g0=isGround(l.id)?+P.sub.egl:el0,soft=p.pvs==='lawn',top=g0+(soft?0.01:0.03),Q=paveQ(e);extrude(e.pts,0.08,top,isHex(e.c)||isHex(P.colors?.pave)?c3(e):D[1],e.id,{noEdge:true});
         if(!soft&&p.kerb!=='no')for(let i=0;i<e.pts.length;i++){const a=e.pts[i],b=e.pts[(i+1)%e.pts.length],L=d2(a,b);if(L<0.05)continue;box(L,0.13,0.13,(a[0]+b[0])/2,top+0.04,(a[1]+b[1])/2,-Math.atan2(b[1]-a[1],b[0]-a[0]),0xC9C9C2,e.id,{noEdge:true});}
         const stripe=(a,b,w)=>{const L=d2(a,b);if(L>0.05)box(L,0.012,w||0.1,(a[0]+b[0])/2,top+0.006,(a[1]+b[1])/2,-Math.atan2(b[1]-a[1],b[0]-a[0]),0xF4F4EE,e.id,{noEdge:true});};
@@ -2705,6 +2777,11 @@ const ITEMLIB=[
  ['EX05','8.4','Boundary wall 2.0 m high, blockwork on strip footing, rendered both sides','m',140],
  ['EX06','8.4','Steel sliding gate 4.0 m wide, painted, including track','nr',2600],
  ['EX07','8.2','Landscaping: topsoil, grass and planting','m²',8],
+ ['PL01','5.4','Water heater for hot-water outlets, 80 L storage, with valves and connections (allowance)','nr',480],
+ ['PL02','5.4','Cold water storage tank 2000 L on stand, with float valve, overflow, outlet and connections','nr',640],
+ ['PL03','5.3','Soil and vent stack uPVC Ø110 mm with branches, access doors and vent terminal (allowance per m of stack)','m',34],
+ ['PL04','5.4','Incoming water supply: connection to public main, water meter, main stop valve and incoming pipe (provisional)','item',850],
+ ['PL05','8.6','Underground drainage uPVC Ø110–160 mm in trench, bedded and backfilled (allowance per m)','m',55],
  ['PS01','9','Provisional sum: electrical installations','sum',0],
  ['PS02','9','Provisional sum: external works','sum',8000],
  ['PC01','9','Prime cost sum: kitchen fittings, supply only','sum',4500],
@@ -2729,6 +2806,7 @@ function labourFor(it){const k=it.key,d=it.desc,u=it.unit,R=[],a=(c,q)=>R.push([
   else if(/^pp_/.test(k)){a('L:plumber',0.35);a('L:labourer',0.1);}
   else if(/^(pf_|pv_)/.test(k)){a('L:plumber',0.3);}
   else if(/^san_/.test(k)){a('L:plumber',3);a('L:labourer',1);}
+  else if(/^sacc_/.test(k)){a('L:plumber',0.6);}
   else if(/^(dx|di|wn)/.test(k)){a('L:fixer',3);a('L:labourer',1);}
   else if(/^(rtile|rsheet)/.test(k)){a('L:roofer',0.35);a('L:labourer',0.2);}
   else if(/^rtruss/.test(k)){a('L:carpenter',0.6);a('L:labourer',0.3);}
@@ -2745,7 +2823,7 @@ function raBuild(it){
   return lines;}
 function allItems(){return TO.secs.flatMap(s=>s.items);}
 function missedChecks(){
-  const out=[],E=P.elements.filter(e=>lvl(e.level)),has=c=>(P.extra||[]).some(x=>x.lib===c),lib=c=>P.bank.items.find(i=>i.c===c);
+  const out=[],E=P.elements.filter(e=>lvl(e.level)),has=c=>(P.extra||[]).some(x=>x.lib===c),lib=c=>P.bank.items.find(i=>i.c===c)||(x=>x&&{c:x[0],sec:x[1],d:x[2],u:x[3],r:Math.round(x[4]*(+P.factor||1)*100)/100})(ITEMLIB.find(z=>z[0]===c));
   const push=(c,qty,why)=>{const L=lib(c);if(!L||has(c)||!(qty>0))return;out.push({c,qty:Math.round(qty*100)/100,why,L});};
   push('PR01',1,'Every project needs setting out.');
   const extW=E.filter(e=>e.type==='wall'&&e.p.kind==='external');if(extW.length)push('PR04',extW.reduce((a,w)=>a+elLen(w)*(+w.p.h),0),'External walls are measured but there is no scaffolding item.');
@@ -2753,10 +2831,18 @@ function missedChecks(){
   const ops=E.filter(e=>e.host);if(ops.length)push('WF01',ops.reduce((a,o)=>a+2*(+o.p.h)+ +o.p.w,0),`${ops.length} doors and windows have reveals to plaster.`);
   const wins=E.filter(e=>e.type==='window');if(wins.length)push('WF02',wins.reduce((a,w)=>a+ +w.p.w,0),`${wins.length} windows need sills.`);
   const roofs=E.filter(e=>e.type==='roof'&&e.p.type!=='flat-membrane');if(roofs.length&&!E.some(e=>e.type==='pipe'&&e.p.sys==='rw')){const n=roofs.reduce((a,r)=>a+Math.max(2,Math.ceil(perim(r.pts)/12)),0);const top=Math.max(...levelsSorted().map(l=>+l.elev))+0.3-(+P.sub.egl);push('RF01',n*top,`${n} rainwater downpipes are needed from the gutters and none are drawn.`);}
-  const st=E.filter(e=>e.type==='void'&&e.p.vkind==='stair');if(st.length){push('ST01',st.length*2.5,`${st.length} stair opening(s) but no staircase measured (allowance 2.5 m³ each).`);push('ST02',st.reduce((a,v)=>a+perim(v.pts),0),'Guarding around the stair opening(s).');}
+  const st=E.filter(e=>e.type==='void'&&e.p.vkind==='stair'&&!E.some(x=>x.type==='stair'&&x.level===e.level||x.type==='stair'&&levelAbove(x.level)?.id===e.level));if(st.length){push('ST01',st.length*2.5,`${st.length} stair opening(s) but no staircase measured (allowance 2.5 m³ each).`);push('ST02',st.reduce((a,v)=>a+perim(v.pts),0),'Guarding around the stair opening(s).');}
   if(E.some(e=>e.type==='void'&&e.p.vkind==='lift'))push('LF01',1,'A lift shaft is modelled but no lift is priced.');
   if(TO.gfa>0)push('EL01',TO.gfa,'Electrical installations are not modelled; an allowance per m² of floor area keeps them in the budget.');
-  if(E.some(e=>e.type==='sanitary')&&!E.some(e=>e.type==='mh'))push('EX03',1,'Sanitary fittings are modelled but there is no manhole or septic tank.');
+  if(E.some(e=>e.type==='sanitary')&&!E.some(e=>e.type==='mh'))push('EX03',1,'Sanitary fittings are modelled but there is no manhole, septic tank or drainage chamber.');
+  {const san=E.filter(e=>e.type==='sanitary'),hasP=y=>E.some(e=>e.type==='pipe'&&e.p.sys===y),hasF=a=>san.some(e=>a.includes(e.p.fx));
+    const hot=san.filter(e=>(FIT[e.p.fx]?.conns||[]).some(c=>c[0]==='hw'));
+    if(hot.length&&!hasF(['heater','solar','inst']))push('PL01',Math.ceil(hot.length/4),`${hot.length} fittings need hot water but no water heater or solar heater is modelled.`);
+    if(san.length&&!hasF(['tank']))push('PL02',1,'No cold water storage tank is modelled (usual where mains supply is intermittent).');
+    const wcl=[...new Set(san.filter(e=>['wc','wcwh','wcacc','squat','urinal','urinaltr'].includes(e.p.fx)).map(e=>e.level))];
+    if(wcl.length&&!hasP('sw'))push('PL03',wcl.reduce((a,l)=>a+(+lvl(l)?.h||3),0)+1,'WCs are modelled but no soil stack is drawn.');
+    if(san.length&&!E.some(e=>e.type==='pfit'&&e.p.pk==='meter'))push('PL04',1,'No water meter or incoming supply is modelled.');
+    if(san.length&&!hasP('ud'))push('PL05',Math.max(10,10*E.filter(e=>e.type==='mh').length),'No underground drainage pipes are drawn between the building and the manholes.');}
   push('PS02',1,'External works are not modelled; a provisional sum keeps them in the budget.');
   return{sugg:out,zero:allItems().filter(it=>!(it.r>0))};}
 
@@ -2962,7 +3048,7 @@ function mapMats(it,add,onRebar){
     const pm=k.match(/^pp_(\w+?)_(\w+?)_(\d+)/);if(pm){const [,sy,mt,di]=pm;const len=mt==='ppr'?4:mt==='cu'?3:6;add('plb',`pipe_${sy}_${mt}_${di}`,`${OPT.sys[sy]} pipe ${OPT.mat[mt]} Ø${di}`,`${len} m lengths`,'m',q,5,pipeRate(sy,mt,di)*0.45,src);}
     if(/^pf_|^pv_/.test(k))add('plb','f_'+k,d.split(',').slice(0,2).join(','),'','nr',q,0,it.r*0.6/fac,src);
     // supply items
-    if(/^san_|^dx|^di|^wn|^mh|^cw_|^lv_|^bal_|^fn_|^gt_|^stpc_|^ststeel_|^sttimber_/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only','nr',q,0,it.r*0.65/fac,src);
+    if(/^san_|^sacc_|^dx|^di|^wn|^mh|^cw_|^lv_|^bal_|^fn_|^gt_|^stpc_|^ststeel_|^sttimber_/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only','nr',q,0,it.r*0.65/fac,src);
 }
 const BOMG={cat:'Material',sec:'Bill section',level:'Floor',type:'Element'};
 function bomData(group){
@@ -3716,7 +3802,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-vat';
+const APP_VER='2026.09.26-plumbing';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
