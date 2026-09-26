@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Takeoff Studio</title>
+<title>AgileBOQ</title>
 <meta name="description" content="Model buildings or trace PDF drawings, see them in 3D, and generate an NRM-style Bill of Quantities.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -433,7 +433,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
   <header class="top">
     <div class="brand">
       <svg class="logo" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 21 14 25 24 21V9L14 5 4 9z"/><path d="M4 9l10 4 10-4M14 13v12"/><path d="M8 11.2v4.2M11 12.4v4.2" stroke-width="1.2"/></svg>
-      <span class="wordmark">Takeoff Studio</span>
+      <span class="wordmark">AgileBOQ</span>
       <input id="projName" aria-label="Project name" spellcheck="false">
       <button class="btn cty-chip" id="bCountry" aria-label="Project country"></button>
       <button class="btn icon" id="bProjects" title="My projects" aria-label="My projects"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 4.5v8h13v-7H7.5L6 4H2z"/><path d="M1.5 6.5h13"/></svg></button>
@@ -3148,9 +3148,9 @@ $('#fileMenu').addEventListener('click',e=>{const b=e.target.closest('button');i
   if(a==='new')newProjectFlow();
   if(a==='sample')libNew(sampleProject(),'Sample house opened as a new project.');
   if(a==='open')$('#fProject').click();
-  if(a==='save')saveFile(slug()+'.takeoff.json',JSON.stringify(P,null,1));
+  if(a==='save')saveFile(slug()+'.agileboq.json',JSON.stringify(P,null,1));
   if(a==='xlsx')openXlsxDialog();if(a==='pdf')openPdfDialog();if(a==='csv')exportCsv();if(a==='copy')copyBoQ();});
-$('#fProject').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!Array.isArray(j.levels)||!Array.isArray(j.elements))throw 0;libNew(j,'Opened '+f.name+' as a new project in My projects.');}catch(err){toast('That file is not a Takeoff Studio project.');}});
+$('#fProject').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const j=JSON.parse(await f.text());if(!Array.isArray(j.levels)||!Array.isArray(j.elements))throw 0;libNew(j,'Opened '+f.name+' as a new project in My projects.');}catch(err){toast('That file is not a AgileBOQ project.');}});
 $('#projName').addEventListener('change',e=>mutate(()=>P.name=e.target.value||'Untitled project'));
 $('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bProjects').onclick=()=>openProjects();$('#bCountry').onclick=()=>changeCountryFlow();
 
@@ -3272,7 +3272,7 @@ function openProjects(){
     const data=()=>id===LIB.cur?P:libGet(id);
     if(a==='open'){if(libOpen(id))close();return;}
     if(a==='dup'){const p=data();if(!p){toast('That project could not be read.');return;}const c=JSON.parse(JSON.stringify(p));c.name=(p.name||'Project')+' (copy)';if(libPut(libNewId(),c))toast('Copied '+(p.name||'project'));draw();return;}
-    if(a==='dl'){const p=data();if(!p)return;const n=(p.name||'project').replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').slice(0,60);saveFile(n+'.takeoff.json',JSON.stringify(p,null,1));return;}
+    if(a==='dl'){const p=data();if(!p)return;const n=(p.name||'project').replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').slice(0,60);saveFile(n+'.agileboq.json',JSON.stringify(p,null,1));return;}
     if(a==='del'){if(armed!==id){armed=id;draw();return;}armed=null;
       try{localStorage.removeItem(PKEY(id));}catch(e){}libSetList(libList().filter(x=>x.id!==id));
       if(id===LIB.cur){const rest=libList().sort((x,y)=>(y.updated||0)-(x.updated||0));LIB.cur=null;const nx=rest.find(x=>libGet(x.id));if(nx){libSetCur(nx.id);loadProject(libGet(nx.id));}else libNew(emptyProject());}
@@ -3607,10 +3607,10 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-grid';
+const APP_VER='2026.09.26-agileboq';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
-    const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of Takeoff Studio is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
+    const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
     b.querySelector('[data-r]').onclick=()=>{clearTimeout(saveT);libSave();location.reload();};b.querySelector('[data-l]').onclick=()=>b.remove();document.body.appendChild(b);}).catch(()=>{});};
   setTimeout(check,4000);setInterval(check,10*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});})();
 })();
