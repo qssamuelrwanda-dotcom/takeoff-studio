@@ -185,6 +185,15 @@ button{cursor:pointer}
 .chip.legend{gap:4px;font-family:var(--f-mono);font-size:10.5px}.chip.legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-left:4px}
 .hud .right{margin-left:auto;display:flex;gap:4px}
 .hud label.chip{cursor:pointer}
+.vis-btn{cursor:pointer;font:inherit;font-size:12px;color:var(--ink)}.vis-btn:hover{border-color:var(--accent)}.vis-btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.vis-pop{position:fixed;z-index:60;width:min(420px,calc(100vw - 24px));max-height:min(78vh,640px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.18);padding:12px 14px}
+.vis-pop h4{margin:0 0 8px;font-family:var(--f-cond);letter-spacing:.06em;text-transform:uppercase;font-size:14px;display:flex;align-items:center;justify-content:space-between}
+.vis-pre{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.vis-pre button{font-size:12px}
+.vis-g{border-top:1px solid var(--line);padding:6px 0}.vis-g>label{font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.vis-g .vis-ts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 10px;padding:4px 0 0 20px}
+.vis-ts label{display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;color:var(--ink2)}.vis-ts label i{margin-left:auto;font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--ink3)}
+.vis-ts label.off{color:var(--ink3);text-decoration:line-through}
+.vis-pop .hint{margin:8px 0 0;font-size:12px}
 .pane-title{position:absolute;right:10px;bottom:10px;font-family:var(--f-cond);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);pointer-events:none}
 .nolib{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3);padding:20px;text-align:center}
 
@@ -479,6 +488,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
     <section class="pane" id="planPane">
       <canvas id="plan" aria-label="Plan drawing canvas"></canvas>
       <div class="hud">
+        <button class="chip vis-btn" data-visbtn title="Show or hide element types (slabs, walls, columns…)"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 10S4.6 4.2 10 4.2 18.5 10 18.5 10 15.4 15.8 10 15.8 1.5 10 1.5 10z"/><circle cx="10" cy="10" r="2.6"/></svg><span>Show / hide</span></button>
         <span class="chip"><span class="dot"></span><b id="hudLevel">Level</b><span id="hudUnder" class="mono" style="color:var(--ink3)"></span></span>
         <button class="chip hud-hid" id="hudHidden" hidden title="Show everything again"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 3l14 14M8.2 4.5A8.9 8.9 0 0110 4.2c5.4 0 8.5 5.8 8.5 5.8a15 15 0 01-2.6 3.3M5.2 6.2C2.9 7.8 1.5 10 1.5 10s3.1 5.8 8.5 5.8c1.3 0 2.5-.3 3.5-.8"/></svg><span></span><u>Show all</u></button>
         <span class="chip legend" id="hudLegend" hidden><i style="background:#2F7FD1"></i>CW<i style="background:#D1452F"></i>HW<i style="background:#9A6B35"></i>W<i style="background:#6B4A26"></i>S<i style="background:#8E7CC3"></i>V<i style="background:#2A9D8F"></i>RW<i style="background:#5B4632"></i>UD<i style="background:#B0122E"></i>FIRE<i style="background:#C9A20B"></i>GAS<i style="background:#E07B24"></i>HTG<i style="background:#1F9CB8"></i>CHW</span>
@@ -493,6 +503,7 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
     <section class="pane" id="threePane">
       <div id="three"></div>
       <div class="hud">
+        <button class="chip vis-btn" data-visbtn title="Show or hide element types (slabs, walls, columns…)"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 10S4.6 4.2 10 4.2 18.5 10 18.5 10 15.4 15.8 10 15.8 1.5 10 1.5 10z"/><circle cx="10" cy="10" r="2.6"/></svg><span>Show / hide</span></button>
         <label class="chip"><input type="checkbox" id="cut"> Cut above active level</label>
         <label class="chip"><input type="checkbox" id="showRooms" checked> Room finishes</label>
         <span class="right"><button class="btn sm" id="fit3">Fit</button></span>
@@ -2081,7 +2092,21 @@ function visChanged(){saveVis();const gone=selIds().filter(id=>!vis(byId(id)));i
 function showAll(){S.hideT.clear();S.hideId.clear();S.hideL.clear();visChanged();toast('Everything is visible again.');}
 function hideIds(ids){ids.forEach(id=>S.hideId.add(id));setSel([]);visChanged();toast(`${ids.length} element${ids.length>1?'s':''} hidden. Quantities still count them. Use Show all to bring them back.`);}
 function isolateIds(ids){const keep=new Set(ids);P.elements.forEach(e=>{if(!keep.has(e.id)&&!(e.host&&keep.has(e.host)))S.hideId.add(e.id);});visChanged();toast('Showing only the selection. Use Show all to bring the rest back.');}
-function renderHudHidden(){const b=$('#hudHidden');if(!b)return;const n=hiddenCount()+(S.hideL?.size||0);b.hidden=!n;if(n){const h=hiddenCount(),l=S.hideL?.size||0;b.querySelector('span').textContent=[h?`${h} hidden`:'',l?`${l} level${l>1?'s':''} off in 3D`:''].filter(Boolean).join(' · ');}}
+const VISG=[['Substructure',['strip','pad','gbeam','fwall']],['Frame',['column','beam']],['Floors & roof',['slab','void','roof']],['Walls & façade',['wall','cwall','louvre']],['Doors & windows',['door','window']],['Stairs & balustrades',['stair','ramp','rail']],['Room finishes',['room']],['Services',['sanitary','pipe','pfit','mh']],['External works',['pave','fence']]];
+const VISP={all:['Show all',[]],str:['Structure only',['wall','cwall','louvre','door','window','rail','room','sanitary','pipe','pfit','mh','pave','fence','roof']],arch:['No structure',['strip','pad','gbeam','fwall','column','beam']],svc:['Services only',['strip','pad','gbeam','fwall','column','beam','slab','void','roof','wall','cwall','louvre','door','window','stair','ramp','rail','room','pave','fence']],noslab:['Hide slabs & roofs',['slab','roof']],nowall:['Hide walls',['wall','cwall','louvre','door','window']]};
+function visPopHTML(){if(!S.hideT)loadVis();const cnt={};P.elements.forEach(e=>{cnt[e.type]=(cnt[e.type]||0)+1;});
+  return`<h4>Show / hide <button class="btn sm" data-vclose aria-label="Close">×</button></h4><div class="vis-pre">${Object.entries(VISP).map(([k,[n]])=>`<button class="btn sm" data-vpre="${k}">${n}</button>`).join('')}</div>`+
+  VISG.map(([g,ts])=>{const on=ts.filter(t=>!S.hideT.has(t)).length;return`<div class="vis-g"><label><input type="checkbox" data-vgrp="${ts.join(',')}" ${on===ts.length?'checked':''} ${on&&on<ts.length?'data-mixed="1"':''}>${g}</label><div class="vis-ts">${ts.map(t=>`<label class="${S.hideT.has(t)?'off':''}"><input type="checkbox" data-vt="${t}" ${S.hideT.has(t)?'':'checked'}>${esc(TYPES[t].label)}<i>${cnt[t]||0}</i></label>`).join('')}</div></div>`;}).join('')+
+  `<p class="hint">Hidden elements disappear from the plan and 3D on every level but still count in the bill. Hide single elements with the Hide button when one is selected; hide levels with the eye in the level list.${S.hideId.size?` <button class="linkbtn" data-vids>Show ${S.hideId.size} hidden element${S.hideId.size>1?'s':''}</button>`:''}</p>`;}
+function openVisPop(btn){let p=$('#visPop');if(p){p.remove();return;}p=document.createElement('div');p.id='visPop';p.className='vis-pop';p.setAttribute('role','dialog');p.setAttribute('aria-label','Show or hide element types');document.body.appendChild(p);
+  const place=()=>{const r=btn.getBoundingClientRect(),w=p.offsetWidth;p.style.left=Math.max(12,Math.min(innerWidth-w-12,r.left))+'px';p.style.top=Math.min(r.bottom+6,innerHeight-p.offsetHeight-12)+'px';};
+  const draw=()=>{p.innerHTML=visPopHTML();p.querySelectorAll('[data-mixed]').forEach(c=>c.indeterminate=true);place();};draw();
+  p.addEventListener('change',ev=>{const c=ev.target;if(c.dataset.vt){if(c.checked)S.hideT.delete(c.dataset.vt);else S.hideT.add(c.dataset.vt);}else if(c.dataset.vgrp){c.dataset.vgrp.split(',').forEach(t=>{if(c.checked)S.hideT.delete(t);else S.hideT.add(t);});}else return;visChanged();draw();});
+  p.addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;if(b.dataset.vclose!=null){p.remove();return;}if(b.dataset.vids!=null){S.hideId.clear();visChanged();draw();return;}const k=b.dataset.vpre;if(!k)return;S.hideT.clear();VISP[k][1].forEach(t=>S.hideT.add(t));visChanged();draw();toast(k==='all'?'All element types are visible.':VISP[k][0]+'.');});
+  setTimeout(()=>{const off=ev=>{if(!p.isConnected){removeEventListener('pointerdown',off,true);return;}if(!p.contains(ev.target)&&!ev.target.closest('[data-visbtn]')){p.remove();removeEventListener('pointerdown',off,true);}};addEventListener('pointerdown',off,true);},0);
+  p.addEventListener('keydown',ev=>{if(ev.key==='Escape'){p.remove();ev.stopPropagation();}});}
+function renderVisBtns(){if(!S.hideT)return;const n=VISG.flatMap(g=>g[1]).filter(t=>S.hideT.has(t)).length;$$('[data-visbtn]').forEach(b=>{b.classList.toggle('on',n>0);b.querySelector('span').textContent=n?`Show / hide · ${n} off`:'Show / hide';});}
+function renderHudHidden(){renderVisBtns();const b=$('#hudHidden');if(!b)return;const n=hiddenCount()+(S.hideL?.size||0);b.hidden=!n;if(n){const h=hiddenCount(),l=S.hideL?.size||0;b.querySelector('span').textContent=[h?`${h} hidden`:'',l?`${l} level${l>1?'s':''} off in 3D`:''].filter(Boolean).join(' · ');}}
 const EYE='<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 10S4.6 4.2 10 4.2 18.5 10 18.5 10 15.4 15.8 10 15.8 1.5 10 1.5 10z"/><circle cx="10" cy="10" r="2.6"/></svg>';
 const EYEOFF='<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 3l14 14M8.2 4.5A8.9 8.9 0 0110 4.2c5.4 0 8.5 5.8 8.5 5.8a15 15 0 01-2.6 3.3M5.2 6.2C2.9 7.8 1.5 10 1.5 10s3.1 5.8 8.5 5.8c1.3 0 2.5-.3 3.5-.8"/><path d="M8.2 8.3a2.6 2.6 0 003.5 3.5"/></svg>';
 function selIds(){return S.sel&&byId(S.sel)?[S.sel]:S.hl?[...S.hl].filter(id=>byId(id)):[];}
@@ -2402,6 +2427,7 @@ $('#tGrid').onclick=()=>{S.snap.grid=!S.snap.grid;syncToggles();};
 $('#tEnd').onclick=()=>{S.snap.end=!S.snap.end;syncToggles();};
 $('#tOrtho').onclick=()=>{S.snap.ortho=!S.snap.ortho;syncToggles();};
 $('#hudHidden').onclick=showAll;
+$$('[data-visbtn]').forEach(b=>b.onclick=()=>openVisPop(b));
 $('#tAxes').onclick=()=>{S.gshow=S.gshow===false;syncToggles();drawPlan();queue3D();};
 $('#gridStep').onchange=e=>{S.grid=+e.target.value;};
 function updateHint(){const t=S.tool;const m=TYPES[t]?.mode;const h={select:'Click to select (click again to cycle) · drag the element to move it · drag a box to select many · Shift-click to add · right-drag or Space-drag to pan · wheel to zoom · Del to delete',
@@ -3826,7 +3852,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-marks';
+const APP_VER='2026.09.26-showhide';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
