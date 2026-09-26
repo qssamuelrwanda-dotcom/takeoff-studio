@@ -715,6 +715,12 @@ const TD={
   pave:{name:'Car park',pvs:'asphalt',sb:0.25,kerb:'yes',bays:'auto',bw:2.5,bl:5,ai:6,acc:0,trees:0,cars:'yes'},
   fence:{ftype:'mesh',h:1.8,dh:0.6,sp:2.5,fcoat:'pc',ftop:'none',bmat:'block',t:0.2,bfin:'render2',cop:'yes',fw:0.6,fd:0.25,exc:0.6,pg:0,vg:0,vgw:4,vgk:'swing'},
 };
+/* marks: every structural and architectural element can carry a mark such as C1, B2, F1, D1 */
+const MARKT=['column','beam','pad','strip','gbeam','fwall','wall','slab','stair','ramp','door','window','cwall','louvre','rail','fence','roof','sanitary','pfit','mh'];
+const MARKHINT={column:'C1',beam:'B1',pad:'F1',strip:'SF1',gbeam:'GB1',fwall:'FW1',wall:'W1',slab:'S1',stair:'ST1',ramp:'R1',door:'D1',window:'WD1',cwall:'CW1',louvre:'L1',rail:'BL1',fence:'FN1',roof:'RF1',sanitary:'WC1',pfit:'V1',mh:'MH1'};
+for(const t of MARKT){FIELDS[t].unshift(['mk',`Mark / name (e.g. ${MARKHINT[t]})`,'txt']);TD[t].mk='';}
+FIELDS.column.splice(FIELDS.column.findIndex(f=>f[0]==='rot'),0,['ang','Rotation','°']);TD.column.ang=0;
+const refOf=(e,n)=>e.p&&String(e.p.mk||'').trim()?String(e.p.mk).trim():TYPES[e.type].key.toUpperCase()+String(n).padStart(2,'0');
 /* reinforcement inputs */
 const TDc=t=>JSON.parse(JSON.stringify(TD[t]));
 const DIAS=[6,8,10,12,16,20,25,32];
@@ -818,8 +824,9 @@ const CEILF={gypsum:['cgyp','Suspended gypsum plasterboard ceiling 12.5 mm on me
 function colSec(e){const p=e.p,[x,y]=e.pts[0];const c=p.cs||'rect';
   if(c==='circle'){const D=+p.dia;return{c,A:Math.PI*D*D/4,Pm:Math.PI*D,hw:D/2,hd:D/2,D};}
   const w=+p.w,d=+p.d;
-  if(c==='L'){const t=Math.min(+p.t,w,d);const loc=[[-w/2,-d/2],[-w/2+t,-d/2],[-w/2+t,d/2-t],[w/2,d/2-t],[w/2,d/2],[-w/2,d/2]];const a=(+p.rot||0)*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
+  if(c==='L'){const t=Math.min(+p.t,w,d);const loc=[[-w/2,-d/2],[-w/2+t,-d/2],[-w/2+t,d/2-t],[w/2,d/2-t],[w/2,d/2],[-w/2,d/2]];const a=((+p.rot||0)+(+p.ang||0))*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
     const poly=loc.map(([u,v])=>[x+u*co-v*si,y+u*si+v*co]);const b=bbox(poly);return{c,A:t*(w+d-t),Pm:2*(w+d),poly,hw:b.w/2,hd:b.h/2,w,d,t};}
+  const ang=((+p.ang||0)%360+360)%360;if(ang>1e-6){const a=ang*Math.PI/180,co=Math.cos(a),si=Math.sin(a),poly=[[-w/2,-d/2],[w/2,-d/2],[w/2,d/2],[-w/2,d/2]].map(([u,v])=>[x+u*co-v*si,y+u*si+v*co]),b=bbox(poly);return{c,A:w*d,Pm:2*(w+d),poly,hw:b.w/2,hd:b.h/2,w,d,ang:a};}
   return{c,A:w*d,Pm:2*(w+d),poly:[[x-w/2,y-d/2],[x+w/2,y-d/2],[x+w/2,y+d/2],[x-w/2,y+d/2]],hw:w/2,hd:d/2,w,d};}
 function stripSec(p){const c=p.ss||'rect',w=+p.w,d=+p.d;if(c==='stepped')return{c,A:w*d+Math.min(+p.w2,w)*p.d2,H:d+ +p.d2};if(c==='tapered')return{c,A:(w+Math.min(+p.w2,w))/2*d,H:d};return{c,A:w*d,H:d};}
 function padGeo(p){const c=p.ps||'rect';
@@ -1226,17 +1233,17 @@ function sampleProject(){
   const inFP=(x,y)=>x<=14.4+1e-6||y<=14.4+1e-6;
   const W=(lv,a,b,p,x)=>add('wall',lv,[a,b],{kind:'internal',material:'blockwork',t:0.2,h:WH,...p},x);const ACCENT='#8C5E45',PLINTH='#5F666B';
   const EXT={kind:'external',material:'blockwork',t:0.2,h:WH},RC={kind:'internal',material:'concrete',t:0.2,h:WH},PART={kind:'internal',material:'drywall',t:0.1,h:WH};
-  const BM={w:0.3,d:0.45,mb:[{pos:'top',n:3,d:16},{pos:'bot',n:4,d:20},{pos:'tsup',n:2,d:20}],lk:[{t:'closed',d:10,s:0.1,s2:0.2}]};
+  const BM={mk:'B1',w:0.3,d:0.45,mb:[{pos:'top',n:3,d:16},{pos:'bot',n:4,d:20},{pos:'tsup',n:2,d:20}],lk:[{t:'closed',d:10,s:0.1,s2:0.2}]};
   const BL=[];[0,6.3,8.1,14.4].forEach(y=>BL.push([[0,y],[43.2,y]]));[21.6,28.8,36,43.2].forEach(x=>BL.push([[x,0],[x,14.4]]));
   [0,6.3,8.1,14.4].forEach(x=>BL.push([[x,0],[x,43.2]]));[21.6,28.8,36,43.2].forEach(y=>BL.push([[0,y],[14.4,y]]));
   const COLS=[];for(const x of XL)for(const y of XL)if(inFP(x,y))COLS.push([x,y]);
   // --- substructure
-  for(const c of COLS)add('pad','gf',[c],{ps:'stepped',w:3.2,l:3.2,d:0.8,w2:1.6,l2:1.6,d2:0.4,exc:2.4,stub:'yes',md:20,ms:0.15,ly:2});
-  for(const [a,b] of BL)add('gbeam','gf',[a,b],{w:0.4,d:0.7,mb:[{pos:'top',n:3,d:16},{pos:'bot',n:3,d:20}],lk:[{t:'closed',d:10,s:0.15,s2:0.2}]});
+  for(const c of COLS)add('pad','gf',[c],{mk:'F1',ps:'stepped',w:3.2,l:3.2,d:0.8,w2:1.6,l2:1.6,d2:0.4,exc:2.4,stub:'yes',md:20,ms:0.15,ly:2});
+  for(const [a,b] of BL)add('gbeam','gf',[a,b],{mk:'GB1',w:0.4,d:0.7,mb:[{pos:'top',n:3,d:16},{pos:'bot',n:3,d:20}],lk:[{t:'closed',d:10,s:0.15,s2:0.2}]});
   add('slab','gf',FP.map(q=>q.slice()),{t:0.2});
   // --- frame, floors, core (every storey)
   FLOORS.forEach((lv,i)=>{const cw=i<4?0.6:i<8?0.5:0.4,mb=i<4?[{n:8,d:25},{n:4,d:20}]:i<8?[{n:8,d:20},{n:4,d:16}]:[{n:8,d:16}];
-    for(const c of COLS)add('column',lv,[c],{w:cw,d:cw,h:WH,mb,lk:[{t:'outer',d:10,s:0.15},{t:'diamond',d:10,s:0.15}]});
+    for(const c of COLS)add('column',lv,[c],{mk:i<4?'C1':i<8?'C2':'C3',w:cw,d:cw,h:WH,mb,lk:[{t:'outer',d:10,s:0.15},{t:'diamond',d:10,s:0.15}]});
     for(const [a,b] of BL)add('beam',lv,[a,b],JSON.parse(JSON.stringify(BM)));
     add('stair',lv,[[9.0,0.9],[11.6,0.9]],{stype:'U',turn:'right',stmat:'rc',w:1.2,stfin:'terr',rails:'1',bal:'steel',whr:'yes'});});
   UP.forEach(lv=>{add('slab',lv,FP.map(q=>q.slice()),{t:0.2});add('void',lv,R(8.75,0.25,12.95,3.15),{name:'Stair opening',vkind:'stair'});add('void',lv,R(8.4,8.4,14.1,10.8),{name:'Lift shafts',vkind:'lift'});add('void',lv,R(12.3,11.3,14.1,12.5),{name:'Service riser',vkind:'riser'});});
@@ -1245,10 +1252,10 @@ function sampleProject(){
   const TOP='l'+(NF-1),VST=[];
   const flat=(lv,f,tag,gf)=>{const T=(x,y)=>f(x,y),Rl=(x0,y0,x1,y1)=>R(x0,y0,x1,y1).map(([x,y])=>T(x,y)),Pl=pl=>pl.map(([x,y])=>T(x,y));
     const fa=W(lv,T(0,0),T(7.2,0),{...EXT},gf?{c:PLINTH}:{c:ACCENT}),fb=W(lv,T(7.2,0),T(14.4,0),{...EXT},gf?{c:PLINTH}:{});
-    op('window',fa,4.3,{w:3.0,h:2.4,sill:0});op('window',fb,1.8,{w:2.1,h:1.8,sill:0.6});op('window',fb,5.4,{w:2.1,h:1.8,sill:0.6});
-    const cor=W(lv,T(0,6.3),T(14.4,6.3),{t:0.15});op('door',cor,6.6,{w:1.0,h:2.1});
-    W(lv,T(7.2,0),T(7.2,4.5),PART);W(lv,T(10.8,0),T(10.8,4.5),PART);const p3=W(lv,T(7.2,4.5),T(14.4,4.5),PART);op('door',p3,1.8,{w:0.8,h:2.1});op('door',p3,4.2,{w:0.8,h:2.1});
-    const p4=W(lv,T(12.0,4.5),T(12.0,6.3),PART);op('door',p4,0.9,{w:0.7,h:2.1});
+    op('window',fa,4.3,{mk:'WD1',w:3.0,h:2.4,sill:0});op('window',fb,1.8,{mk:'WD2',w:2.1,h:1.8,sill:0.6});op('window',fb,5.4,{mk:'WD2',w:2.1,h:1.8,sill:0.6});
+    const cor=W(lv,T(0,6.3),T(14.4,6.3),{t:0.15});op('door',cor,6.6,{mk:'D1',w:1.0,h:2.1});
+    W(lv,T(7.2,0),T(7.2,4.5),PART);W(lv,T(10.8,0),T(10.8,4.5),PART);const p3=W(lv,T(7.2,4.5),T(14.4,4.5),PART);op('door',p3,1.8,{mk:'D2',w:0.8,h:2.1});op('door',p3,4.2,{mk:'D2',w:0.8,h:2.1});
+    const p4=W(lv,T(12.0,4.5),T(12.0,6.3),PART);op('door',p4,0.9,{mk:'D3',w:0.7,h:2.1});
     add('room',lv,Pl([[0.1,0.1],[7.15,0.1],[7.15,4.45],[11.95,4.45],[11.95,6.2],[0.1,6.2]]),{name:`${tag} Living`,floor:'porcelain',ceiling:'gypsum'});
     add('room',lv,Rl(7.25,0.1,10.75,4.45),{name:`${tag} Bed 1`,floor:'timber',ceiling:'gypsum'});
     add('room',lv,Rl(10.85,0.1,14.3,4.45),{name:`${tag} Bed 2`,floor:'timber',ceiling:'gypsum'});
@@ -1485,7 +1492,7 @@ function fieldOn(t,k,o){
   if(t==='mh'){const y=o.mhk||'mh';if(k==='mhs')return y==='mh'||y==='brick';if(k==='dep')return['mh','brick','ic','soak'].includes(y);if(k==='cap')return['septic','grease','oil','rwh'].includes(y);if(k==='sd')return y==='soak';}
   if(t==='pave'){const soft=o.pvs==='lawn';if(k==='sb'||k==='kerb'||k==='bays')return!soft;if(['bw','bl','ai','acc','cars'].includes(k))return!soft&&o.bays!=='none';}
   if(t==='fence'){const y=o.ftype||'mesh',mas=y==='bwall'||y==='wallrail';if(['bmat','t','bfin','cop','fw','fd','exc'].includes(k))return mas;if(k==='dh')return y==='wallrail';if(k==='fcoat')return!['bwall','glass','precast','wire'].includes(y);if(k==='vgw'||k==='vgk')return +o.vg>0;}
-  if(t==='column'){const c=o.cs||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='d')return c!=='circle';if(k==='t'||k==='rot')return c==='L';}
+  if(t==='column'){const c=o.cs||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='d')return c!=='circle';if(k==='t')return c==='L';if(k==='ang')return c!=='circle';if(k==='rot')return c==='L'&&+o.rot>0;}
   if(t==='strip'){const c=o.ss||'rect';if(k==='w2')return c!=='rect';if(k==='d2')return c==='stepped';}
   if(t==='pad'){const c=o.ps||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='l')return c!=='circle';if(k==='w2'||k==='l2'||k==='d2')return c==='stepped'||c==='sloped';}
   return true;}
@@ -1561,7 +1568,7 @@ function fieldHTML(t,obj,prefix){
     return`<div class="field"><label for="${id}">${label}</label><div class="unitwrap"><input id="${id}" type="number" step="${kind==='°'?1:0.01}" min="0" data-k="${k}" data-num value="${obj[k]}"><span>${kind}</span></div></div>`;
   }).join('')+`</div>`;
 }
-function elemTitle(e){const T=TYPES[e.type].label;if(e.type==='room'||e.type==='pave')return e.p.name||T;return T;}
+function elemTitle(e){const T=TYPES[e.type].label;if(e.type==='room'||e.type==='pave')return e.p.name||T;const mk=String(e.p?.mk||'').trim();return mk?`${mk} · ${T}`:T;}
 function elemDims(e){const d=elemDims0(e);const A=arcOf(e);return A?`${d} · curved, R ${fmtN(A.R,2)} m (chord ${fmtN(A.c,2)} m)`:d;}
 function elemDims0(e){const p=e.p;switch(e.type){
   case'wall':return`${fmtN(elLen(e))} m long · ${mm(p.t)} mm · ${OPT.material[p.material]}`+(+p.fh>0&&+p.fh<+p.h?` · plaster & paint to ${fmtN(+p.fh)} m`:'')+(p.kind==='external'&&+p.rh>0&&+p.rh<+p.h?` · render to ${fmtN(+p.rh)} m`:'');
@@ -1573,7 +1580,7 @@ function elemDims0(e){const p=e.p;switch(e.type){
   case'mh':{const y=p.mhk||'mh';return`${OPT.mhk[y]}${y==='mh'||y==='brick'?` · ${OPT.mhs[p.mhs]}`:''}${['mh','brick','ic','soak'].includes(y)?` · ${fmtN(+p.dep)} m deep`:''}${['septic','grease','oil','rwh'].includes(y)?` · ${fmtN(+p.cap,1)} m³`:''}${y==='soak'?` · Ø${fmtN(+p.sd,1)} m`:''}`;}
   case'pfit':return`${OPT.pk[p.pk]} · ${OPT.sys[p.sys]} Ø${p.dia}`;
   case'fwall':{const g=fwallGeom(e);return`${fmtN(elLen(e))} m long · ${mm(p.t)} mm · ${fmtN(g.H)} m high (${g.base.toFixed(3)} to ${g.top.toFixed(3)})${g.strip?'':' · no footing under it'} · ${OPT.fmat[p.fmat]}`;}
-  case'column':{const c=colSec(e);return`${c.c==='circle'?'Ø'+mm(p.dia)+' mm circular':c.c==='L'?`L ${mm(p.w)} × ${mm(p.d)} × ${mm(c.t)} mm`:mm(p.w)+' × '+mm(p.d)+' mm'} · ${fmtN(c.A,4)} m² · ${fmtN(p.h)} m high`+(p.rm!=='allow'&&p.mb?.length?' · '+p.mb.map(b=>`${b.n}Ø${b.d}`).join(' + '):'');}
+  case'column':{const c=colSec(e);return`${c.c==='circle'?'Ø'+mm(p.dia)+' mm circular':c.c==='L'?`L ${mm(p.w)} × ${mm(p.d)} × ${mm(c.t)} mm`:mm(p.w)+' × '+mm(p.d)+' mm'}${c.c!=='circle'&&((+p.ang||0)+(+p.rot||0))%360?` · rotated ${fmtN(((+p.ang||0)+(+p.rot||0))%360,1)}°`:''} · ${fmtN(c.A,4)} m² · ${fmtN(p.h)} m high`+(p.rm!=='allow'&&p.mb?.length?' · '+p.mb.map(b=>`${b.n}Ø${b.d}`).join(' + '):'');}
   case'pad':{const sg=stubGeom(e),pg=padGeo(p);return`${OPT.ps[pg.c]} ${pg.c==='circle'?'Ø'+mm(p.dia):mm(p.w)+' × '+mm(p.l)} × ${mm(pg.H)} mm · ${fmtN(pg.V,3)} m³ · bottom at ${(+P.sub.egl-p.exc).toFixed(3)}`+(p.stub==='yes'&&sg.col?` · stub ${mm(sg.w)}×${mm(sg.d)} × ${fmtN(sg.h)} m`:'');}
   case'slab':{const n=netArea(e),g=area(e.pts);return`${fmtN(n)} m²${Math.abs(n-g)>0.005?` net of openings (${fmtN(g)} gross)`:''} · ${mm(p.t)} mm thick`;}
   case'room':{const n=netArea(e),g=area(e.pts),q=roomQ(e);return`${fmtN(n)} m²${Math.abs(n-g)>0.005?` net (${fmtN(g)} gross)`:''} · perimeter ${fmtN(q.Pm)} m · ${+e.p.ch>0?`walls finished to ${fmtN(q.H)} m`:`walls finished full height ${fmtN(q.H)} m`} · walls ${fmtN(q.net)} m² net (${q.ops.length} openings on boundary)`;}
@@ -1606,7 +1613,9 @@ function renderProps(){
   const e=S.sel&&byId(S.sel);
   if(e){
     const ls=linesFor(e);
+    const mk=String(e.p.mk||'').trim(),same=mk?P.elements.filter(x=>x.type===e.type&&String(x.p?.mk||'').trim()===mk):[];
     el.innerHTML=`<h3>${esc(elemTitle(e))} <span class="sub">${esc(lvl(e.level)?.name||'')}</span></h3>
+      ${TYPES[e.type].mode!=='opening'||e.host?`<div class="row mk-row" style="justify-content:flex-start;margin:0 0 10px;gap:6px;flex-wrap:wrap"><button class="btn sm primary" id="selMore" title="Pick this element up and place more of the same">Place more${mk?' '+esc(mk):' like this'}</button>${same.length>1?`<button class="btn sm" id="selSync" title="Copy sizes, reinforcement and finishes of this element to every ${esc(mk)} (heights and rotation stay)">Make all ${same.length} × ${esc(mk)} the same</button>`:''}${mk?`<span class="hint" style="margin:0">${same.length} × ${esc(mk)} in the project</span>`:''}</div>`:''}
       ${fieldHTML(e.type,e.p,'sel')}${curveHTML(e)}${rebarHTML(e.type,e.p,'sel',e)}
       <p class="hint mono" style="font-size:12px">${esc(elemDims(e))}</p>
       ${e.type==='pipe'||e.type==='pfit'||e.type==='sanitary'?pipeFitHTML():''}${qaHTML([e],true)}${colorRowHTML(colE(e),isHex(e.c),'eCol')}${cornersHTML(e)}
@@ -1619,6 +1628,8 @@ function renderProps(){
       inp.addEventListener('focus',()=>{S.vsel={id:e.id,i:+inp.dataset.vx};drawPlan();});});
     el.querySelectorAll('[data-vdel]').forEach(b=>b.onclick=()=>deleteCorner(e,+b.dataset.vdel));
     $('#selDel').onclick=deleteSel;$('#selHide').onclick=()=>hideIds([e.id]);$('#selDone').onclick=()=>{S.sel=null;renderProps();drawPlan();queue3D();};
+    if($('#selMore'))$('#selMore').onclick=()=>pickUp(e);
+    if($('#selSync'))$('#selSync').onclick=()=>{const keep=['h','ang','rot','vert','kind'],src=JSON.parse(JSON.stringify(e.p));mutate(()=>same.forEach(x=>{if(x===e)return;const own={};keep.forEach(k=>{if(k in x.p)own[k]=x.p[k];});x.p={...JSON.parse(JSON.stringify(src)),...own};if(x.host)clampOpening(x);}));toast(`${same.length} × ${mk} now match. Heights and rotation were kept.`);};
     if($('#selDup'))$('#selDup').onclick=()=>{const c=JSON.parse(JSON.stringify(e));c.id=uid();if(c.pts)c.pts=c.pts.map(([x,y])=>[x+0.5,y+0.5]);else c.at=+c.at+ +c.p.w+0.2;mutate(()=>{P.elements.push(c);if(c.host)clampOpening(c);});S.sel=c.id;renderProps();};
     return;
   }
@@ -1628,11 +1639,12 @@ function renderProps(){
     el.innerHTML=`<h3>New ${TYPES[t].label.toLowerCase()} <span class="sub">settings for next ${m==='chain'?'segments':'placement'}</span></h3>
       ${(m==='chain'||m==='poly')&&t!=='stair'?`<div style="margin-bottom:10px;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap"><span class="hint" style="margin:0">Draw as</span><span class="seg"><button data-shape="line" aria-pressed="${S.shape==='line'}">${m==='chain'?'Polyline':'Polygon'}</button><button data-shape="rect" aria-pressed="${S.shape==='rect'}">Rectangle</button>${ARCT.includes(t)?`<button data-shape="arc" aria-pressed="${S.shape==='arc'}">Arc</button>`:''}${t==='room'?`<button data-shape="pick" aria-pressed="${S.shape==='pick'}">Inside walls</button>`:''}</span></div>`:''}
       ${t==='room'?finModeHTML('finm2'):''}${t==='pipe'||t==='pfit'?pipeFitHTML():''}
-      ${fieldHTML(t,TD[t],'td')}${rebarHTML(t,TD[t],'td')}
+      ${markPickHTML(t)}${fieldHTML(t,TD[t],'td')}${rebarHTML(t,TD[t],'td')}
       <p class="hint">${toolHelp(t)}</p>
       ${['strip','pad','fwall','gbeam'].includes(t)?'<div class="row"><button class="btn sm" id="autoStrip">Generate substructure from ground floor</button></div>':''}
       ${t==='room'?'<div class="row"><button class="btn sm" id="autoRoom">Room from slab outline on this level</button></div>':''}`;
     wireFinMode(el);wirePipeFit(el);
+    el.querySelector('#mkPick')?.addEventListener('change',ev=>{const r=marksOf(t).find(([k])=>k===ev.target.value);if(!r)return;TD[t]={...TDc(t),...JSON.parse(JSON.stringify(r[1].e.p))};renderProps();toast(`Next ${TYPES[t].label.toLowerCase()}s will be ${r[0]}.`);});
     el.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('change',()=>{const k=inp.dataset.k;TD[t][k]=inp.dataset.num!=null?Math.max(0,parseFloat(inp.value)||0):inp.value;onField(t,TD[t],k);if(SHAPEKEYS.includes(k))renderProps();}));
     wireSets(el,TD[t],fn=>{fn();renderProps();});
     el.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{S.shape=b.dataset.shape;S.draft=null;renderProps();drawPlan();updateHint();});
@@ -1649,6 +1661,9 @@ function renderProps(){
   el.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>{const k=b.dataset.eye;if(S.hideT.has(k))S.hideT.delete(k);else S.hideT.add(k);visChanged();});
   el.querySelector('#visAll')?.addEventListener('click',showAll);el.querySelector('#visCol')?.addEventListener('click',()=>{S.set='colors';setView('settings');});
 }
+function pickUp(e){const t=e.type;TD[t]={...TDc(t),...JSON.parse(JSON.stringify(e.p))};if(TYPES[t].mode==='chain'&&S.shape==='rect')S.shape='line';S.sel=null;S.hl=null;setTool(t);const mk=String(e.p.mk||'').trim();toast(mk?`Placing more ${mk}. Click on the plan; Esc to stop.`:`Placing more ${TYPES[t].label.toLowerCase()}s with the same settings.`);}
+function marksOf(t){const m=new Map();for(const x of P.elements)if(x.type===t){const k=String(x.p?.mk||'').trim();if(!k)continue;const r=m.get(k);if(r)r.n++;else m.set(k,{e:x,n:1});}return[...m.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}));}
+function markPickHTML(t){if(!MARKT.includes(t))return'';const ms=marksOf(t);if(!ms.length)return'';return`<div class="field" style="margin-bottom:10px"><label for="mkPick">Continue with an existing mark</label><select id="mkPick"><option value="">Choose…</option>${ms.map(([k,v])=>`<option value="${esc(k)}" ${String(TD[t].mk||'')===k?'selected':''}>${esc(k)} · ${v.n} placed</option>`).join('')}</select></div>`;}
 function toolHelp(t){const m=TYPES[t]?.mode;if(t==='stair')return'Click the foot of the stair (centre of the first riser), then click in the direction it climbs. Pick the stair type below: straight, L with a landing or winders, U / dog-leg, open well or spiral. For a spiral, the first click is the centre. Risers come from the level height, and the going and flights are worked out for you.';if(t==='void')return'Draw the opening over a slab (lift shaft, stair, riser). Its area comes off the slab concrete, formwork, mesh and rebar, and off the room finishes below it. Edge formwork is measured around it. '+(S.shape==='rect'?'Click two opposite corners.':'Click each corner, then Enter to close.');
   if(m==='chain'&&S.shape==='arc')return'Click the start of the arc, then its end, then any point the curve passes through. Or after the end point, type a radius in metres and press <kbd>Enter</kbd> (the curve bulges towards the cursor). Arcs chain on from the last end. Any straight wall can also be bent later: select it and drag the round handle in its middle.';
   if(m==='chain')return S.shape==='rect'?'Click two opposite corners to draw four segments.':'Click to start, click each next point. Type a length in metres and press <kbd>Enter</kbd> to place a point along the cursor direction. <kbd>Esc</kbd> or right-click to stop. Hold <kbd>Shift</kbd> for ortho.';
@@ -1851,6 +1866,14 @@ function drawPlanNow(){IXG++;
       if(z>22){const [sx,sy]=w2s([x,y+sz[1]/2]);ctx.font='600 10px "JetBrains Mono",monospace';ctx.fillStyle=C;ctx.textAlign='center';ctx.fillText(G.code,sx,sy+11);}}
     else if(ty==='column'){const [x,y]=e.pts[0],cs=colSec(e);if(cs.c==='circle'){const [sx,sy]=w2s([x,y]);ctx.beginPath();ctx.arc(sx,sy,cs.D/2*z,0,Math.PI*2);}else poly(cs.poly);ctx.fillStyle=colE(e);ctx.fill();ctx.strokeStyle=sel?TH.mark:TH.ink;ctx.lineWidth=sel?2.5:1;ctx.stroke();}
   }
+  if(z>16){ctx.save();ctx.font='700 11px "JetBrains Mono",monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    for(const e of els){const mk=String(e.p?.mk||'').trim();if(!mk)continue;let q=null,off=[0,0];
+      if(e.host){const w=byId(e.host);if(!w)continue;const f=frameAt(w,+e.at);q=[f.p[0]+f.n[0]*(+w.p.t/2+0.28),f.p[1]+f.n[1]*(+w.p.t/2+0.28)];}
+      else if(!e.pts||!e.pts.length)continue;else if(e.pts.length===1){q=e.pts[0];const cs=e.type==='column'?colSec(e):null;off=cs?[(cs.hw+0.12)*z+10,-(cs.hd+0.12)*z-6]:[0,-16];}
+      else if(POLYT.includes(e.type)||e.type==='slab'||e.type==='roof')q=centroid(e.pts);else q=midPt(e);
+      if(!q)continue;const [sx,sy]=w2s(q),x=sx+off[0],y=sy+off[1],tw=ctx.measureText(mk).width+8,C=colE(e)||TH.ink;
+      ctx.fillStyle=TH.paper;ctx.globalAlpha=0.92;ctx.fillRect(x-tw/2,y-8,tw,16);ctx.globalAlpha=1;ctx.strokeStyle=e.id===S.sel?TH.mark:C;ctx.lineWidth=1;ctx.strokeRect(x-tw/2,y-8,tw,16);ctx.fillStyle=TH.ink;ctx.fillText(mk,x,y+0.5);}
+    ctx.restore();}
   drawGrids('labels');drawQuickGridPreview();
   // automatically counted pipe fittings
   if(P.pipeFit!=='incl'&&els.some(e=>e.type==='pipe'))for(const n of pipeNodes(S.level)){const [x,y]=w2s(n.pt);const S2=SYS[n.sys]||SYS.cw;ctx.fillStyle=S2.col;ctx.strokeStyle=TH.paper;ctx.lineWidth=1.5;
@@ -2364,6 +2387,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&S.draft&&S.draft.end){delete S.draft.end;S.numBuf='';$('#buf').textContent='';drawPlan();return;}
   if(e.key==='Escape'){if(S.qg&&S.qg.pick){S.qg.pick=false;renderProps();drawPlan();return;}if(S.draft){S.draft=null;S.numBuf='';$('#buf').textContent='';drawPlan();}else if(S.vsel){S.vsel=null;renderProps();drawPlan();}else if(S.sel||S.hl){S.sel=null;S.hl=null;renderProps();drawPlan();queue3D();}else setTool('select');$('#fileMenu').hidden=true;return;}
   if((e.key==='Delete'||e.key==='Backspace')&&!S.sel&&S.hl&&S.hl.size>1){e.preventDefault();const ids=selIds();confirmBox(`Delete ${ids.length} elements?`,'Doors and windows in deleted walls go too. You can undo this.','Delete',()=>deleteIds(ids));return;}
+  if((e.key==='['||e.key===']'||e.key==='{'||e.key==='}')&&S.sel&&!e.ctrlKey&&!e.metaKey){const el=byId(S.sel);if(el&&el.type==='column'&&el.p.cs!=='circle'){e.preventDefault();const d=(e.key===']'||e.key==='}'?1:-1)*(e.shiftKey?90:15);mutate(()=>{el.p.ang=((((+el.p.ang||0)+d)%360)+360)%360;});toast(`Column rotated to ${fmtN(el.p.ang,0)}°.`);return;}}
   if((e.key==='Delete'||e.key==='Backspace')&&S.sel){e.preventDefault();const el=byId(S.sel);if(S.vsel&&S.vsel.id===S.sel&&el&&POLYT.includes(el.type)){deleteCorner(el,S.vsel.i);return;}deleteSel();return;}
   if(e.key==='Home'){fitPlan(true);return;}
   const k=e.key.toLowerCase();if(k==='v')return setTool('select');if(k==='l')return setTool('grid');if(k==='m')return setTool('measure');if(k==='k')return setTool('calibrate');
@@ -2454,7 +2478,7 @@ function build3D(){IXG++;
       if(e.type==='wall')wall3(e,el0,sweep);
       else if(e.type==='slab'&&e.pts.length>=3)extrude(e.pts,+p.t,el0,c3(e,C3.slab),e.id,{},onLevel(l.id).filter(v=>v.type==='void'&&v.pts.length>=3&&inPoly(centroid(v.pts),e.pts)).map(v=>v.pts));
       else if(e.type==='room'&&S.rooms&&e.pts.length>=3)extrude(e.pts,0.02,el0+0.021,(isHex(e.c)||isHex(P.colors?.room))?c3(e):(FLOORC[p.floor]||0xcccccc),e.id,{noEdge:true},onLevel(l.id).filter(v=>v.type==='void'&&v.pts.length>=3&&inPoly(centroid(v.pts),e.pts)).map(v=>v.pts));
-      else if(e.type==='column'){const [x,y]=e.pts[0],cs=colSec(e),cc=c3(e,C3.column);if(cs.c==='circle'){const m=addMesh(new THREE.CylinderGeometry(cs.D/2,cs.D/2,+p.h,32),cc,e.id);m.position.set(x,el0+p.h/2,y);}else if(cs.c==='L')extrude(cs.poly,+p.h,el0+ +p.h,cc,e.id);else box(+p.w,+p.h,+p.d,x,el0+p.h/2,y,0,cc,e.id);}
+      else if(e.type==='column'){const [x,y]=e.pts[0],cs=colSec(e),cc=c3(e,C3.column);if(cs.c==='circle'){const m=addMesh(new THREE.CylinderGeometry(cs.D/2,cs.D/2,+p.h,32),cc,e.id);m.position.set(x,el0+p.h/2,y);}else if(cs.c==='L')extrude(cs.poly,+p.h,el0+ +p.h,cc,e.id);else box(+p.w,+p.h,+p.d,x,el0+p.h/2,y,-(cs.ang||0),cc,e.id);}
       else if(e.type==='beam'){const L=elLen(e);if(L<1e-3)continue;const top=el0+ +l.h-slabAbove;sweep(e,0,L,+p.w,+p.d,top-p.d,c3(e,C3.beam),e.id);}
       else if(e.type==='strip'){const L=elLen(e);if(L<1e-3)continue;const bot=(isGround(l.id)?+P.sub.egl:el0)-p.exc,ss=p.ss||'rect';
         const fc=c3(e,p.smat==='stone'?0x9A8C78:C3.found);
@@ -2619,7 +2643,7 @@ function renderBoQ(){
       `<tr class="item"><td class="ref"></td><td></td><td class="desc">${esc(r.mark)}</td><td class="q r">${r.dia}</td><td class="q r">${r.n}</td><td class="q r">${r.len.toFixed(2)}</td><td class="q r">${fmtN(r.tl,2)}</td><td class="amt r">${fmtN(r.kg,1)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">No reinforced elements modelled yet.</td></tr>'}</tbody></table></div>`;
   }else{
     const rows=levelsSorted().flatMap(l=>{const E=onLevel(l.id);const cnt={};return E.map(e=>{cnt[e.type]=(cnt[e.type]||0)+1;const ls=linesFor(e);const main=ls[0];
-      return`<tr class="item"><td class="ref">${TYPES[e.type].key.toUpperCase()}${String(cnt[e.type]).padStart(2,'0')}</td><td>${esc(l.name)}</td><td class="desc">${esc(elemTitle(e))} <span style="color:var(--ink3)">· ${esc(elemDims(e))}</span><button class="show" data-els="${e.id}">show in model</button></td><td class="q r">${main?fmtQ(roundQ(main.qty,main.unit),main.unit):'–'}</td><td class="unit">${main?.unit||''}</td>${(c=>`<td class="amt r">${fmtN(c)}</td>${cmOn()?`<td class="cm r">${cmV(c)}</td>`:''}`)(ls.reduce((s,x)=>s+roundQ(x.qty,x.unit)*rateOf(x),0))}</tr>`;});});
+      return`<tr class="item"><td class="ref">${esc(refOf(e,cnt[e.type]))}</td><td>${esc(l.name)}</td><td class="desc">${esc(elemTitle(e))} <span style="color:var(--ink3)">· ${esc(elemDims(e))}</span><button class="show" data-els="${e.id}">show in model</button></td><td class="q r">${main?fmtQ(roundQ(main.qty,main.unit),main.unit):'–'}</td><td class="unit">${main?.unit||''}</td>${(c=>`<td class="amt r">${fmtN(c)}</td>${cmOn()?`<td class="cm r">${cmV(c)}</td>`:''}`)(ls.reduce((s,x)=>s+roundQ(x.qty,x.unit)*rateOf(x),0))}</tr>`;});});
     body=`<div class="sheet"><div class="bom-bar">${cmCtl()}</div><table class="bill${cmOn()?' has-cm':''}"><thead><tr><th>Ref</th><th>Level</th><th>Element</th><th class="r">Main qty</th><th>Unit</th><th class="r">Element cost</th>${cmOn()?`<th class="r cm">${P.currency}/m² ${esc(cmLabel())}</th>`:''}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${cmOn()?7:6}" class="empty">No elements yet.</td></tr>`}</tbody></table></div>`;
   }
   pane.innerHTML=`<div class="rep">${repNavHTML()}<div ${repAttrs()}>
@@ -2664,7 +2688,7 @@ function renderBoQ(){
 function rebarSchedule(){
   const rows=[];
   for(const l of levelsSorted()){const cnt={};for(const e of onLevel(l.id)){if(!REBAR[e.type]||!rebarOn(e.type,e.p))continue;cnt[e.type]=(cnt[e.type]||0)+1;
-    const ref=TYPES[e.type].key.toUpperCase()+String(cnt[e.type]).padStart(2,'0');
+    const ref=refOf(e,cnt[e.type]);
     rows.push({head:true,ref,id:e.id,title:TYPES[e.type].label,level:l.name,dims:elemDims(e)});
     const bars=barsFor(e);
     if(bars)bars.forEach(b=>rows.push({...b,ref,level:l.name,title:TYPES[e.type].label}));
@@ -3196,7 +3220,7 @@ async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await
   // ---- element schedule
   if(o.sched){newPage('Element schedule');const y=heading('Element schedule');const body=[];
     for(const l of levelsSorted()){const cnt={};for(const e of onLevel(l.id)){cnt[e.type]=(cnt[e.type]||0)+1;const ls=linesFor(e),m=ls[0];const c=ls.reduce((s2,x)=>s2+roundQ(x.qty,x.unit)*rateOf(x),0);
-      body.push([TYPES[e.type].key.toUpperCase()+String(cnt[e.type]).padStart(2,'0'),pT(l.name),pT(elemTitle(e)+'\n'+elemDims(e)),m?fmtQ(roundQ(m.qty,m.unit),m.unit):'–',m?pT(m.unit):'',priced?n2(c):'',...(cm?[cmV(c)]:[])]);}}
+      body.push([refOf(e,cnt[e.type]),pT(l.name),pT(elemTitle(e)+'\n'+elemDims(e)),m?fmtQ(roundQ(m.qty,m.unit),m.unit):'–',m?pT(m.unit):'',priced?n2(c):'',...(cm?[cmV(c)]:[])]);}}
     tbl({startY:y,head:[['Ref','Level','Element',{content:'Main qty',styles:R},'Unit',{content:'Cost',styles:R},...(cm?[{content:pT(`/m² ${cmLabel()}`),styles:R}]:[])]],body,columnStyles:{0:{cellWidth:13,textColor:INK3},1:{cellWidth:24},3:R,4:{cellWidth:11},5:{halign:'right',cellWidth:22},6:{halign:'right',cellWidth:17}}});}
   // ---- running header & footer
   const N=doc.internal.getNumberOfPages();const bodyN=N-coverPages.size;let bi=0;
@@ -3802,7 +3826,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-plumbing';
+const APP_VER='2026.09.26-marks';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
