@@ -3362,7 +3362,7 @@ $('#fLogo').addEventListener('change',async e=>{const f=e.target.files[0];e.targ
 
 /* ---------- bill of materials ---------- */
 const MCAT=[['cem','Cement & binders'],['agg','Aggregates & fill'],['mas','Masonry units & stone'],['reb','Steel reinforcement'],['fw','Formwork & timber'],['wp','Waterproofing'],['fin','Finishes'],['roof','Roofing'],['plb','Plumbing'],['ele','Electrical'],['sup','Doors, windows & supply items']];
-const COUNTU=['bags','nr','sheets','rolls','lengths','buckets'];
+const COUNTU=['bags','nr','pcs','sheets','rolls','lengths','buckets','tins','boxes','points'];
 /* ---------- data bank, rate analysis, added items ---------- */
 const UNITS=['m','m²','m³','kg','t','nr','item','sum','h','L'];
 const RTYPE={mat:'Material',lab:'Labour',plt:'Plant'};
@@ -3688,9 +3688,26 @@ function mapMats(it,add,onRebar){
     if(/^ef_/.test(k))add('ele','f_'+k,d.split(',')[0],'supply','nr',q,0,it.r*0.65/fac,src);
     if(/^ew_/.test(k))add('ele','w_'+k,'Cables, conduit and boxes: '+d.split(':')[0].toLowerCase(),'per point','nr',q,0,it.r*0.4/fac,src);
     // supply items
-    if(/^san_|^sacc_|^dx|^di(?!sp)|^wn|^mh|^cw_|^lv_|^bal_|^fn_|^gt_|^stpc_|^ststeel_|^sttimber_/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only','nr',q,0,it.r*0.65/fac,src);
+    if(/^san_|^sacc_|^dx|^di(?!sp)|^wn|^mh|^cw_|^lv_|^bal_|^fn_|^gt_|^stpc_|^ststeel_|^sttimber_/.test(k))add('sup','s_'+k,d.split(',')[0],'supply only',it.unit||'nr',q,0,it.r*0.65/fac,src);
 }
 const BOMG={cat:'Material',sec:'Bill section',level:'Floor',type:'Element'};
+function purchaseUnit(m){const k=m.key;let r=null;
+  const bm=k.match(/^bar(\d+)$/);if(bm){const d=+bm[1],w=12*kgm(d);r={unit:'pcs',per:w,name:`High-yield bar B500B Y${d} (Ø${d} mm)`,spec:`12 m bars · ${fmtN(w,2)} kg each`};}
+  else if(k==='barmix'){const w=12*kgm(12);r={unit:'pcs',per:w,name:'High-yield bar B500B, allowance items',spec:`counted as Y12 12 m bars · ${fmtN(w,2)} kg each`};}
+  else if(k==='bindwire')r={unit:'rolls',per:20,spec:'20 kg rolls · ≈ 10 kg per tonne of rebar',base:'# kg'};
+  else if(k==='timber50'||k==='purlins'||k==='battens')r={unit:'pcs',per:3.6,spec:(m.spec?m.spec+' · ':'')+'3.6 m (12 ft) lengths',base:'# m'};
+  else if(k==='emulsion'||k==='masonrypaint')r={unit:'buckets',per:20,spec:m.spec.replace('20 L buckets · ','')+' · 20 L buckets',base:'# L'};
+  else if(k==='floorpaint')r={unit:'tins',per:5,spec:'5 L tins',base:'# L'};
+  else if(k==='grout')r={unit:'bags',per:5,spec:'5 kg bags',base:'# kg'};
+  else if(/^tile_/.test(k))r={unit:'boxes',per:1.44,spec:k==='tile_wtile'?'boxes of 1.44 m² (8 tiles) · incl. cuts':'boxes of 1.44 m² (4 tiles) · incl. cuts',base:'# m²'};
+  else if(k==='studs')r={unit:'pcs',per:3,spec:'C-studs at 600 mm · 3 m lengths',base:'# m'};
+  else if(k==='gutter')r={unit:'pcs',per:4,spec:'4 m lengths with brackets',base:'# m'};
+  else if(/^pipe_/.test(k)){const L=+((m.spec||'').match(/^(\d+)/)||[0,6])[1];r={unit:'pcs',per:L,spec:`${L} m lengths`,base:'# m'};}
+  else if(/^c_cb_(tray|ladder|trunk)/.test(k))r={unit:'pcs',per:3,spec:'3 m lengths, with fittings and supports',base:'# m'};
+  else if(/^c_cb_conduit/.test(k))r={unit:'pcs',per:3,spec:'3 m lengths, with bends and saddles',base:'# m'};
+  else if(/^w_ew_/.test(k)&&m.unit==='nr')r={unit:'points',per:1};
+  else if(m.unit==='nr')r={unit:'pcs',per:1};
+  if(r&&r.base)r.base=r.base;if(r)m._per=r.per;return r;}
 function bomData(group){
   group=group||S.bomGroup||'cat';const M=new Map();const fac=+P.factor||1;let curG='';const rkg={};
   const add=(cat,key,name,spec,unit,qty,waste,price,src)=>{if(!(qty>1e-9))return;const g=group==='cat'?cat:curG,mk=g+'|'+key;let m=M.get(mk);if(!m){const br=cat!=='sup'&&P.bank&&bankRes('M:'+key);m={cat,g,key,name,spec,unit,qty:0,waste,price:br?+br.p:Math.round((cat==='sup'?price*fac:catPrice(price,cat))*100)/100,src:new Set()};M.set(mk,m);}m.qty+=qty;(src||[]).forEach(x=>m.src.add(x));};
@@ -3700,11 +3717,11 @@ function bomData(group){
   }}
   for(const [g,kg] of Object.entries(rkg)){curG=g;add('reb','bindwire','Binding wire, annealed 1.6 mm','≈ 10 kg per tonne of rebar','kg',kg/1000*10,5,2.5,[]);}
   const rows=[...M.values()];
+  for(const m of rows){const cv=purchaseUnit(m);if(cv){m.qty=m.qty/cv.per;m.price=Math.round(m.price*cv.per*100)/100;m.unit=cv.unit;if(cv.spec!=null)m.spec=cv.spec;if(cv.name)m.name=cv.name;m.base=cv.base||'';m.key=m.key+'@'+cv.unit;}}
   for(const m of rows){if(P.mw&&P.mw[m.key]!=null)m.waste=+P.mw[m.key];if(P.mp&&P.mp[m.key]!=null)m.price=+P.mp[m.key];
     const g=m.qty*(1+m.waste/100);m.order=COUNTU.includes(m.unit)?Math.ceil(g-1e-9):Math.round(g*100)/100;m.amt=m.order*m.price;
-    if(m.key.startsWith('bar')&&m.key!=='barmix'&&m.key!=='bindwire'){const di=+m.key.slice(3);m.note=`≈ ${Math.ceil(m.order/(12*kgm(di)))} bars of 12 m`;}
-    if(m.unit==='L'&&/buckets/.test(m.spec))m.note=`≈ ${Math.ceil(m.order/20)} buckets of 20 L`;
-    if(m.key.startsWith('pipe_')){const len=+m.spec.match(/^(\d)/)[1];m.note=`≈ ${Math.ceil(m.order/len)} lengths`;}
+    if(/^bar(\d+|mix)@/.test(m.key)){const di=m.key.startsWith('barmix')?12:+m.key.match(/^bar(\d+)/)[1];m.note=`= ${fmtN(m.order*12*kgm(di)/1000,3)} t`;}
+    if(m.base)m.note=`= ${m.base.replace('#',fmtN(m.order*(m._per||1),m._per&&m._per%1?2:0))}`;
     if(m.key==='cement')m.note=`≈ ${fmtN(m.order*0.05,2)} t`;}
   const ci=Object.fromEntries(MCAT.map(([c],i)=>[c,i]));
   let gs=group==='sec'?SEC.map(([c,n])=>({c,code:c,n})):group==='level'?levelsSorted().map(l=>({c:l.id,n:l.name})):group==='type'?Object.keys(TYPES).map(t=>({c:t,n:TYPES[t].label})):MCAT.map(([c,n])=>({c,n}));
@@ -3714,9 +3731,9 @@ function bomData(group){
 }
 function bomHTML(){
   const B=bomData();
-  return`<div class="sheet"><div class="bom-bar"><span class="hint" style="margin:0">Group materials by</span><span class="seg">${Object.entries(BOMG).map(([k,n])=>`<button data-bomg="${k}" aria-pressed="${B.group===k}">${n}</button>`).join('')}</span><button class="btn sm" id="bomCover">Cover page for this BoM</button></div><table class="bill bom"><thead><tr><th>Material</th><th>Specification</th><th>Unit</th><th class="r">Net qty</th><th class="r">Waste %</th><th class="r">Order qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead><tbody>
-  ${B.cats.length?B.cats.map((c,ci)=>`<tr class="sec"><td colspan="8"><span class="code">${c.code}</span>${esc(c.n)}</td></tr>`+c.rows.map(m=>`<tr class="item"><td class="desc"><b style="font-weight:500">${esc(m.name)}</b><button class="show" data-els="${[...m.src].join(',')}">show in model</button></td><td style="color:var(--ink2);font-size:13px">${esc(m.spec)}${m.note?`<div class="mono" style="font-size:11.5px;color:var(--accent)">${m.note}</div>`:''}</td><td class="unit">${m.unit}</td><td class="q r">${fmtN(m.qty,COUNTU.includes(m.unit)?1:2)}</td><td class="rt r"><input type="number" step="1" min="0" data-mw="${esc(m.key)}" value="${m.waste}" class="${P.mw&&P.mw[m.key]!=null?'edited':''}" style="width:56px" aria-label="Waste percent for ${esc(m.name)}"></td><td class="q r"><b style="font-weight:500">${fmtQ(m.order,COUNTU.includes(m.unit)?'nr':'m')}</b></td><td class="rt r"><input type="number" step="0.01" min="0" data-mp="${esc(m.key)}" value="${m.price.toFixed(2)}" class="${P.mp&&P.mp[m.key]!=null?'edited':''}" aria-label="Unit price for ${esc(m.name)}"></td><td class="amt r">${fmtN(m.amt)}</td></tr>`).join('')+`<tr class="sub"><td></td><td colspan="6">Total · ${esc(c.n)}</td><td class="amt r">${fmtN(c.total)}</td></tr>`).join('')+`<tr class="sub"><td></td><td colspan="6" style="font-size:15px">Total materials (supply only, excl. VAT)</td><td class="amt r" style="font-size:15px;color:var(--accent)">${money(B.total)}</td></tr>`
-  :'<tr><td colspan="8" class="empty">No materials yet. Model some elements first.</td></tr>'}</tbody></table>
+  return`<div class="sheet"><div class="bom-bar"><span class="hint" style="margin:0">Group materials by</span><span class="seg">${Object.entries(BOMG).map(([k,n])=>`<button data-bomg="${k}" aria-pressed="${B.group===k}">${n}</button>`).join('')}</span><button class="btn sm" id="bomCover">Cover page for this BoM</button></div><table class="bill bom boq"><thead><tr><th>Item</th><th>Material</th><th>Specification</th><th>Unit</th><th class="r">Net qty</th><th class="r">Waste %</th><th class="r">Order qty</th><th class="r">Unit price</th><th class="r">Amount</th></tr></thead><tbody>
+  ${B.cats.length?B.cats.map((c,ci)=>`<tr class="sec"><td colspan="9"><span class="code">${c.code}</span>${esc(c.n)}</td></tr>`+c.rows.map((m,mi)=>`<tr class="item"><td class="ref">${itemLetter(mi)}</td><td class="desc"><b style="font-weight:500">${esc(m.name)}</b><button class="show" data-els="${[...m.src].join(',')}">show in model</button></td><td style="color:var(--ink2);font-size:13px">${esc(m.spec)}${m.note?`<div class="mono" style="font-size:11.5px;color:var(--accent)">${m.note}</div>`:''}</td><td class="unit">${m.unit}</td><td class="q r">${fmtN(m.qty,COUNTU.includes(m.unit)?1:2)}</td><td class="rt r"><input type="number" step="1" min="0" data-mw="${esc(m.key)}" value="${m.waste}" class="${P.mw&&P.mw[m.key]!=null?'edited':''}" style="width:56px" aria-label="Waste percent for ${esc(m.name)}"></td><td class="q r"><b style="font-weight:500">${fmtQ(m.order,COUNTU.includes(m.unit)?'nr':'m')}</b></td><td class="rt r"><input type="number" step="0.01" min="0" data-mp="${esc(m.key)}" value="${m.price.toFixed(2)}" class="${P.mp&&P.mp[m.key]!=null?'edited':''}" aria-label="Unit price for ${esc(m.name)}"></td><td class="amt r">${fmtN(m.amt)}</td></tr>`).join('')+`<tr class="sub"><td></td><td colspan="7">Total · ${esc(c.n)}</td><td class="amt r">${fmtN(c.total)}</td></tr>`).join('')+`<tr class="sub"><td></td><td colspan="7" style="font-size:15px">Total materials (supply only, excl. VAT)</td><td class="amt r" style="font-size:15px;color:var(--accent)">${money(B.total)}</td></tr>`
+  :'<tr><td colspan="9" class="empty">No materials yet. Model some elements first.</td></tr>'}</tbody></table>
   <p class="note" style="padding:0 14px 14px">Derived from the measured quantities. Concrete mixes per m³: C30/37 9.0 bags cement, 0.42 m³ sand, 0.84 m³ aggregate · C25/30 8.2 / 0.43 / 0.86 · C20/25 6.4 / 0.45 / 0.90 · C12/15 blinding 4.4 / 0.47 / 0.94. Mortar 1:4 = 7.3 bags + 1.1 m³ sand per m³; screed 1:3 = 9 bags + 1.05 m³. Blocks 12.5 per m²; bricks 60 per m² per half-brick; plaster 12–15 mm plus 25% for dubbing and waste; formwork plywood reused 4 times; binding wire 10 kg per tonne. Edit waste % and prices as needed; edited cells are highlighted.</p></div>`;
 }
 function wireBom(pane){
@@ -3810,6 +3827,10 @@ async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await
     body.push(fr('Building works',n2(t.works),bold,t.works),fr(`Preliminaries ${P.prelims}%`,n2(t.prelims),{}),fr(`Contingency ${P.contingency}%`,n2(t.cont),{}),fr('Total excl. VAT',n2(t.net),bold,t.net),fr(`VAT ${P.vat}%`,n2(t.vat),{}),fr('Total incl. VAT',priced?pT(`${cur} ${n2(t.total)}`):'',gr,t.total));
     tbl({startY:y,head,body,columnStyles:{0:{cellWidth:16,textColor:PR,fontStyle:'bold'},2:{halign:'right',cellWidth:(+P.factor||1)>=50?44:32},...(cm?{3:{halign:'right',cellWidth:30},4:{halign:'right',cellWidth:16}}:{3:{halign:'right',cellWidth:16}})}});
     const yy=doc.lastAutoTable.finalY+8;doc.setFontSize(9);doc.setTextColor(...INK2);doc.text(pT(`Gross floor area ${fmtN(t.gfa)} m²${priced&&t.gfa?` · ${cur} ${fmtN(t.net/t.gfa)} per m² GFA excl. VAT`:''}`),M,yy);}
+    const pgCnt={},rowLet=new Map();
+    let TID=0;const hooks=y0=>{const tid=++TID;return{willDrawCell:d=>{if(d.section!=='body'||d.column.index!==0||!d.cell.raw||!d.cell.raw.itm||o.icode!=='page')return;const pg=doc.internal.getCurrentPageInfo().pageNumber,k=tid+'|'+d.row.index+'|'+pg;if(!rowLet.has(k)){pgCnt[pg]=pgCnt[pg]||0;rowLet.set(k,itemLetter(pgCnt[pg]++));}d.cell.text=[rowLet.get(k)];},
+      didDrawCell:d=>{if(d.section!=='body'||!d.cell.raw||!d.cell.raw.ul)return;doc.setFont('helvetica','bold');doc.setFontSize(8.8);const tw=doc.getTextWidth(String(d.cell.text[0]||'')),x=d.cell.x+1.6,yb=d.cell.y+3.2+8.8*0.3528*0.95+0.5;doc.setDrawColor(...INK);doc.setLineWidth(0.3);doc.line(x,yb,x+tw,yb);},
+      didDrawPage:d=>{mark();const pg=doc.internal.getCurrentPageInfo().pageNumber;if(!billPg[pg]){const xs=[];let x=d.settings.margin.left;xs.push(x);d.table.columns.forEach(c=>{x+=c.width;xs.push(x);});billPg[pg]={top:d.pageNumber===1?y0:d.settings.margin.top,xs};}}}};
   // ---- general preambles
   if(o.bill&&o.pre!==false&&preOn()){newPage('Preambles');let y=heading('Preambles','General notes to the Bills of Quantities · '+coverVal('project'));const lim=H-22;
     genPre().forEach(([h,t],i)=>{const lines=doc.splitTextToSize(pT(t),CW-8);const need=6+lines.length*4.2+3;if(y+need>lim){newPage('Preambles');y=26;}
@@ -3824,19 +3845,17 @@ async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await
       const sty={fontStyle:'bold',fillColor:TINT2,lineColor:PR,lineWidth:{top:0.3,bottom:0.3}};b.push(o.frame===false?[{content:'',styles:sty},{content:pT('Total carried to collection · '+x.name),colSpan:4,styles:sty},{content:priced?n2(x.total):'',styles:{...sty,halign:'right'}},...(cm?[{content:cmV(x.total),styles:{...sty,halign:'right'}}]:[])]
         :[{content:'',styles:sty},{content:pT('Total carried to collection · '+x.name),styles:sty},{content:'',styles:sty},{content:'',styles:sty},{content:'',styles:sty},{content:priced?n2(x.total):'',styles:{...sty,halign:'right'}},...(cm?[{content:cmV(x.total),styles:{...sty,halign:'right'}}]:[])]);return b;};
     const bigN=(+P.factor||1)>=50;const colS={0:{cellWidth:o.icode==='num'?15:11,textColor:INK3,fontSize:7.8},2:{cellWidth:11},3:{halign:'right',cellWidth:19},4:{halign:'right',cellWidth:bigN?22:18},5:{halign:'right',cellWidth:bigN?29:23},...(cm?{6:{halign:'right',cellWidth:17,textColor:INK2}}:{})};
-    const pgCnt={},rowLet=new Map();
-    const hooks=y0=>({willDrawCell:d=>{if(d.section!=='body'||d.column.index!==0||!d.cell.raw||!d.cell.raw.itm||o.icode!=='page')return;const pg=doc.internal.getCurrentPageInfo().pageNumber,k=d.row.index+'|'+pg;if(!rowLet.has(k)){pgCnt[pg]=pgCnt[pg]||0;rowLet.set(k,itemLetter(pgCnt[pg]++));}d.cell.text=[rowLet.get(k)];},
-      didDrawCell:d=>{if(d.section!=='body'||!d.cell.raw||!d.cell.raw.ul)return;doc.setFont('helvetica','bold');doc.setFontSize(8.8);const tw=doc.getTextWidth(String(d.cell.text[0]||'')),x=d.cell.x+1.6,yb=d.cell.y+3.2+8.8*0.3528*0.95+0.5;doc.setDrawColor(...INK);doc.setLineWidth(0.3);doc.line(x,yb,x+tw,yb);},
-      didDrawPage:d=>{mark();const pg=doc.internal.getCurrentPageInfo().pageNumber;if(!billPg[pg]){const xs=[];let x=d.settings.margin.left;xs.push(x);d.table.columns.forEach(c=>{x+=c.width;xs.push(x);});billPg[pg]={top:d.pageNumber===1?y0:d.settings.margin.top,xs};}}});
     if(o.newPage){secs.forEach((x,i)=>{newPage('Bill of Quantities');const y=heading(i?`Bill ${x.code}`:'Bill of Quantities',i?`${x.name} · ${coverVal('project')}`:undefined);tbl({startY:y,head:[cols],body:secRows(x),columnStyles:colS,...hooks(y)});});}
     else{newPage('Bill of Quantities');const y=heading('Bill of Quantities');tbl({startY:y,head:[cols],body:secs.flatMap(secRows),columnStyles:colS,...hooks(y)});}}
   // ---- bill of materials
   if(o.bom){if(o.cover&&firstKind!=='bom')drawCover('bom');const B=bomData();newPage('Bill of Materials');const y=heading('Bill of Materials',`Supply-only quantities derived from the bill · ${coverVal('project')} · ${cur}`);
-    const head=[['Ref','Material',{content:'Unit'},{content:'Net qty',styles:R},{content:'Waste',styles:R},{content:'Order qty',styles:R},{content:'Unit price',styles:R},{content:'Amount',styles:R}]];const body=[];
-    B.cats.forEach(c=>{body.push([{content:pT(`${c.code}   ${c.n.toUpperCase()}`),colSpan:8,styles:{fillColor:TINT,textColor:PR,fontStyle:'bold'}}]);c.rows.forEach((m,i)=>body.push([c.code+'.'+String(i+1).padStart(2,'0'),pT(m.name+(m.spec?'\n'+m.spec:'')),pT(m.unit),fmtN(m.qty),m.waste+'%',fmtN(m.order,COUNTU.includes(m.unit)?0:2),priced?n2(m.price):'',priced?n2(m.amt):'']));
-      body.push([{content:pT('Total · '+c.n),colSpan:7,styles:{fontStyle:'bold',fillColor:TINT2}},{content:priced?n2(c.total):'',styles:{fontStyle:'bold',fillColor:TINT2,halign:'right'}}]);});
-    body.push([{content:'TOTAL MATERIALS (supply only, excl. VAT)',colSpan:7,styles:{fontStyle:'bold',fillColor:PR,textColor:ONP}},{content:priced?n2(B.total):'',styles:{fontStyle:'bold',fillColor:PR,textColor:ONP,halign:'right'}}]);
-    tbl({startY:y,head,body,columnStyles:{0:{cellWidth:14,textColor:INK3,fontSize:7.8},2:{cellWidth:12},3:{halign:'right',cellWidth:18},4:{halign:'right',cellWidth:13},5:{halign:'right',cellWidth:18},6:{halign:'right',cellWidth:(+P.factor||1)>=50?21:18},7:{halign:'right',cellWidth:(+P.factor||1)>=50?28:22}}});}
+    const head=[['Item','Material',{content:'Unit'},{content:'Net qty',styles:R},{content:'Waste',styles:R},{content:'Order qty',styles:R},{content:'Unit price',styles:R},{content:'Amount',styles:R}]];const body=[];
+    const hs={fontStyle:'bold',fontSize:8.8,textColor:INK,cellPadding:{top:3.2,bottom:1.6,left:1.6,right:1.6}};const E6=()=>Array(6).fill(0).map(()=>({content:'',styles:{}}));
+    B.cats.forEach(c=>{body.push(o.frame===false?[{content:pT(`${c.code}   ${c.n.toUpperCase()}`),colSpan:8,styles:{fillColor:TINT,textColor:PR,fontStyle:'bold'}}]:[{content:c.code,styles:{...hs,halign:'center',textColor:PR}},{content:pT(c.n.toUpperCase()),ul:1,styles:hs},...E6()]);
+      c.rows.forEach((m,i)=>body.push([o.icode==='num'?c.code+'.'+String(i+1).padStart(2,'0'):{content:o.icode==='bill'?itemLetter(i):'',itm:1,styles:{halign:'center',fontStyle:'bold',textColor:INK,fontSize:8.6}},pT(m.name+(m.spec?'\n'+m.spec:'')+(m.note?'\n'+m.note:'')),pT(m.unit),fmtN(m.qty,COUNTU.includes(m.unit)?1:2),m.waste+'%',fmtN(m.order,COUNTU.includes(m.unit)?0:2),priced?n2(m.price):'',priced?n2(m.amt):'']));
+      const sty={fontStyle:'bold',fillColor:TINT2};body.push(o.frame===false?[{content:pT('Total · '+c.n),colSpan:7,styles:sty},{content:priced?n2(c.total):'',styles:{...sty,halign:'right'}}]:[{content:'',styles:sty},{content:pT('Total · '+c.n),styles:sty},...Array(5).fill(0).map(()=>({content:'',styles:sty})),{content:priced?n2(c.total):'',styles:{...sty,halign:'right'}}]);});
+    const gs={fontStyle:'bold',fillColor:PR,textColor:ONP};body.push(o.frame===false?[{content:'TOTAL MATERIALS (supply only, excl. VAT)',colSpan:7,styles:gs},{content:priced?n2(B.total):'',styles:{...gs,halign:'right'}}]:[{content:'',styles:gs},{content:'TOTAL MATERIALS (supply only, excl. VAT)',styles:gs},...Array(5).fill(0).map(()=>({content:'',styles:gs})),{content:priced?n2(B.total):'',styles:{...gs,halign:'right'}}]);
+    tbl({startY:y,head,body,columnStyles:{0:{cellWidth:o.icode==='num'?14:11,textColor:INK3,fontSize:7.8},2:{cellWidth:15},3:{halign:'right',cellWidth:18},4:{halign:'right',cellWidth:13},5:{halign:'right',cellWidth:18},6:{halign:'right',cellWidth:(+P.factor||1)>=50?21:18},7:{halign:'right',cellWidth:(+P.factor||1)>=50?28:22}},...hooks(y)});}
   // ---- bar schedule
   if(o.rebar){newPage('Bar schedule');const y=heading('Bar schedule');const rows=rebarSchedule();const body=[];
     rows.forEach(r=>{if(r.head){body.push([{content:pT(`${r.ref} · ${r.title} · ${r.level}   —   ${r.dims}`),colSpan:7,styles:{fillColor:TINT,textColor:PR,fontStyle:'bold'}}]);return;}
@@ -3964,8 +3983,8 @@ function exportXlsx(o){o={...XLALL,...(o||{})};
   const BM=bomData();const GL={cat:'category',sec:'bill section',level:'floor',type:'element'}[BM.group];
   const cb=[['BILL OF MATERIALS'],[],[coverVal('project')],[coverVal('location')],[],...COVERF.filter(([k])=>!['doc','project','location'].includes(k)).map(([k,l])=>[l,k==='date'?fmtDate(coverVal(k)):coverVal(k)]),[],['Total materials (supply only, excl. VAT)',+BM.total.toFixed(2)],['Grouped by',GL],['Currency',P.currency],[],['Materials cost by '+GL,'Amount','Share'],...coverChartData('bom').rows.map(r=>[r.n,+r.v.toFixed(2),+(r.p*100).toFixed(1)+'%']),[],['Contents'],...BM.cats.map(c=>[c.code,c.n])];
   const wsCB=X.utils.aoa_to_sheet(cb);coverStyle(wsCB,cb);
-  const ma=[['Bill of materials · '+coverVal('project')+' · grouped by '+GL],['Supply-only material quantities derived from the Bill of Quantities · '+P.currency],[],['Ref','Material','Specification','Unit','Net qty','Waste %','Order qty','Unit price','Amount','Note']];const mf=[];let mref=0;const tots=[];
-  BM.cats.forEach((c,ci)=>{ma.push([c.code,c.n.toUpperCase()]);const first=ma.length+1;c.rows.forEach(m=>{mref++;ma.push([c.code+'.'+String(c.rows.indexOf(m)+1).padStart(2,'0'),m.name,m.spec,m.unit,+m.qty.toFixed(3),m.waste,null,m.price,null,m.note||'']);const r=ma.length;
+  const ma=[['Bill of materials · '+coverVal('project')+' · grouped by '+GL],['Supply-only material quantities derived from the Bill of Quantities · '+P.currency],[],['Item','Material','Specification','Unit','Net qty','Waste %','Order qty','Unit price','Amount','Note']];const mf=[];let mref=0;const tots=[];
+  BM.cats.forEach((c,ci)=>{ma.push([c.code,c.n.toUpperCase()]);const first=ma.length+1;c.rows.forEach((m,mi)=>{mref++;ma.push([itemLetter(mi),m.name,m.spec,m.unit,+m.qty.toFixed(3),m.waste,null,m.price,null,m.note||'']);const r=ma.length;
       mf.push([r-1,6,COUNTU.includes(m.unit)?`ROUNDUP(E${r}*(1+F${r}/100),0)`:`ROUND(E${r}*(1+F${r}/100),2)`,m.order],[r-1,8,`G${r}*H${r}`,m.amt]);});
     const last=ma.length;ma.push(['','Total · '+c.n]);mf.push([ma.length-1,8,`SUM(I${first}:I${last})`,c.total]);tots.push('I'+ma.length);ma.push([]);});
   ma.push(['','TOTAL MATERIALS (supply only, excl. VAT)']);mf.push([ma.length-1,8,tots.length?tots.join('+'):'0',BM.total]);
@@ -3974,7 +3993,8 @@ function exportXlsx(o){o={...XLALL,...(o||{})};
   {sr(wsM,0,0,9,XS.title);sr(wsM,1,0,9,XS.sub);rh(wsM,0,26);sr(wsM,3,0,9,XS.head);rh(wsM,3,22);
     for(let r=4;r<ma.length;r++){const a=ma[r];if(!a||!a.length)continue;if(String(a[1]).startsWith('TOTAL MATERIALS')){sr(wsM,r,0,9,XS.grand);rh(wsM,r,22);continue;}
       if(a.length===2&&String(a[1]).startsWith('Total ·')){sr(wsM,r,0,9,XS.tot);continue;}if(a.length===2){sr(wsM,r,0,9,XS.sec);rh(wsM,r,20);continue;}
-      sr(wsM,r,0,9,XS.item);sc(wsM,r,2,XS.wrap);sc(wsM,r,5,XS.input);sc(wsM,r,7,XS.input);numz(wsM,r,[4,5,6,7,8]);}}
+      sr(wsM,r,0,9,XS.item);sc(wsM,r,2,XS.wrap);sc(wsM,r,5,XS.input);sc(wsM,r,7,XS.input);numz(wsM,r,[4,5,6,7,8]);sc(wsM,r,0,{font:{bold:true},alignment:{horizontal:'center',vertical:'top'}});}
+    const DB={style:'double',color:{rgb:'5F6B66'}},last=ma.length-1;for(let r=3;r<=last;r++)for(let c=0;c<=9;c++)sc(wsM,r,c,{border:{left:DB,right:DB,...(r===3?{top:DB}:{}),...(r===last?{bottom:DB}:{})}});wsM['!margins']={left:0.5,right:0.5,top:0.6,bottom:0.6,header:0.3,footer:0.3};}
   const boqPart=o.bill||o.summary;
   let wsPre=null;if(o.bill&&preOn()){const pa=[[P.name],['Preambles · general notes to the Bills of Quantities'],[]];const hr=[];genPre().forEach(([h,t],i)=>{hr.push(pa.length);pa.push([i+1+'.',h]);pa.push(['',t]);pa.push([]);});wsPre=X.utils.aoa_to_sheet(pa);wsPre['!cols']=[{wch:5},{wch:100}];sr(wsPre,0,0,1,XS.title);sr(wsPre,1,0,1,XS.sub);
     hr.forEach(r=>{sc(wsPre,r,0,{font:{name:'Calibri',sz:11,bold:true}});sc(wsPre,r,1,{font:{name:'Calibri',sz:11,bold:true,underline:true}});sc(wsPre,r+1,1,mS(XS.wrap,{font:{name:'Calibri',sz:10,color:{rgb:'4B5752'}}}));rh(wsPre,r+1,Math.min(80,Math.ceil(String(pa[r+1][1]).length/95)*13+3));});}
@@ -4469,7 +4489,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-preambles';
+const APP_VER='2026.09.26-bomunits';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
