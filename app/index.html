@@ -460,7 +460,8 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
         <button data-act="settings">Project settings…</button>
         <hr>
         <button data-act="new">New empty project</button>
-        <button data-act="sample">Load sample house</button>
+        <button data-act="sample">Load sample apartment block</button>
+        <button data-act="sampleHouse">Load sample house</button>
         <hr>
         <button data-act="open">Open project file… <small>.json</small></button>
         <button data-act="save" class="needs-dl">Save project file <small>.json</small></button>
@@ -604,6 +605,7 @@ const TYPES={
   cwall:{label:'Curtain wall',key:'q',mode:'chain'},
   louvre:{label:'Louvre panel',key:'z',mode:'chain'},
   fence:{label:'Fence / boundary wall',key:'',mode:'chain'},
+  pave:{label:'Paving, parking & landscaping',key:'',mode:'poly'},
 };
 const OPT={
   kind:{external:'External',internal:'Internal'},
@@ -654,6 +656,10 @@ const OPT={
   bmat:{block:'Concrete blockwork',brick:'Clay brickwork',stone:'Natural stone masonry'},
   bfin:{render2:'Render + paint both sides',render1:'Render + paint one side',fair:'Fair-faced, pointed'},
   cop:{yes:'Precast concrete coping',no:'No coping'},
+  pvs:{asphalt:'Asphalt · binder + surface course',blocks:'Concrete paving blocks 80 mm',concrete:'Concrete hardstanding 150 mm',gravel:'Gravel on geotextile',grasspave:'Grass-reinforcement pavers',lawn:'Soft landscaping · topsoil + turf'},
+  bays:{auto:'Mark bays automatically',none:'No parking bays'},
+  kerb:{yes:'Precast concrete kerbs to edges',no:'No kerbs'},
+  cars:{yes:'Show parked cars in 3D',no:'No cars in 3D'},
   type:{'pitched-tiles':'Pitched · concrete tiles','pitched-sheets':'Pitched · steel sheets','flat-membrane':'Flat · membrane'},
 };
 const FIELDS={
@@ -679,6 +685,7 @@ const FIELDS={
   rail:[['bal','Type','sel'],['h','Height','m']],
   cwall:[['cwsys','System','sel'],['glz','Glazing','sel'],['h','Height (0 = level height)','m'],['mv','Mullion spacing','m'],['tv','Transom spacing (0 = none)','m'],['sp','Opaque spandrel height at slab','m'],['ov','Opening vents','nr']],
   louvre:[['lvmat','Material','sel'],['lvblade','Blades','sel'],['h','Height','m'],['sill','Bottom above floor','m'],['mesh','Mesh','sel']],
+  pave:[['name','Name','txt'],['pvs','Surface','sel'],['sb','Sub-base thickness','m'],['kerb','Edging','sel'],['bays','Parking bays','sel'],['bw','Bay width','m'],['bl','Bay length','m'],['ai','Aisle width','m'],['acc','Accessible bays (of the total)','nr'],['trees','Trees','nr'],['cars','3D view','sel']],
   fence:[['ftype','Fence type','sel'],['h','Height','m'],['dh','Dwarf wall height','m'],['sp','Post / pier spacing (0 = none)','m'],['fcoat','Finish','sel'],['ftop','Top protection','sel'],['bmat','Wall material','sel'],['t','Wall thickness','m'],['bfin','Wall finish','sel'],['cop','Coping','sel'],['fw','Footing width','m'],['fd','Footing depth','m'],['exc','Footing bottom below ground','m'],['pg','Pedestrian gates','nr'],['vg','Vehicle gates','nr'],['vgw','Vehicle gate width','m'],['vgk','Vehicle gate type','sel']],
 };
 const TD={
@@ -704,6 +711,7 @@ const TD={
   rail:{bal:'steel',h:1.1},
   cwall:{cwsys:'stick',glz:'dgu',h:0,mv:1.5,tv:1.5,sp:0,ov:0},
   louvre:{lvmat:'alu',lvblade:'fixed',h:1.2,sill:0,mesh:'yes'},
+  pave:{name:'Car park',pvs:'asphalt',sb:0.25,kerb:'yes',bays:'auto',bw:2.5,bl:5,ai:6,acc:0,trees:0,cars:'yes'},
   fence:{ftype:'mesh',h:1.8,dh:0.6,sp:2.5,fcoat:'pc',ftop:'none',bmat:'block',t:0.2,bfin:'render2',cop:'yes',fw:0.6,fd:0.25,exc:0.6,pg:0,vg:0,vgw:4,vgk:'swing'},
 };
 /* reinforcement inputs */
@@ -736,7 +744,7 @@ const ECOLS=[
   ['Walls',[['wall:blockwork','Blockwork wall','#BDB2A4'],['wall:brick','Brick wall','#C47A5E'],['wall:concrete','Concrete wall','#96A2A6'],['wall:drywall','Drywall partition','#DCD4BC']]],
   ['Stairs & ramps',[['stair','Staircase','#7A5FA8'],['ramp','Ramp','#9A7CC0'],['rail','Balustrade','#4E5A66']]],
   ['Facade',[['cwall','Curtain wall','#2E86B8'],['louvre','Louvre','#6B8E7A']]],
-  ['External works',[['fence','Fence / boundary wall','#4F7A3A']]],
+  ['External works',[['fence','Fence / boundary wall','#4F7A3A'],['pave','Paving / parking','#5E6A70']]],
   ['Openings',[['door','Door','#A0703C'],['window','Window','#3C8DB5']]],
   ['Finishes',[['room','Rooms','']]],
   ['Services',[['sanitary','Sanitary fitting','#2F7FD1'],['pipe','Pipe runs',''],['pfit','Valves & fittings','']]],
@@ -764,9 +772,13 @@ const levelsSorted=()=>[...P.levels].sort((a,b)=>a.elev-b.elev);
 const isGround=id=>levelsSorted()[0]?.id===id;
 function levelAbove(id){const s=levelsSorted();return s[s.findIndex(l=>l.id===id)+1];}
 function levelBelow(id){const s=levelsSorted();const i=s.findIndex(l=>l.id===id);return i>0?s[i-1]:null;}
-const byId=id=>P.elements.find(e=>e.id===id);
-const openingsOf=w=>P.elements.filter(e=>e.host===w.id);
-const onLevel=id=>P.elements.filter(e=>e.level===id);
+/* element index: rebuilt when the element list changes or a new pass starts (IXG), so large projects stay fast */
+let IXG=0;const IX={};
+function ix(){const k=P.elements;if(IX.a!==k||IX.n!==k.length||IX.g!==IXG){IX.a=k;IX.n=k.length;IX.g=IXG;IX.id=new Map();IX.lv=new Map();IX.host=new Map();
+  for(const e of k){IX.id.set(e.id,e);let a=IX.lv.get(e.level);if(!a)IX.lv.set(e.level,a=[]);a.push(e);if(e.host){let h=IX.host.get(e.host);if(!h)IX.host.set(e.host,h=[]);h.push(e);}}}return IX;}
+const byId=id=>{const e=ix().id.get(id);return e&&e.id===id?e:P.elements.find(x=>x.id===id);};
+const openingsOf=w=>(ix().host.get(w.id)||[]).filter(e=>e.host===w.id);
+const onLevel=id=>(ix().lv.get(id)||[]).filter(e=>e.level===id);
 
 function snapshot(){return JSON.stringify(P);}
 function pushUndo(){undoStack.push(snapshot());if(undoStack.length>120)undoStack.shift();redoStack=[];}
@@ -776,7 +788,7 @@ function redo(){if(!redoStack.length)return;undoStack.push(snapshot());P=JSON.pa
 function fixState(){if(!lvl(S.level))S.level=levelsSorted()[0]?.id;if(S.sel&&!byId(S.sel))S.sel=null;}
 
 let saveT=0;
-function changed(){
+let CHG=0;function changed(){IXG++;CHG++;
   clearTimeout(saveT);saveT=setTimeout(libSave,400);
   TO=takeoff();
   renderKPIs();renderLevels();renderProps();renderSub();renderUnder();updateRailCounts();drawPlan();queue3D();
@@ -871,6 +883,23 @@ function stairQ(e){const M=stairModel(e),p=e.p,t=+p.t||0.15,r=M.r;
 function rampGeo(e){const L=elLen(e),H=+e.p.h||0;return{L,H,sl:Math.hypot(L,H),ang:Math.atan2(H,L||1),w:+e.p.w,t:+e.p.t,ratio:H>0?L/H:Infinity};}
 const cwH=e=>+e.p.h>0?+e.p.h:lvH(e);
 const FENCE={chain:[18,9],mesh:[30,18],palisade:[45,25],railing:[70,45],closeboard:[35,20],picket:[28,12],postrail:[20,8],wire:[6,3],precast:[50,25],glass:[180,120],hoarding:[25,15]};
+const PVD={asphalt:[0.1,0x3A4045,'#59636A'],blocks:[0.13,0x8F8A82,'#A39E94'],concrete:[0.15,0xA9A9A3,'#9EA3A6'],gravel:[0.05,0x9E9684,'#B3A78E'],grasspave:[0.13,0x6B8E4E,'#7FA05A'],lawn:[0.15,0x4F7F35,'#6FA14B']};
+function paveQ(e){const p=e.p,pts=e.pts||[],A=pts.length>=3?area(pts):0,Pm=pts.length>=3?perim(pts):0,out={A,Pm,bays:[],rows:0,lines:0,trees:[]};if(pts.length<3)return out;
+  const soft=p.pvs==='lawn';
+  if(!soft&&p.bays==='auto'){const a=pts[0],b=pts[1],L=d2(a,b)||1;let u=[(b[0]-a[0])/L,(b[1]-a[1])/L],n=[-u[1],u[0]];const c=centroid(pts);if((c[0]-a[0])*n[0]+(c[1]-a[1])*n[1]<0)n=[-n[0],-n[1]];
+    const pu=q=>(q[0]-a[0])*u[0]+(q[1]-a[1])*u[1],pn=q=>(q[0]-a[0])*n[0]+(q[1]-a[1])*n[1];const U0=Math.min(...pts.map(pu)),U1=Math.max(...pts.map(pu)),D=Math.max(...pts.map(pn));
+    const bw=Math.max(1.8,+p.bw||2.5),bl=Math.max(3.5,+p.bl||5),ai=Math.max(3,+p.ai||6),rows=[];let o=0;
+    if(bl<=D+1e-6){rows.push(0);o=bl;for(let k=0;k<40;k++){o+=ai;if(o+bl>D+1e-6)break;rows.push(o);o+=bl;if(o+bl>D+1e-6)break;rows.push(o);o+=bl;}}
+    const W=(x,y)=>[a[0]+u[0]*x+n[0]*y,a[1]+u[1]*x+n[1]*y],inset=0.06;
+    rows.forEach((r,ri)=>{const nx=rows[ri+1],pv=rows[ri-1],back=ri===0?r:nx!==undefined&&Math.abs(nx-r-bl)<1e-6?r+bl:pv!==undefined&&Math.abs(pv+bl-r)<1e-6?r:r+bl,front=back===r?r+bl:r;let run=0;
+      for(let x=U0;x+bw<=U1+1e-6&&out.bays.length<3000;x+=bw){const cn=[W(x+inset,r+inset),W(x+bw-inset,r+inset),W(x+bw-inset,r+bl-inset),W(x+inset,r+bl-inset)];
+        if(cn.every(q=>inPoly(q,pts))){out.bays.push({poly:[W(x,r),W(x+bw,r),W(x+bw,r+bl),W(x,r+bl)],row:ri,back:W(x+bw/2,back),front:W(x+bw/2,front),i:out.bays.length});run++;}
+        else if(run){out.lines+=bl;run=0;}}
+      if(run)out.lines+=bl;});
+    out.rows=rows.length;out.lines+=out.bays.length*bl;out.u=u;out.n=n;}
+  const nt=Math.max(0,Math.round(+p.trees||0));if(nt){const bx=bbox(pts),lx=bx.w>=bx.h,Lb=lx?bx.w:bx.h;let k=0;
+    for(const off of [0.5,0.25,0.75,0.12,0.88])for(let j=0;j<nt*3&&out.trees.length<nt;j++){const t=(j+0.5)/(nt*1.0);if(t>1)break;const q=lx?[bx.x0+Lb*t,bx.y0+bx.h*off]:[bx.x0+bx.w*off,bx.y0+Lb*t];if(inPoly(q,pts)&&!out.trees.some(z=>d2(z,q)<3))out.trees.push(q);k++;}}
+  out.nb=out.bays.length;out.acc=Math.min(out.nb,Math.max(0,Math.round(+p.acc||0)));return out;}
 function fenceQ(e){const p=e.p,L=elLen(e),y=p.ftype||'mesh',pg=Math.max(0,Math.round(+p.pg||0)),vg=Math.max(0,Math.round(+p.vg||0)),gw=pg*1.0+vg*Math.max(1,+p.vgw||4);
   const Ln=Math.max(0,L-gw),sp=+p.sp||0,posts=sp>0?Math.ceil(L/sp)+1:0;return{L,Ln,y,pg,vg,posts,h:+p.h||1.8,mas:y==='bwall'||y==='wallrail'};}
 const midPt=e=>{const A=arcOf(e);return A?A.M.slice():[(e.pts[0][0]+e.pts[1][0])/2,(e.pts[0][1]+e.pts[1][1])/2];};
@@ -1111,6 +1140,18 @@ function linesFor(e){
     if(TP)add('8.4',30,TP[0],TP[1],'m',F.Ln,TP[2]);
     if(F.pg)add('8.4',40,`gt_ped_${H}`,`Pedestrian gate 1.0 m wide × ${H} mm high to match fence, with gate posts, hinges and lock`,'nr',F.pg,Math.round(280+160*h));
     if(F.vg){const gw=Math.max(1,+p.vgw||4),k=p.vgk||'swing';add('8.4',41,`gt_${k}_${mm(gw)}_${H}`,`${OPT.vgk[k]}, ${fmtN(gw,2)} m opening × ${H} mm high to match fence, with gate posts${k==='swing'?', hinges, drop bolts and lock':', track, guide rollers'+(k==='motor'?', motor, controls and safety sensors':'')}`,'nr',F.vg,Math.round((k==='swing'?140:180)*gw*h+(k==='motor'?2600:k==='slide'?400:0)));}
+  }else if(e.type==='pave'){
+    const Q=paveQ(e),A=Q.A,y=p.pvs||'asphalt',D=PVD[y]||PVD.asphalt,sb=y==='lawn'?0:Math.max(0,+p.sb||0),SB=mm(sb);if(!(A>0))return out;
+    if(y==='lawn'){add('8.2',50,'pvtop','Imported topsoil 150 mm thick, spread, levelled and cultivated to landscaped areas','m²',A,6);add('8.2',51,'pvturf','Turfing to landscaped areas, including fertiliser, watering and first cut','m²',A,7);}
+    else{add('8.2',10,'pvexc','Excavate to reduce levels for pavings, average depth not exceeding 0.5 m, and dispose off site','m³',A*(D[0]+sb),24);
+      if(sb>0)add('8.2',11,'pvsb'+SB,`Granular sub-base Type 1, ${SB} mm thick, laid and compacted in layers`,'m²',A,+(3+34*sb).toFixed(2));
+      const S2={asphalt:['pvasp','Asphalt: 60 mm dense bitumen macadam binder course and 40 mm asphalt concrete surface course, to roads and car parks',27],blocks:['pvblk','Interlocking concrete paving blocks 200 × 100 × 80 mm on 50 mm sand bed, vibrated and joints filled',32],concrete:['pvconc','Concrete hardstanding C30/37, 150 mm thick, A193 mesh, brushed finish, including formwork to edges and sealed joints',42],gravel:['pvgrv','Gravel 50 mm thick on geotextile membrane, raked and rolled',9],grasspave:['pvgrs','Grass-reinforcement concrete pavers 100 mm on 50 mm sand bed, cells filled with topsoil and seeded',38]}[y];
+      add('8.2',12,S2[0],S2[1],'m²',A,S2[2]);
+      if(p.kerb!=='no')add('8.2',20,'kerb','Precast concrete kerb 125 × 255 mm on C20/25 concrete bed and haunching','m',Q.Pm,24);
+      if(Q.nb){add('8.2',30,`pvbay_${mm(+p.bw)}x${mm(+p.bl)}`,`Parking bay ${fmtN(+p.bw,2)} × ${fmtN(+p.bl,2)} m, marked out with 100 mm white thermoplastic lines`,'nr',Q.nb-Q.acc,38);
+        if(Q.acc)add('8.2',31,'pvbayacc','Accessible parking bay, extra over for 1.2 m hatched transfer zone, wheelchair symbol and sign on post','nr',Q.acc,160);
+        add('8.2',32,'pvstop','Precast concrete wheel stop 1.8 m long, bolted down','nr',Q.nb,32);}}
+    const nt=Math.max(0,Math.round(+p.trees||0));if(nt)add('8.2',60,'pvtree','Standard tree 12–14 cm girth, planted in pit 1.0 × 1.0 × 1.0 m with imported topsoil, stake, ties and first watering','nr',nt,180);
   }else if(e.type==='louvre'){
     const A=elLen(e)*(+p.h||0),R={alu:[260,420],steel:[230,380],timber:[210,360],glass:[300,450]}[p.lvmat]||[260,420];
     add('2.6',60,`lv_${p.lvmat}_${p.lvblade}`,`Louvres, ${OPT.lvmat[p.lvmat].toLowerCase()}, ${OPT.lvblade[p.lvblade].toLowerCase()}, including frame, fixings and flashings`,'m²',A,p.lvblade==='adj'?R[1]:R[0]);
@@ -1149,15 +1190,15 @@ function takeoff(){
   for(const s of secs){s.items.sort((a,b)=>a.o-b.o||a.key.localeCompare(b.key,undefined,{numeric:true}));
     s.items.forEach((it,i)=>{it.ref=s.code+'.'+String(i+1).padStart(2,'0');it.q=roundQ(it.qty,it.unit);it.r=rateOf(it);it.amt=it.q*it.r;s.total+=it.amt;});works+=s.total;}
   const prelims=works*(+P.prelims||0)/100,cont=(works+prelims)*(+P.contingency||0)/100,net=works+prelims+cont,vat=net*(+P.vat||0)/100;
-  const gfa=P.elements.filter(e=>e.type==='slab'&&lvl(e.level)).reduce((s,e)=>s+area(e.pts)-voidsIn(e).filter(v=>v.p.vkind==='atrium').reduce((a,v)=>a+area(v.pts),0),0);
+  const roofOnly=new Set(P.levels.filter(l=>P.elements.some(e=>e.level===l.id&&e.type==='roof')&&!P.elements.some(e=>e.level===l.id&&e.type==='room')).map(l=>l.id));const gfa=P.elements.filter(e=>e.type==='slab'&&lvl(e.level)&&!roofOnly.has(e.level)).reduce((s,e)=>s+area(e.pts)-voidsIn(e).filter(v=>v.p.vkind==='atrium').reduce((a,v)=>a+area(v.pts),0),0);
   return{secs,works,prelims,cont,net,vat,total:net+vat,gfa};
 }
-function money(v,dec=0){try{return new Intl.NumberFormat('en-GB',{style:'currency',currency:P.currency||'EUR',minimumFractionDigits:dec,maximumFractionDigits:dec}).format(v);}catch(e){return (P.currency||'')+' '+v.toFixed(dec);}}
-const fmtN=(v,d=2)=>new Intl.NumberFormat('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v);
+const NFC={};function money(v,dec=0){try{const k=(P.currency||'EUR')+dec;return(NFC[k]||(NFC[k]=new Intl.NumberFormat('en-GB',{style:'currency',currency:P.currency||'EUR',minimumFractionDigits:dec,maximumFractionDigits:dec}))).format(v);}catch(e){return (P.currency||'')+' '+v.toFixed(dec);}}
+const fmtN=(v,d=2)=>(NFC['n'+d]||(NFC['n'+d]=new Intl.NumberFormat('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d}))).format(v);
 const fmtQ=(q,u)=>u==='nr'||u==='kg'?fmtN(q,0):u==='t'?fmtN(q,3):fmtN(q,2);
 
-/* ---------- sample project ---------- */
-function sampleProject(){
+/* ---------- sample projects ---------- */
+function sampleHouse(){
   const E=[];const add=(type,level,pts,p,extra)=>{const e={id:uid(),type,level,pts,p:{...TDc(type),...p},...(extra||{})};E.push(e);return e;};
   const rect=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
   const ring=[[0,0],[12,0],[12,9],[0,9]];
@@ -1224,6 +1265,99 @@ function sampleProject(){
     grids:GRIDS,
     levels:[{id:'gf',name:'Ground Floor',elev:0,h:3.0},{id:'ff',name:'First Floor',elev:3.0,h:3.0},{id:'rf',name:'Roof',elev:6.0,h:1.5}],elements:E,rates:{}};
 }
+/* 12-storey L-shaped apartment block: frame, core, flats with balconies, façades, roof, external works and parking */
+function sampleProject(){
+  const E=[];const add=(type,level,pts,p,extra)=>{const e={id:uid(),type,level,pts,p:{...TDc(type),...p},...(extra||{})};E.push(e);return e;};
+  const R=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+  const op=(type,host,at,p)=>add(type,host.level,null,p,{host:host.id,at});
+  const rd=v=>+v.toFixed(3),HT=3.2,WH=3.0,NF=12;
+  const LV=[{id:'gf',name:'Ground Floor',elev:0,h:HT}];for(let i=1;i<NF;i++)LV.push({id:'l'+i,name:'Level '+i,elev:rd(i*HT),h:HT});
+  LV.push({id:'rf',name:'Roof',elev:rd(NF*HT),h:HT});LV.push({id:'ph',name:'Core roof',elev:rd(NF*HT+HT),h:1.0});
+  const FLOORS=LV.slice(0,NF).map(l=>l.id),UP=LV.slice(1,NF+1).map(l=>l.id);
+  const XL=[0,6.3,8.1,14.4,21.6,28.8,36,43.2],FP=[[0,0],[43.2,0],[43.2,14.4],[14.4,14.4],[14.4,43.2],[0,43.2]];
+  const inFP=(x,y)=>x<=14.4+1e-6||y<=14.4+1e-6;
+  const W=(lv,a,b,p,x)=>add('wall',lv,[a,b],{kind:'internal',material:'blockwork',t:0.2,h:WH,...p},x);const ACCENT='#8C5E45',PLINTH='#5F666B';
+  const EXT={kind:'external',material:'blockwork',t:0.2,h:WH},RC={kind:'internal',material:'concrete',t:0.2,h:WH},PART={kind:'internal',material:'drywall',t:0.1,h:WH};
+  const BM={w:0.3,d:0.45,mb:[{pos:'top',n:3,d:16},{pos:'bot',n:4,d:20},{pos:'tsup',n:2,d:20}],lk:[{t:'closed',d:10,s:0.1,s2:0.2}]};
+  const BL=[];[0,6.3,8.1,14.4].forEach(y=>BL.push([[0,y],[43.2,y]]));[21.6,28.8,36,43.2].forEach(x=>BL.push([[x,0],[x,14.4]]));
+  [0,6.3,8.1,14.4].forEach(x=>BL.push([[x,0],[x,43.2]]));[21.6,28.8,36,43.2].forEach(y=>BL.push([[0,y],[14.4,y]]));
+  const COLS=[];for(const x of XL)for(const y of XL)if(inFP(x,y))COLS.push([x,y]);
+  // --- substructure
+  for(const c of COLS)add('pad','gf',[c],{ps:'stepped',w:3.2,l:3.2,d:0.8,w2:1.6,l2:1.6,d2:0.4,exc:2.4,stub:'yes',md:20,ms:0.15,ly:2});
+  for(const [a,b] of BL)add('gbeam','gf',[a,b],{w:0.4,d:0.7,mb:[{pos:'top',n:3,d:16},{pos:'bot',n:3,d:20}],lk:[{t:'closed',d:10,s:0.15,s2:0.2}]});
+  add('slab','gf',FP.map(q=>q.slice()),{t:0.2});
+  // --- frame, floors, core (every storey)
+  FLOORS.forEach((lv,i)=>{const cw=i<4?0.6:i<8?0.5:0.4,mb=i<4?[{n:8,d:25},{n:4,d:20}]:i<8?[{n:8,d:20},{n:4,d:16}]:[{n:8,d:16}];
+    for(const c of COLS)add('column',lv,[c],{w:cw,d:cw,h:WH,mb,lk:[{t:'outer',d:10,s:0.15},{t:'diamond',d:10,s:0.15}]});
+    for(const [a,b] of BL)add('beam',lv,[a,b],JSON.parse(JSON.stringify(BM)));
+    add('stair',lv,[[9.0,0.9],[11.6,0.9]],{stype:'U',turn:'right',stmat:'rc',w:1.2,stfin:'terr',rails:'1',bal:'steel',whr:'yes'});});
+  UP.forEach(lv=>{add('slab',lv,FP.map(q=>q.slice()),{t:0.2});add('void',lv,R(8.75,0.25,12.95,3.15),{name:'Stair opening',vkind:'stair'});add('void',lv,R(8.4,8.4,14.1,10.8),{name:'Lift shafts',vkind:'lift'});add('void',lv,R(12.3,11.3,14.1,12.5),{name:'Service riser',vkind:'riser'});});
+  // --- one storey of architecture
+  const frame=(o,u,v)=>(x,y)=>[rd(o[0]+u[0]*x+v[0]*y),rd(o[1]+u[1]*x+v[1]*y)];
+  const flat=(lv,f,tag,gf)=>{const T=(x,y)=>f(x,y),Rl=(x0,y0,x1,y1)=>R(x0,y0,x1,y1).map(([x,y])=>T(x,y)),Pl=pl=>pl.map(([x,y])=>T(x,y));
+    const fa=W(lv,T(0,0),T(7.2,0),{...EXT},gf?{c:PLINTH}:{c:ACCENT}),fb=W(lv,T(7.2,0),T(14.4,0),{...EXT},gf?{c:PLINTH}:{});
+    op('window',fa,4.3,{w:3.0,h:2.4,sill:0});op('window',fb,1.8,{w:2.1,h:1.8,sill:0.6});op('window',fb,5.4,{w:2.1,h:1.8,sill:0.6});
+    const cor=W(lv,T(0,6.3),T(14.4,6.3),{t:0.15});op('door',cor,6.6,{w:1.0,h:2.1});
+    W(lv,T(7.2,0),T(7.2,4.5),PART);W(lv,T(10.8,0),T(10.8,4.5),PART);const p3=W(lv,T(7.2,4.5),T(14.4,4.5),PART);op('door',p3,1.8,{w:0.8,h:2.1});op('door',p3,4.2,{w:0.8,h:2.1});
+    const p4=W(lv,T(12.0,4.5),T(12.0,6.3),PART);op('door',p4,0.9,{w:0.7,h:2.1});
+    add('room',lv,Pl([[0.1,0.1],[7.15,0.1],[7.15,4.45],[11.95,4.45],[11.95,6.2],[0.1,6.2]]),{name:`${tag} Living`,floor:'porcelain',ceiling:'gypsum'});
+    add('room',lv,Rl(7.25,0.1,10.75,4.45),{name:`${tag} Bed 1`,floor:'timber',ceiling:'gypsum'});
+    add('room',lv,Rl(10.85,0.1,14.3,4.45),{name:`${tag} Bed 2`,floor:'timber',ceiling:'gypsum'});
+    add('room',lv,Rl(12.05,4.55,14.3,6.2),{name:`${tag} Bath`,floor:'porcelain',wall:'tilesFull',ceiling:'mf'});
+    add('sanitary',lv,[T(13.85,5.75)],{fx:'wc'});add('sanitary',lv,[T(12.6,5.95)],{fx:'basin'});add('sanitary',lv,[T(13.75,4.95)],{fx:'shower'});add('sanitary',lv,[T(12.35,4.8)],{fx:'gully'});add('sanitary',lv,[T(4.8,5.95)],{fx:'sink'});add('sanitary',lv,[T(6.2,5.9)],{fx:'heater'});
+    if(!gf){add('slab',lv,Rl(2.0,-1.8,6.6,0),{t:0.2});add('rail',lv,[T(2.0,0),T(2.0,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(2.0,-1.8),T(6.6,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(6.6,-1.8),T(6.6,0)],{bal:'ss',h:1.1});}};
+  const studio=(lv,f,tag,glazed,gf)=>{const T=(x,y)=>f(x,y),Rl=(x0,y0,x1,y1)=>R(x0,y0,x1,y1).map(([x,y])=>T(x,y));
+    if(glazed){add('cwall',lv,[T(0,0),T(6.3,0)],{sp:0.9,mv:1.575,tv:0,ov:2});add('cwall',lv,[T(0,6.3),T(0,0)],{sp:0.9,mv:1.575,tv:0,ov:1});}
+    else{const fac=W(lv,T(0,0),T(6.3,0),EXT,gf?{c:PLINTH}:{c:ACCENT});op('window',fac,2.6,{w:3.0,h:2.4,sill:0});op('window',fac,5.3,{w:1.2,h:1.5,sill:0.9});}
+    const en=W(lv,T(0,6.3),T(6.3,6.3),{});op('door',en,1.2,{w:1.0,h:2.1});W(lv,T(6.3,0),T(6.3,6.3),{});
+    W(lv,T(3.9,4.2),T(6.3,4.2),PART);const pb=W(lv,T(3.9,4.2),T(3.9,6.3),PART);op('door',pb,1.05,{w:0.7,h:2.1});
+    add('room',lv,[[0.1,0.1],[6.2,0.1],[6.2,4.15],[3.85,4.15],[3.85,6.2],[0.1,6.2]].map(([x,y])=>T(x,y)),{name:`Studio ${tag}`,floor:'timber',ceiling:'gypsum'});
+    add('room',lv,Rl(3.95,4.25,6.2,6.2),{name:`${tag} Shower`,floor:'porcelain',wall:'tilesFull',ceiling:'mf'});
+    add('sanitary',lv,[T(5.85,5.8)],{fx:'wc'});add('sanitary',lv,[T(4.45,5.95)],{fx:'basin'});add('sanitary',lv,[T(5.75,4.7)],{fx:'shower'});add('sanitary',lv,[T(1.0,5.95)],{fx:'sink'});
+    if(!gf){add('slab',lv,Rl(0.9,-1.8,5.4,0),{t:0.2});add('rail',lv,[T(0.9,0),T(0.9,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(0.9,-1.8),T(5.4,-1.8)],{bal:'ss',h:1.1});add('rail',lv,[T(5.4,-1.8),T(5.4,0)],{bal:'ss',h:1.1});}};
+  FLOORS.forEach((lv,i)=>{const gf=i===0,n=i===0?'G':String(i),F2=(o,u,v)=>frame(o,u,v);
+    const APT=[['A1',[14.4,0],[1,0],[0,1]],['A2',[28.8,0],[1,0],[0,1]],['A3',[14.4,14.4],[1,0],[0,-1]],['A4',[28.8,14.4],[1,0],[0,-1]],['B1',[0,14.4],[0,1],[1,0]],['B2',[0,28.8],[0,1],[1,0]],['B3',[14.4,14.4],[0,1],[-1,0]],['B4',[14.4,28.8],[0,1],[-1,0]]];
+    for(const [k,o,u,v] of APT){const tag=n+'.'+k;
+      if(gf&&(k==='A1'||k==='A2')){const f=F2(o,u,v),fac=W(lv,f(0,0),f(14.4,0),EXT,{c:PLINTH});
+        if(k==='A1'){op('window',fac,2.8,{w:3.6,h:2.7,sill:0.1});op('door',fac,7.2,{kind:'external',w:2.4,h:2.4});op('window',fac,11.6,{w:3.6,h:2.7,sill:0.1});}
+        else{op('window',fac,2.6,{w:3.6,h:2.7,sill:0.1});op('window',fac,7.2,{w:3.6,h:2.7,sill:0.1});op('window',fac,11.8,{w:3.6,h:2.7,sill:0.1});}
+        const cor=W(lv,f(0,6.3),f(14.4,6.3),{t:0.15});op('door',cor,7.2,{w:1.8,h:2.1});
+        add('room',lv,R(0.1,0.1,14.3,6.2).map(([x,y])=>f(x,y)),{name:k==='A1'?'Entrance lobby & concierge':"Residents' lounge & gym",floor:'porcelain',ceiling:'gypsum',wall:'paint'});continue;}
+      flat(lv,F2(o,u,v),tag,gf);}
+    studio(lv,frame([0,0],[1,0],[0,1]),n+'.S1',true,gf);studio(lv,frame([0,14.4],[0,-1],[1,0]),n+'.S2',false,gf);
+    // party walls
+    for(const [a,b] of [[[28.8,0],[28.8,6.3]],[[28.8,8.1],[28.8,14.4]],[[0,28.8],[6.3,28.8]],[[8.1,28.8],[14.4,28.8]],[[0,14.4],[6.3,14.4]],[[8.1,14.4],[14.4,14.4]]])W(lv,a,b,{});
+    // stair core
+    add('cwall',lv,[[8.1,0],[14.4,0]],{sp:0,mv:1.575,tv:1.6});W(lv,[8.1,0],[8.1,6.3],RC);const sd=W(lv,[8.1,6.3],[14.4,6.3],RC);op('door',sd,1.2,{w:1.0,h:2.1});W(lv,[14.4,0],[14.4,6.3],RC);
+    add('room',lv,R(8.2,0.1,14.3,6.2),{name:'Stair core',floor:'terrazzo',ceiling:'paint'});
+    // lift core
+    const lw=W(lv,[8.1,8.1],[14.4,8.1],RC);op('door',lw,1.7,{w:1.1,h:2.1});op('door',lw,4.6,{w:1.1,h:2.1});W(lv,[8.1,8.1],[8.1,11.0],RC);W(lv,[14.4,8.1],[14.4,14.4],RC);W(lv,[8.1,11.0],[14.4,11.0],RC);
+    const st=W(lv,[8.1,11.0],[8.1,14.4],{});op('door',st,1.7,{w:0.9,h:2.1});add('room',lv,R(8.2,11.1,14.3,14.3),{name:'Refuse & services',floor:'paint',ceiling:'paint',wall:'paint'});
+    // corridor ends and gable walls
+    for(const [a,b] of [[[6.3,0],[8.1,0]],[[0,8.1],[0,6.3]],[[43.2,6.3],[43.2,8.1]],[[8.1,43.2],[6.3,43.2]]]){const w=W(lv,a,b,EXT,gf?{c:PLINTH}:{});if(gf)op('door',w,0.9,{kind:'external',w:1.2,h:2.4});else op('window',w,0.9,{w:1.2,h:1.8,sill:0.6});}
+    for(const [a,b,at] of [[[43.2,0],[43.2,6.3],2.2],[[43.2,8.1],[43.2,14.4],4.1],[[0,43.2],[6.3,43.2],2.2],[[8.1,43.2],[14.4,43.2],4.1]]){const w=W(lv,a,b,EXT,gf?{c:PLINTH}:{});op('window',w,at,{w:1.5,h:1.8,sill:0.6});}
+    add('room',lv,[[6.3,0],[8.1,0],[8.1,6.3],[43.2,6.3],[43.2,8.1],[8.1,8.1],[8.1,43.2],[6.3,43.2],[6.3,8.1],[0,8.1],[0,6.3],[6.3,6.3]],{name:gf?'Ground floor corridors':'Corridors',floor:'porcelain',ceiling:'gypsum'});});
+  // --- roof
+  add('roof','rf',FP.map(q=>q.slice()),{type:'flat-membrane'});
+  for(const [a,b] of [[[0,0],[8.1,0]],[[14.4,0],[43.2,0]],[[43.2,0],[43.2,14.4]],[[43.2,14.4],[14.4,14.4]],[[14.4,14.4],[14.4,43.2]],[[14.4,43.2],[0,43.2]],[[0,43.2],[0,0]]])W('rf',a,b,{...EXT,h:1.1});
+  add('cwall','rf',[[8.1,0],[14.4,0]],{sp:0,mv:1.575,tv:1.6});const rw=W('rf',[14.4,0],[14.4,14.4],EXT);op('door',rw,4.4,{kind:'external',w:1.0,h:2.1});W('rf',[14.4,14.4],[8.1,14.4],EXT);W('rf',[8.1,14.4],[8.1,0],EXT);
+  for(const [a,b] of [[[24,3.5],[34,3.5]],[[34,3.5],[34,10.5]],[[34,10.5],[24,10.5]],[[24,10.5],[24,3.5]]])add('louvre','rf',[a,b],{h:2.2,lvmat:'alu'});
+  add('slab','ph',R(7.9,-0.2,14.6,14.6),{t:0.2});add('roof','ph',R(7.9,-0.2,14.6,14.6),{type:'flat-membrane'});
+  // --- external works
+  add('pave','gf',R(45,-22,51,52),{name:'Access road',pvs:'asphalt',bays:'none'});
+  add('pave','gf',R(17,18,45,52),{name:'Residents car park',pvs:'asphalt',acc:4,trees:0});
+  add('pave','gf',R(14,-22,45,-9),{name:'Visitor parking',pvs:'asphalt',acc:2});
+  add('pave','gf',R(-2.2,-9,45,0),{name:'Entrance forecourt',pvs:'blocks',bays:'none',trees:7});
+  add('pave','gf',[[14.4,14.4],[45,14.4],[45,18],[17,18],[17,45],[14.4,45]],{name:'Courtyard footpath',pvs:'blocks',bays:'none'});
+  add('pave','gf',R(-2.2,0,0,45),{name:'West footpath',pvs:'blocks',bays:'none',kerb:'no'});add('pave','gf',R(0,43.2,14.4,45),{name:'North footpath',pvs:'blocks',bays:'none',kerb:'no'});add('pave','gf',R(43.2,0,45,14.4),{name:'East footpath',pvs:'blocks',bays:'none',kerb:'no'});
+  add('pave','gf',R(-12,-22,14,-9),{name:'Front garden',pvs:'lawn',trees:5});add('pave','gf',R(-12,-9,-2.2,52),{name:'West garden',pvs:'lawn',trees:9});add('pave','gf',R(-2.2,45,17,52),{name:'North garden',pvs:'lawn',trees:4});
+  add('fence','gf',[[-12,-22],[51,-22]],{ftype:'wallrail',h:1.2,dh:0.6,sp:3,pg:1,vg:1,vgw:6,vgk:'motor'});
+  for(const [a,b] of [[[51,-22],[51,52]],[[51,52],[-12,52]],[[-12,52],[-12,-22]]])add('fence','gf',[a,b],{ftype:'mesh',h:2.1,sp:2.5});
+  add('mh','gf',[[46,16]],{mhs:'900x600',dep:1.2});add('mh','gf',[[46,-2]],{mhs:'900x600',dep:1.5});add('mh','gf',[[46,-20]],{mhs:'1200x750',dep:1.8});
+  add('pipe','gf',[[46,16],[46,-2]],{sys:'ud',mat:'upvc',dia:'160'});add('pipe','gf',[[46,-2],[46,-20]],{sys:'ud',mat:'upvc',dia:'160'});
+  const GRIDS=makeGrids([6.3,1.8,6.3,7.2,7.2,7.2,7.2],[6.3,1.8,6.3,7.2,7.2,7.2,7.2],0,0,2);
+  return{name:'Sample · 12-storey L-shaped apartment block',currency:'EUR',factor:1,prelims:12,contingency:5,vat:19,grids:GRIDS,levels:LV,elements:E,rates:{}};
+}
 function emptyProject(){return{name:'New project',currency:P?.currency||'EUR',factor:P?.factor||1,prelims:12,contingency:5,vat:19,levels:[{id:uid(),name:'Ground Floor',elev:0,h:3.0}],elements:[],rates:{}};}
 
 /* ---------- theme ---------- */
@@ -1250,6 +1384,7 @@ const ICON={
   pipe:'<path d="M3 16h7a3 3 0 0 0 3-3V8a3 3 0 0 1 3-3h3" stroke-width="2.2"/><path d="M3 14v4M19 3v4" stroke-width="1"/>',
   pfit:'<path d="M2 11h4M16 11h4"/><path d="M6 7v8l10-8v8z"/><path d="M11 11V5M8.5 5h5" stroke-width="1"/>',
   mh:'<rect x="4" y="4" width="14" height="14" rx="1"/><path d="M4 4l14 14M18 4L4 18" stroke-width="1"/>',
+  pave:'<rect x="3" y="3" width="16" height="16" rx="2"/><path d="M8.5 16.5V6h3.3a2.7 2.7 0 0 1 0 5.4H8.5" stroke-width="1.6"/>',
   fence:'<path d="M4 5v14M11 5v14M18 5v14"/><path d="M2 9h18M2 15h18" stroke-width="1.1"/><path d="M4 5l-1 1.5M11 5l-1 1.5M18 5l-1 1.5" stroke-width="1"/>',
   fwall:'<path d="M2 12.5h18" stroke-dasharray="2 1.5" stroke-width="1"/><path d="M8 4h6v11H8z"/><path d="M5 15h12v3H5z"/><path d="M8 7.5h6M8 11h6" stroke-width="1"/>',
   pad:'<path d="M4 14h14v4H4z"/><path d="M9 14V5h4v9" stroke-width="1"/>',
@@ -1262,7 +1397,7 @@ const ICON={
   calibrate:'<path d="M3 11h16"/><path d="M3 7v8M19 7v8" /><path d="M6 9l-3 2 3 2M16 9l3 2-3 2" stroke-width="1"/>',
   align:'<path d="M11 2v18M2 11h18"/><path d="M8 5l3-3 3 3M8 17l3 3 3-3M5 8l-3 3 3 3M17 8l3 3-3 3" stroke-width="1"/>',
 };
-const SHORT={fence:'Fence',stair:'Stair',ramp:'Ramp',rail:'Rail',cwall:'Curtain',louvre:'Louvre',grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
+const SHORT={pave:'Paving',fence:'Fence',stair:'Stair',ramp:'Ramp',rail:'Rail',cwall:'Curtain',louvre:'Louvre',grid:'Grid',sanitary:'Sanitary',pipe:'Pipe',pfit:'Valve',mh:'Manhole',select:'Select',strip:'Strip',pad:'Pad',gbeam:'G. beam',fwall:'F. wall',column:'Column',beam:'Beam',slab:'Slab',void:'Opening',roof:'Roof',wall:'Wall',door:'Door',window:'Window',room:'Room',measure:'Measure',calibrate:'Scale',align:'Move PDF'};
 const TT=t=>[t,TYPES[t].label,TYPES[t].key];
 const TOOLS=[['','',[['select','Select / move','v'],['grid','Structural grid line','l']]],
   ['1','Substructure',['strip','pad','gbeam','fwall'].map(TT)],
@@ -1274,7 +1409,7 @@ const TOOLS=[['','',[['select','Select / move','v'],['grid','Structural grid lin
   ['2.6','Openings',['door','window','louvre'].map(TT)],
   ['3','Finishes',['room'].map(TT)],
   ['5','Services',['sanitary','pipe','pfit','mh'].map(TT)],
-  ['8','External',['fence'].map(TT)],
+  ['8','External',['fence','pave'].map(TT)],
   ['','Drawing',[['measure','Measure distance','m'],['calibrate','Calibrate drawing scale','k'],['align','Move drawing underlay','']]]];
 const GCOL={'':'#0F7A70',Substructure:'#9A6230',Frame:'#2F6FB8',Floors:'#4B7C8C',Roof:'#C4523B',Stairs:'#7A5FA8',Walls:'#C07E14',Openings:'#1C93AE',Finishes:'#8150C0',Services:'#2E9460',External:'#4F7A3A',Drawing:'#657583'};
 function renderRail(){
@@ -1316,7 +1451,7 @@ $('#levels').addEventListener('focusin',e=>{const row=e.target.closest('.lv');if
 function setLevel(id){S.level=id;if(TEAM.room)setTimeout(()=>teamPresence(true));S.sel=null;S.hl=null;S.draft=null;updateRailCounts();renderLevels();renderProps();renderSub();renderUnder();drawPlan();queue3D();}
 $('#addLevel').onclick=()=>{const top=levelsSorted().at(-1);const n=P.levels.length;const l={id:uid(),name:n===1?'First Floor':`Level ${n}`,elev:+(top.elev+top.h).toFixed(3),h:3.0};mutate(()=>P.levels.push(l));setLevel(l.id);};
 $('#dupLevel').onclick=()=>{const src=lvl(S.level);const top=levelsSorted().at(-1);const l={id:uid(),name:`Level ${P.levels.length}`,elev:+(top.elev+top.h).toFixed(3),h:src.h};
-  mutate(()=>{P.levels.push(l);const map={};const els=onLevel(src.id).filter(e=>!['strip','pad','gbeam','fwall','mh','fence','ramp'].includes(e.type));
+  mutate(()=>{P.levels.push(l);const map={};const els=onLevel(src.id).filter(e=>!['strip','pad','gbeam','fwall','mh','fence','ramp','pave'].includes(e.type));
     for(const e of els){map[e.id]=uid();}
     for(const e of els){const c=JSON.parse(JSON.stringify(e));c.id=map[e.id];c.level=l.id;if(c.host)c.host=map[c.host];P.elements.push(c);}});
   setLevel(l.id);toast(`Copied ${src.name} to ${l.name} above. Foundations, ground beams and external works were left out.`);};
@@ -1373,6 +1508,7 @@ function fieldOn(t,k,o){
   if(t==='stair'){const y=o.stype||'straight';if(k==='turn')return y!=='straight';if(k==='split')return['L','LW','U','U3'].includes(y);if(k==='ld'||k==='gap')return y==='U'||y==='U3'&&k==='gap';if(k==='lt'||k==='g')return y!=='spiral'&&(k==='g'||y==='straight');
     if(k==='dia'||k==='rin'||k==='sa')return y==='spiral';if(k==='t'||k==='ra'||k==='sof')return o.stmat==='rc';if(k==='stfin'||k==='nos')return['rc','pc','ext','steelpan'].includes(o.stmat);if(k==='bal')return o.rails!=='0';}
   if(t==='ramp'&&k==='bal')return o.rails!=='0';
+  if(t==='pave'){const soft=o.pvs==='lawn';if(k==='sb'||k==='kerb'||k==='bays')return!soft;if(['bw','bl','ai','acc','cars'].includes(k))return!soft&&o.bays!=='none';}
   if(t==='fence'){const y=o.ftype||'mesh',mas=y==='bwall'||y==='wallrail';if(['bmat','t','bfin','cop','fw','fd','exc'].includes(k))return mas;if(k==='dh')return y==='wallrail';if(k==='fcoat')return!['bwall','glass','precast','wire'].includes(y);if(k==='vgw'||k==='vgk')return +o.vg>0;}
   if(t==='column'){const c=o.cs||'rect';if(k==='dia')return c==='circle';if(k==='w'||k==='d')return c!=='circle';if(k==='t'||k==='rot')return c==='L';}
   if(t==='strip'){const c=o.ss||'rect';if(k==='w2')return c!=='rect';if(k==='d2')return c==='stepped';}
@@ -1421,7 +1557,7 @@ function fieldHTML(t,obj,prefix){
     return`<div class="field"><label for="${id}">${label}</label><div class="unitwrap"><input id="${id}" type="number" step="${kind==='°'?1:0.01}" min="0" data-k="${k}" data-num value="${obj[k]}"><span>${kind}</span></div></div>`;
   }).join('')+`</div>`;
 }
-function elemTitle(e){const T=TYPES[e.type].label;if(e.type==='room')return e.p.name||T;return T;}
+function elemTitle(e){const T=TYPES[e.type].label;if(e.type==='room'||e.type==='pave')return e.p.name||T;return T;}
 function elemDims(e){const d=elemDims0(e);const A=arcOf(e);return A?`${d} · curved, R ${fmtN(A.R,2)} m (chord ${fmtN(A.c,2)} m)`:d;}
 function elemDims0(e){const p=e.p;switch(e.type){
   case'wall':return`${fmtN(elLen(e))} m long · ${mm(p.t)} mm · ${OPT.material[p.material]}`+(+p.fh>0&&+p.fh<+p.h?` · plaster & paint to ${fmtN(+p.fh)} m`:'')+(p.kind==='external'&&+p.rh>0&&+p.rh<+p.h?` · render to ${fmtN(+p.rh)} m`:'');
@@ -1439,6 +1575,7 @@ function elemDims0(e){const p=e.p;switch(e.type){
   case'room':{const n=netArea(e),g=area(e.pts),q=roomQ(e);return`${fmtN(n)} m²${Math.abs(n-g)>0.005?` net (${fmtN(g)} gross)`:''} · perimeter ${fmtN(q.Pm)} m · ${+e.p.ch>0?`walls finished to ${fmtN(q.H)} m`:`walls finished full height ${fmtN(q.H)} m`} · walls ${fmtN(q.net)} m² net (${q.ops.length} openings on boundary)`;}
   case'void':{const s=hostSlab(e);const a=area(e.pts);return`${fmtN(a)} m² · ${OPT.vkind[p.vkind]}`+(!s?' · not over a slab':voidCounts(e)?` · deducts ${fmtN(a*s.p.t,3)} m³ concrete`:' · ≤ 1 m², not deducted');}
   case'roof':return`${fmtN(area(e.pts))} m² on plan · ${OPT.type[p.type]}`;
+  case'pave':{const Q=paveQ(e);return`${fmtN(Q.A)} m² · ${OPT.pvs[p.pvs]}${Q.nb?` · ${Q.nb} parking bay${Q.nb===1?'':'s'}${Q.acc?` (${Q.acc} accessible)`:''}`:''}${+p.trees?` · ${+p.trees} trees`:''} · edge ${fmtN(Q.Pm)} m`;}
   case'door':case'window':return`${mm(p.w)} × ${mm(p.h)} mm`;
   case'stair':{const M=stairModel(e),fr=M.flights.map(fl=>fl.c+(fl.end?1:0));return`${OPT.stype[M.st]||'Straight'} · ${OPT.stmat[p.stmat]} · ${mm(M.w)} mm wide · ${M.n} risers × ${mm(M.r)} mm · going ${mm(M.g)} mm${M.st==='spiral'?` at walkline · Ø${mm(2*M.R)} mm, turns ${Math.round(M.turnDeg)}°`:''}${fr.length>1?' · flights of '+fr.join(' + ')+' risers'+(M.st==='LW'?' + 3 winders':''):''} · rise ${fmtN(M.H)} m${M.warn.length?' · ⚠ '+M.warn.join('; '):''}`;}
   case'ramp':{const g=rampGeo(e);return`${fmtN(g.L)} m long · ${mm(g.w)} mm wide · rise ${fmtN(g.H)} m${g.H>0?` · gradient 1:${fmtN(g.ratio,1)}`:''}${g.H>0&&g.ratio<12?' · ⚠ steeper than 1:12':''} · ${OPT.rpmat[p.rpmat]}`;}
@@ -1621,7 +1758,7 @@ function poly(pts,close=true){ctx.beginPath();pts.forEach((p,i)=>{const [x,y]=w2
 function wallQuad(a,b,t,ext=true){const L=d2(a,b)||1e-9;const ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;const nx=-uy*t/2,ny=ux*t/2;const e=ext?t/2:0;const A=[a[0]-ux*e,a[1]-uy*e],B=[b[0]+ux*e,b[1]+uy*e];return[[A[0]+nx,A[1]+ny],[B[0]+nx,B[1]+ny],[B[0]-nx,B[1]-ny],[A[0]-nx,A[1]-ny]];}
 const HC={};function hatch(color,alpha=0.35,step=6){const hk=color+alpha+step;if(HC[hk])return HC[hk];const c=document.createElement('canvas');c.width=c.height=step;const g=c.getContext('2d');g.strokeStyle=color;g.globalAlpha=alpha;g.lineWidth=1;g.beginPath();g.moveTo(0,step);g.lineTo(step,0);g.stroke();return HC[hk]=ctx.createPattern(c,'repeat');}
 let rafPlan=0;function drawPlan(){if(rafPlan)return;rafPlan=requestAnimationFrame(()=>{rafPlan=0;drawPlanNow();});}
-function drawPlanNow(){
+function drawPlanNow(){IXG++;
   if(!P||cv.offsetParent===null)return;sizeCanvas();ctx.setTransform(dpr,0,0,dpr,0,0);
   const W=cv.clientWidth,H=cv.clientHeight,z=S.cam.z;
   ctx.fillStyle=TH.paper;ctx.fillRect(0,0,W,H);
@@ -1643,11 +1780,15 @@ function drawPlanNow(){
     ctx.restore();}
   const els=onLevel(S.level).filter(vis);const isSel=e=>e.id===S.sel||(S.hl&&S.hl.has(e.id));
   drawGrids('lines');
-  const order=['roof','slab','room','void','fence','ramp','stair','strip','pad','gbeam','beam','wall','cwall','louvre','fwall','rail','column','mh','pipe','pfit','sanitary'];
+  const order=['pave','roof','slab','room','void','fence','ramp','stair','strip','pad','gbeam','beam','wall','cwall','louvre','fwall','rail','column','mh','pipe','pfit','sanitary'];
   let ri=0;
   for(const ty of order)for(const e of els.filter(x=>x.type===ty)){
     const sel=isSel(e);
-    if(ty==='slab'){const C=colE(e);poly(e.pts);ctx.globalAlpha=.14;ctx.fillStyle=C;ctx.fill();ctx.globalAlpha=1;ctx.fillStyle=hatch(C,0.5,8);ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.2;ctx.stroke();}
+    if(ty==='pave'){if(e.pts.length<3)continue;const D=PVD[e.p.pvs]||PVD.asphalt,own=isHex(e.c)||isHex(P.colors?.pave),C=own?colE(e):D[2],Q=paveQ(e);poly(e.pts);ctx.globalAlpha=e.p.pvs==='lawn'?0.28:0.2;ctx.fillStyle=C;ctx.fill();ctx.globalAlpha=1;if(e.p.pvs==='lawn'||e.p.pvs==='grasspave'){ctx.fillStyle=hatch(C,0.35,7);ctx.fill();}ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:(e.p.kerb!=='no'&&e.p.pvs!=='lawn'?1.8:1);ctx.stroke();
+      if(Q.nb&&z>3){ctx.lineWidth=1;Q.bays.forEach((b,k)=>{poly(b.poly);if(k<Q.acc){ctx.globalAlpha=0.35;ctx.fillStyle='#2F6FB8';ctx.fill();ctx.globalAlpha=1;}ctx.strokeStyle=TH.dark?'#d8dde0':'#6b7479';ctx.stroke();});}
+      for(const t of Q.trees){const [tx,ty2]=w2s(t);ctx.beginPath();ctx.arc(tx,ty2,Math.max(3,1.8*z),0,Math.PI*2);ctx.fillStyle='rgba(76,140,60,.28)';ctx.fill();ctx.strokeStyle='#4C8C3C';ctx.lineWidth=1;ctx.stroke();}
+      if(z>6){const [cx,cy]=w2s(centroid(e.pts));const txt=(e.p.name||OPT.pvs[e.p.pvs]).toUpperCase();ctx.font='600 12px "Barlow Condensed",sans-serif';ctx.textAlign='center';const tw=ctx.measureText(txt).width+8;ctx.fillStyle=TH.paper;ctx.globalAlpha=0.85;ctx.fillRect(cx-tw/2,cy-16,tw,28);ctx.globalAlpha=1;ctx.fillStyle=TH.ink;ctx.fillText(txt,cx,cy-4);ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TH.ink2;ctx.fillText(fmtN(Q.A)+' m²'+(Q.nb?' · '+Q.nb+' bays':''),cx,cy+9);}}
+    else if(ty==='slab'){const C=colE(e);poly(e.pts);ctx.globalAlpha=.14;ctx.fillStyle=C;ctx.fill();ctx.globalAlpha=1;ctx.fillStyle=hatch(C,0.5,8);ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.2;ctx.stroke();}
     else if(ty==='void'){const C=colE(e);poly(e.pts);ctx.fillStyle=TH.paper;ctx.fill();ctx.strokeStyle=sel?TH.mark:C;ctx.lineWidth=sel?2.5:1.6;ctx.stroke();
       const b=bbox(e.pts);ctx.save();poly(e.pts);ctx.clip();ctx.beginPath();ctx.moveTo(...w2s([b.x0,b.y0]));ctx.lineTo(...w2s([b.x1,b.y1]));ctx.moveTo(...w2s([b.x1,b.y0]));ctx.lineTo(...w2s([b.x0,b.y1]));ctx.lineWidth=1;ctx.strokeStyle=TH.ink3;ctx.stroke();ctx.restore();
       if(z>14){const [cx,cy]=w2s(centroid(e.pts));const txt=(e.p.name||'Opening').toUpperCase();ctx.font='600 12px "Barlow Condensed",sans-serif';const tw=ctx.measureText(txt).width+8;ctx.fillStyle=TH.paper;ctx.fillRect(cx-tw/2,cy-18,tw,30);ctx.fillStyle=TH.ink;ctx.textAlign='center';ctx.fillText(txt,cx,cy-5);ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=voidCounts(e)?TH.ink2:TH.ink3;ctx.fillText(fmtN(area(e.pts))+' m²'+(voidCounts(e)?'':' (kept)'),cx,cy+9);}}
@@ -1764,7 +1905,7 @@ function drawOpening(w,o,sel){
 }
 
 /* ---------- snapping & hit test ---------- */
-const POLYT=['room','slab','roof','void'],LINET=['wall','beam','strip','fwall','gbeam','pipe','cwall','louvre','rail','stair','ramp','fence'];
+const POLYT=['room','slab','roof','void','pave'],LINET=['wall','beam','strip','fwall','gbeam','pipe','cwall','louvre','rail','stair','ramp','fence'];
 /* ---------- curve panel for walls, beams, strips, foundation walls ---------- */
 function curveHTML(e){if(!ARCT.includes(e.type)||!e.pts||e.pts.length<2)return'';const A=arcOf(e);const c=d2(e.pts[0],e.pts[1]);
   return `<div class="curve-box"><div class="curve-hd"><span>Plan shape</span><span class="seg"><button data-cv="straight" aria-pressed="${!A}">Straight</button><button data-cv="curved" aria-pressed="${!!A}">Curved</button></span></div>
@@ -1930,7 +2071,7 @@ function boxPick(a,b,crossing){const x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0
   for(const e of onLevel(S.level).filter(vis)){const o=outlineOf(e);if(!o.length)continue;if(o.every(inR)){out.push(e.id);continue;}if(!crossing)continue;
     if(o.some(inR)){out.push(e.id);continue;}const closed=o.length>2&&e.type!=='pipe';let hit=false;
     for(let i=0;i<o.length-(closed?0:1)&&!hit;i++){const p1=o[i],p2=o[(i+1)%o.length];for(let k=0;k<4&&!hit;k++)if(segX(p1,p2,R[k],R[(k+1)%4]))hit=true;}
-    if(!hit&&POLYT.includes(e.type)&&inPoly([(x0+x1)/2,(y0+y1)/2],e.pts)&&e.type!=='room'&&e.type!=='slab'&&e.type!=='roof')hit=true;
+    if(!hit&&POLYT.includes(e.type)&&inPoly([(x0+x1)/2,(y0+y1)/2],e.pts)&&e.type!=='room'&&e.type!=='slab'&&e.type!=='roof'&&e.type!=='pave')hit=true;
     if(hit)out.push(e.id);}
   return out;}
 function deleteIds(ids){const set=new Set(ids);mutate(()=>{P.elements=P.elements.filter(x=>!set.has(x.id)&&!set.has(x.host));});setSel([]);renderProps();toast(`Deleted ${ids.length} element${ids.length>1?'s':''}.`);}
@@ -2027,7 +2168,7 @@ function hitAll(pt){
   for(const e of els.filter(e=>e.type==='column'||e.type==='pad')){const [x,y]=e.pts[0];const ex=e.type==='pad'?padGeo(e.p):colSec(e);const hw=ex.hw+tol,hd=(e.type==='pad'?ex.hl:ex.hd)+tol;if(Math.abs(pt[0]-x)<hw&&Math.abs(pt[1]-y)<hd)out.push(e);}
   for(const e of els.filter(x=>x.type==='stair')){const M=stairModel(e);if(M.planW.some(pl=>inPoly(pt,pl)))out.push(e);}
   for(const ty of ['fence','rail','cwall','louvre','wall','fwall','gbeam','beam','strip','ramp']){const hs=[];for(const e of els.filter(x=>x.type===ty)){const r=projEl(pt,e);const th=(ty==='wall'||ty==='fwall'?e.p.t:ty==='fence'?Math.max(0.14,+e.p.t||0):ty==='cwall'?0.12:ty==='louvre'?0.16:ty==='rail'?0.08:e.p.w)/2+tol;if(r.d<th)hs.push([r.d,e]);}hs.sort((a,b)=>a[0]-b[0]).forEach(h=>out.push(h[1]));}
-  for(const ty of ['void','room','slab','roof'])els.filter(e=>e.type===ty&&inPoly(pt,e.pts)).sort((a,b)=>area(a.pts)-area(b.pts)).forEach(e=>out.push(e));
+  for(const ty of ['void','room','slab','roof','pave'])els.filter(e=>e.type===ty&&inPoly(pt,e.pts)).sort((a,b)=>area(a.pts)-area(b.pts)).forEach(e=>out.push(e));
   gridHit(pt).forEach(g=>out.push(g));
   return out;
 }
@@ -2263,7 +2404,7 @@ let toastT=0;function toast(msg){let t=$('.toast');if(!t){t=document.createEleme
 
 /* ---------- 3D ---------- */
 const T3={ok:!!window.THREE};let q3=0;
-function queue3D(){if(q3)return;q3=requestAnimationFrame(()=>{q3=0;build3D();});}
+function queue3D(){if(S.view==='plan'||S.view==='boq'||S.view==='settings'){T3.dirty=true;return;}if(q3)return;q3=requestAnimationFrame(()=>{q3=0;T3.dirty=false;build3D();});}
 function init3D(){
   const host=$('#three');
   if(!T3.ok){host.innerHTML='<div class="nolib">The 3D viewer could not load. Check your connection and reload.</div>';return;}
@@ -2277,22 +2418,25 @@ function init3D(){
   let down=null;r.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
   r.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>4)return;const rect=r.domElement.getBoundingClientRect();
     const v=new THREE.Vector2((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);const rc=new THREE.Raycaster();rc.setFromCamera(v,cam);
-    const hit=rc.intersectObjects(group.children,true).find(h=>h.object.userData.id);
-    if(hit){const el=byId(hit.object.userData.id);if(el){S.sel=el.id;S.hl=null;if(el.level!==S.level){S.level=el.level;renderLevels();renderUnder();}if(S.tool!=='select')setTool('select');renderProps();drawPlan();queue3D();}}
+    const hit=rc.intersectObjects(group.children,true).find(h=>pickId(h));
+    if(hit){const el=byId(pickId(hit));if(el){S.sel=el.id;S.hl=null;if(el.level!==S.level){S.level=el.level;renderLevels();renderUnder();}if(S.tool!=='select')setTool('select');renderProps();drawPlan();queue3D();}}
     else if(S.sel){S.sel=null;renderProps();drawPlan();queue3D();}});
 }
 function render3(){if(T3.r)T3.r.render(T3.scene,T3.cam);}
 const C3={ext:0xE6DFD2,int:0xEFEBE3,concrete:0xB3BBBE,drywall:0xF1ECDF,slab:0xAEB8BD,column:0x8C989D,beam:0x9DA7AB,found:0xA0906F,tiles:0x9A5140,sheets:0x5B7886,flat:0x6D7579,glass:0x86BCD9,door:0x8A5A32,sel:0xE8A317};
 const FLOORC={ceramic:0xD8D2C4,timber:0xC49A6C,vinyl:0x9FB3A8,paint:0xA9A9A0};
-function build3D(){
+function build3D(){IXG++;
   if(!T3.r)return;const g=T3.group;
+  {const key=[CHG,S.cut?1:0,S.cut?S.level:'',S.rooms?1:0,S.gshow===false?0:1,TH.dark?1:0,TH.paper,[...(S.hideT||[])].join(),[...(S.hideId||[])].join(),[...(S.hideL||[])].join()].join('|');
+    if(T3.key===key&&g.children.length){hl3D();render3();return;}
+    T3.key=key;}
   g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){o.material.map?.dispose?.();o.material.dispose?.();}});g.clear();
+  if(T3.src){for(const ms of T3.src.values())for(const m of ms){m.geometry.dispose();m.material.dispose?.();}T3.src=null;}
   T3.scene.background=new THREE.Color(TH.paper||'#f7f9f8');
   const act=lvl(S.level);const edgeCol=TH.dark?0x0b100e:0x3a4541;
-  const mat=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.85,metalness:0,...o});
+  const mat=(c,o={})=>{const {noEdge,...mo}=o;return new THREE.MeshStandardMaterial({color:c,roughness:0.85,metalness:0,...mo});};
   const hl=id=>id===S.sel||(S.hl&&S.hl.has(id));
-  const addMesh=(geo,color,id,o={})=>{const sel=hl(id);const m=new THREE.Mesh(geo,mat(sel?C3.sel:color,{...o,...(sel?{emissive:0x5a3a00}:{})}));m.userData.id=id;g.add(m);
-    if(!o.noEdge){const ed=new THREE.LineSegments(new THREE.EdgesGeometry(geo,25),new THREE.LineBasicMaterial({color:edgeCol,transparent:true,opacity:TH.dark?0.55:0.28}));m.add(ed);}return m;};
+  const addMesh=(geo,color,id,o={})=>{const m=new THREE.Mesh(geo,mat(color,o));m.userData.id=id;m.userData.c0=color;m.userData.edge=!o.noEdge;g.add(m);return m;};
   const box=(len,h,d,cx,cy,cz,rot,color,id,o)=>{const m=addMesh(new THREE.BoxGeometry(Math.max(len,1e-3),Math.max(h,1e-3),Math.max(d,1e-3)),color,id,o);m.position.set(cx,cy,cz);m.rotation.y=rot;return m;};
   const extrude=(pts,depth,topY,color,id,o,holes)=>{const sh=new THREE.Shape(pts.map(([x,y])=>new THREE.Vector2(x,y)));(holes||[]).forEach(h=>sh.holes.push(new THREE.Path(h.map(([x,y])=>new THREE.Vector2(x,y)))));const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false});const m=addMesh(geo,color,id,o);m.rotation.x=Math.PI/2;m.position.y=topY;return m;};
   const obox=(cx,cy,cz,len,h,d,rotY,tilt,color,id,o)=>{const m=addMesh(new THREE.BoxGeometry(Math.max(len,1e-3),Math.max(h,1e-3),Math.max(d,1e-3)),color,id,o);m.rotation.order='YZX';m.rotation.y=rotY;m.rotation.z=tilt;m.position.set(cx,cy,cz);return m;};
@@ -2325,6 +2469,15 @@ function build3D(){
       else if(e.type==='sanitary'){const F=FIT[p.fx]||FIT.wc;const [x,y]=e.pts[0];box(F.sz[0],F.h,F.sz[1],x,el0+F.h/2+0.02,y,-(+p.rot||0)*Math.PI/180,p.fx==='tank'?0x2B3A40:(isHex(e.c)||isHex(P.colors?.sanitary)?c3(e):0xF3F6F7),e.id);}
       else if(e.type==='pfit'){const S2=SYS[p.sys]||SYS.cw;const [x,y]=e.pts[0];const yy=p.sys==='ud'?+P.sub.egl+S2.h:el0+S2.h;const s0=Math.max(0.08,+p.dia/1000*2.2);box(s0,s0,s0,x,yy,y,0,c3(e,parseInt(S2.col.slice(1),16)),e.id);}
       else if(e.type==='mh'){const [x,y]=e.pts[0],sz=p.mhs.split('x').map(v=>+v/1000+0.3);box(sz[0],+p.dep+0.2,sz[1],x,+P.sub.egl-(+p.dep+0.2)/2+0.02,y,0,c3(e,0x8E969A),e.id);}
+      else if(e.type==='pave'&&e.pts.length>=3){const D=PVD[p.pvs]||PVD.asphalt,g0=isGround(l.id)?+P.sub.egl:el0,soft=p.pvs==='lawn',top=g0+(soft?0.01:0.03),Q=paveQ(e);extrude(e.pts,0.08,top,isHex(e.c)||isHex(P.colors?.pave)?c3(e):D[1],e.id,{noEdge:true});
+        if(!soft&&p.kerb!=='no')for(let i=0;i<e.pts.length;i++){const a=e.pts[i],b=e.pts[(i+1)%e.pts.length],L=d2(a,b);if(L<0.05)continue;box(L,0.13,0.13,(a[0]+b[0])/2,top+0.04,(a[1]+b[1])/2,-Math.atan2(b[1]-a[1],b[0]-a[0]),0xC9C9C2,e.id,{noEdge:true});}
+        const stripe=(a,b,w)=>{const L=d2(a,b);if(L>0.05)box(L,0.012,w||0.1,(a[0]+b[0])/2,top+0.006,(a[1]+b[1])/2,-Math.atan2(b[1]-a[1],b[0]-a[0]),0xF4F4EE,e.id,{noEdge:true});};
+        const CARC=[0xB03A2E,0xECEFF1,0x2C3E50,0x8C959B,0x1F4E79,0xCFD5D8,0x1B1B1B,0xC9A227,0x5D6D7E,0xF2F3F4];
+        Q.bays.forEach((b,k)=>{const [a,c,d,f]=b.poly;stripe(a,f);stripe(c,d);if(k<Q.acc)extrude(b.poly,0.01,top+0.004,0x2F6FB8,e.id,{noEdge:true});
+          if(p.cars!=='no'&&k>=Q.acc&&((k*7+3)%10)<7){const cx=(a[0]+d[0]+c[0]+f[0])/4,cy=(a[1]+d[1]+c[1]+f[1])/4,dir=[b.front[0]-b.back[0],b.front[1]-b.back[1]],rot=-Math.atan2(dir[1],dir[0]),col=CARC[(k*3+b.row)%CARC.length],dl=Math.hypot(...dir)||1,ox=dir[0]/dl,oy=dir[1]/dl;
+            box(4.3,0.62,1.78,cx,top+0.28+0.31,cy,rot,col,e.id);box(2.2,0.5,1.6,cx-ox*0.25,top+0.9+0.25,cy-oy*0.25,rot,0x2A3440,e.id,{roughness:0.25});
+            for(const [fx,fy] of [[1.35,0.82],[1.35,-0.82],[-1.35,0.82],[-1.35,-0.82]]){const wx=cx+ox*fx-oy*fy,wy=cy+oy*fx+ox*fy;const m=addMesh(new THREE.CylinderGeometry(0.32,0.32,0.22,12),0x1C1C1C,e.id,{noEdge:true});m.rotation.order='YXZ';m.rotation.y=rot;m.rotation.x=Math.PI/2;m.position.set(wx,top+0.32,wy);}}});
+        for(const t of Q.trees){rod([t[0],top,t[1]],[t[0],top+2.4,t[1]],0.13,0x6B4E31,e.id);const m=addMesh(new THREE.IcosahedronGeometry(1.7,1),0x4F8A3A,e.id,{noEdge:true,flatShading:true});m.position.set(t[0],top+3.4,t[1]);m.scale.set(1,1.15,1);const m2=addMesh(new THREE.IcosahedronGeometry(1.1,1),0x5E9C45,e.id,{noEdge:true,flatShading:true});m2.position.set(t[0]+0.5,top+4.4,t[1]-0.3);}}
       else if(e.type==='fence'){const L=elLen(e);if(L<1e-3)continue;const F=fenceQ(e),y=F.y,g0=isGround(l.id)?+P.sub.egl:el0,own=isHex(e.c)||isHex(P.colors?.fence),fc=fb=>own?c3(e,fb):fb,C=fc(0x5E8C4A),post=0x3F4A4F;let base=g0,h=F.h;
         if(F.mas){const wh=y==='wallrail'?+p.dh:h,t=+p.t||0.2,mc=fc({block:0xC9C0B2,brick:0xC47A5E,stone:0xA99B84}[p.bmat||'block']);sweep(e,0,L,t,wh,g0,mc,e.id);
           if(F.posts)for(let k=0;k<F.posts;k++){const s2=Math.min(L,k*(+p.sp));sweep(e,Math.max(0,s2-(t+0.24)/2),Math.min(L,s2+(t+0.24)/2),t+0.24,wh+0.05,g0,mc,e.id);}
@@ -2372,13 +2525,35 @@ function build3D(){
         else{const geo=gable(bbox(e.pts),+p.pitch);const m=addMesh(geo,rc??(p.type==='pitched-tiles'?C3.tiles:C3.sheets),e.id,{side:THREE.DoubleSide});m.position.y=el0;}}
     }
   }
+  batch3D(g,edgeCol);hl3D();
   grids3D(g);
-  if(T3.grid)T3.scene.remove(T3.grid);T3.grid=new THREE.GridHelper(80,80,TH.dark?0x2a3531:0xc9d1cd,TH.dark?0x1a2320:0xdde3e0);T3.grid.position.set(6,+P.sub.egl-0.005,4.5);
+  if(T3.grid)T3.scene.remove(T3.grid);{const gp0=P.elements.filter(e=>e.pts&&isGround(e.level)).flatMap(e=>e.pts),gb=gp0.length?bbox(gp0):null,gs=gb?Math.max(80,Math.ceil(Math.max(gb.w,gb.h)/10)*10+40):80;T3.grid=new THREE.GridHelper(gs,gs,TH.dark?0x2a3531:0xc9d1cd,TH.dark?0x1a2320:0xdde3e0);T3.grid.position.set(gb?Math.round((gb.x0+gb.x1)/2):6,+P.sub.egl-(P.elements.some(e=>e.type==='pave')?0.12:0.005),gb?Math.round((gb.y0+gb.y1)/2):4.5);}
   if(T3.earth){T3.scene.remove(T3.earth);T3.earth.geometry.dispose();T3.earth.material.dispose();T3.earth=null;}
   {const gp=P.elements.filter(e=>e.pts&&isGround(e.level)).flatMap(e=>e.pts);if(gp.length){const b=bbox(gp);const geo=new THREE.PlaneGeometry(b.w+8,b.h+8);const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:TH.dark?0x5a4a32:0xb59a6a,transparent:true,opacity:0.18,depthWrite:false,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.set((b.x0+b.x1)/2,+P.sub.egl,(b.y0+b.y1)/2);T3.scene.add(m);T3.earth=m;}}T3.scene.add(T3.grid);
   if(!T3.fitted&&P.elements.length){fit3();T3.fitted=true;}
   render3();
 }
+/* merge the per-element meshes into a few large meshes (one per material) so big buildings orbit smoothly;
+   picking maps the hit triangle back to its element, and the selection is drawn as an overlay */
+function batch3D(g,edgeCol){g.updateMatrixWorld(true);const groups=new Map(),src=new Map(),ePos=[];let ne=0;
+  for(const m of [...g.children]){if(!m.isMesh||m.userData.id==null)continue;const mt=m.material;
+    const key=[m.userData.c0,mt.transparent?1:0,mt.opacity,mt.roughness,mt.side,mt.flatShading?1:0].join('|');
+    const geo=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();geo.applyMatrix4(m.matrixWorld);
+    let G=groups.get(key);if(!G)groups.set(key,G={mat:mt,pos:[],nor:[],starts:[],ids:[],tri:0});
+    const pa=geo.attributes.position.array,na=geo.attributes.normal?geo.attributes.normal.array:new Float32Array(pa.length);
+    G.starts.push(G.tri);G.ids.push(m.userData.id);G.pos.push(pa);G.nor.push(na);G.tri+=pa.length/9;geo.dispose();
+    if(m.userData.edge){const eg=new THREE.EdgesGeometry(m.geometry,25);eg.applyMatrix4(m.matrixWorld);ePos.push(eg.attributes.position.array);ne+=eg.attributes.position.array.length;eg.dispose();}
+    let sl=src.get(m.userData.id);if(!sl)src.set(m.userData.id,sl=[]);sl.push(m);g.remove(m);}
+  const cat=(arrs,n)=>{const out=new Float32Array(n);let o=0;for(const a of arrs){out.set(a,o);o+=a.length;}return out;};
+  for(const G of groups.values()){const n=G.pos.reduce((a,b)=>a+b.length,0);const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(cat(G.pos,n),3));bg.setAttribute('normal',new THREE.BufferAttribute(cat(G.nor,n),3));bg.computeBoundingSphere();
+    const bm=new THREE.Mesh(bg,G.mat.clone());bm.userData.batch={starts:G.starts,ids:G.ids};g.add(bm);}
+  if(ne){const eg=new THREE.BufferGeometry();eg.setAttribute('position',new THREE.BufferAttribute(cat(ePos,ne),3));const ls=new THREE.LineSegments(eg,new THREE.LineBasicMaterial({color:edgeCol,transparent:true,opacity:TH.dark?0.55:0.28}));ls.raycast=()=>{};g.add(ls);}
+  T3.src=src;}
+function pickId(h){const b=h.object.userData.batch;if(!b)return h.object.userData.id;const f=h.faceIndex;if(f==null)return null;let lo=0,hi=b.starts.length-1;while(lo<hi){const m=(lo+hi+1)>>1;if(b.starts[m]<=f)lo=m;else hi=m-1;}return b.ids[lo];}
+function hl3D(){if(T3.hlg){T3.scene.remove(T3.hlg);T3.hlg.userData.mat?.dispose();T3.hlg=null;}const ids=[S.sel,...(S.hl||[])].filter(Boolean);if(!ids.length||!T3.src)return;
+  const mat=new THREE.MeshStandardMaterial({color:C3.sel,emissive:0x5a3a00,roughness:0.85,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});const grp=new THREE.Group();grp.userData.mat=mat;
+  for(const id of new Set(ids))for(const m of T3.src.get(id)||[]){const o=new THREE.Mesh(m.geometry,mat);o.matrixAutoUpdate=false;o.matrix.copy(m.matrixWorld);grp.add(o);}
+  T3.scene.add(grp);T3.hlg=grp;}
 function wall3(e,elev,sweep){
   const L=elLen(e);if(L<1e-3)return;const t=+e.p.t,h=+e.p.h,x=t/2;
   const col=c3(e,e.p.material==='concrete'?C3.concrete:e.p.material==='drywall'?C3.drywall:(e.p.kind==='external'?C3.ext:C3.int));
@@ -2898,7 +3073,7 @@ function renderKPIs(){$('#kTotal').textContent=money(TO.net);$('#kGfa').textCont
 /* ---------- view switching ---------- */
 function setView(v){S.view=v;$('#stage').dataset.view=v==='settings'?'boq':v;$('#app').classList.toggle('boq-mode',v==='boq'||v==='settings');$$('.views button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===v));
   try{localStorage.setItem('takeoffstudio.view',v);}catch(e){}
-  if(v==='boq'||v==='settings')renderBoQ();requestAnimationFrame(()=>{drawPlanNow();if(T3.r){const h=$('#three');if(h.clientWidth){T3.r.setSize(h.clientWidth,h.clientHeight);T3.cam.aspect=h.clientWidth/h.clientHeight;T3.cam.updateProjectionMatrix();}render3();}});}
+  if(v==='boq'||v==='settings')renderBoQ();requestAnimationFrame(()=>{drawPlanNow();if(T3.r&&T3.dirty&&(v==='3d'||v==='split')){T3.dirty=false;build3D();}if(T3.r){const h=$('#three');if(h.clientWidth){T3.r.setSize(h.clientWidth,h.clientHeight);T3.cam.aspect=h.clientWidth/h.clientHeight;T3.cam.updateProjectionMatrix();}render3();}});}
 $$('.views button').forEach(b=>b.onclick=()=>setView(b.dataset.view));
 
 /* ---------- export / files ---------- */
@@ -3146,7 +3321,8 @@ $('#fileMenu').addEventListener('click',e=>{const b=e.target.closest('button');i
   if(a==='settings'){S.set='general';setView('settings');}
   if(a==='projects')openProjects();
   if(a==='new')newProjectFlow();
-  if(a==='sample')libNew(sampleProject(),'Sample house opened as a new project.');
+  if(a==='sample')libNew(sampleProject(),'Sample 12-storey apartment block opened as a new project.');
+  if(a==='sampleHouse')libNew(sampleHouse(),'Sample house opened as a new project.');
   if(a==='open')$('#fProject').click();
   if(a==='save')saveFile(slug()+'.agileboq.json',JSON.stringify(P,null,1));
   if(a==='xlsx')openXlsxDialog();if(a==='pdf')openPdfDialog();if(a==='csv')exportCsv();if(a==='copy')copyBoQ();});
@@ -3563,7 +3739,7 @@ function settingsBody(id){
   case'prices':return pricesHTML();
   case'team':return card('Team &amp; sharing',`<div class="tm-body">${teamDialogBody()}</div>`);
   case'files':return card('This project',`<div class="file-grid"><button class="btn" data-fact="save">Save project file (.json)</button><button class="btn" data-fact="open">Open project file…</button><button class="btn primary needs-dl" data-fact="xlsx">Export all reports to Excel</button><button class="btn needs-dl" data-fact="csv">Export BoQ as CSV</button><button class="btn" data-fact="copy">Copy BoQ to clipboard</button></div>`,'Project files hold the model, rates, data bank, rate analyses and cover. PDF drawings are not included.')+
-    card('Projects',`<div class="file-grid"><button class="btn primary" data-fact="projects">My projects…</button><button class="btn" data-fact="new">New empty project</button><button class="btn" data-fact="sample">Load sample house</button></div>`,'Every project is saved automatically in this browser. New projects never replace old ones; find them all under My projects.');}
+    card('Projects',`<div class="file-grid"><button class="btn primary" data-fact="projects">My projects…</button><button class="btn" data-fact="new">New empty project</button><button class="btn" data-fact="sample">Load sample apartment block</button><button class="btn" data-fact="sampleHouse">Load sample house</button></div>`,'Every project is saved automatically in this browser. New projects never replace old ones; find them all under My projects.');}
   return'';}
 function renderSettings(){
   const pane=$('#boqPane');const sig=focusSig(document.activeElement);const sc=pane.scrollTop;const id=SETT[S.set]?S.set:'general';S.set=id;
@@ -3607,7 +3783,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-agileboq';
+const APP_VER='2026.09.26-apartments';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
