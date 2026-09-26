@@ -333,7 +333,8 @@ table.bill.fin{min-width:980px}
 .bill th.r,.bill td.r{text-align:right}
 .bill td{padding:7px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
 .bill td.ref{font-family:var(--f-mono);font-size:12px;color:var(--ink2);white-space:nowrap;width:74px}
-.bill.boq{border:3px double var(--ink3)}.bill.boq td+td,.bill.boq th+th{border-left:3px double color-mix(in srgb,var(--ink3) 70%,transparent)}.bill.boq td.ref{font-weight:700;color:var(--ink);text-align:center;width:52px}.bill.boq th:first-child{text-align:center}
+.bill.boq{border:3px double var(--ink3)}.bill.boq tr.pre td{padding-top:12px;padding-bottom:6px;border-bottom:0}.pre-h{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px;font-weight:800;letter-spacing:.02em;color:var(--ink)}.gen-pre{margin:0 14px 12px;padding:10px 14px;border:3px double var(--ink3);border-radius:4px;background:var(--surface)}.gen-pre summary{cursor:pointer}.gen-pre ol{margin:10px 0 2px;padding-left:22px}.gen-pre li{margin:0 0 8px}.gen-pre p{margin:3px 0 0;font-size:13px;color:var(--ink2);line-height:1.45}
+.pre-n{font-size:12.5px;color:var(--ink2);font-style:italic;margin-top:3px;line-height:1.4}.bill.boq td+td,.bill.boq th+th{border-left:3px double color-mix(in srgb,var(--ink3) 70%,transparent)}.bill.boq td.ref{font-weight:700;color:var(--ink);text-align:center;width:52px}.bill.boq th:first-child{text-align:center}
 .bill td.desc{line-height:1.4;max-width:520px}
 .bill td.unit{color:var(--ink2);width:44px}
 .bill td.q,.bill td.amt{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -1399,6 +1400,91 @@ const baseRate=it=>Math.round(it.rate*(+P.factor||1)*100)/100;
 const rateOf=it=>{const a=P.ra&&P.ra[it.key];if(a&&a.use&&a.lines&&a.lines.length)return raCalc(a).rate;if(it.manual)return +it.rate||0;if(P.rates[it.key]!=null)return +P.rates[it.key];if(curCtry()&&P.autoRates!==false){const v=autoRate(it);if(v!=null)return v;}return baseRate(it);};
 
 let TO=null;
+const WG=[
+ ['site','SITE CLEARANCE','Rates include for grubbing up roots, filling holes and disposal off site of all arisings unless stated otherwise.'],
+ ['exc','EXCAVATION AND EARTHWORKS','Rates for excavation include for keeping excavations free from water, trimming and levelling bottoms, compacting and loading, carting and disposal as described. Quantities are net from the drawings with no allowance for bulking; working space is measured separately where stated.'],
+ ['pile','PILING','Piling is measured from the cut-off level. Rates include for moving the rig between positions, casing, spoil handling and trimming of heads where not measured separately.'],
+ ['conc','IN-SITU CONCRETE','Concrete shall comply with the specification and grades stated. Rates include for batching, placing, compacting, curing, protection and making and testing cubes. Voids not exceeding 0.05 m³ are not deducted.'],
+ ['fw','FORMWORK','Rates for formwork include for all props, supports, bracing, release agents, striking and cleaning. Formwork is measured to the surfaces of concrete that need temporary support.'],
+ ['reb','REINFORCEMENT','Reinforcement is measured net by weight from the bar schedules with no allowance for rolling margin. Rates include for cutting, bending, tying wire, spacers, chairs and laps unless measured separately.'],
+ ['dpc','DAMP-PROOFING AND WATERPROOFING','Rates include for laps, sealing of joints, dressing into and around openings and protection until covered.'],
+ ['mas','BLOCKWORK AND MASONRY','Walling is measured on the centre line net of openings. Rates include for mortar, bonding, cutting, forming reveals and openings, wall ties and bed-joint reinforcement where stated.'],
+ ['dry','PARTITIONS AND DRYLINING','Partitions are measured net of openings. Rates include for head and base tracks, studs, boards, jointing, taping and fixings.'],
+ ['roof','ROOFING','Rates include for laps, fixings, flashings, dressings and working around outlets and penetrations. Areas are measured net on plan unless stated as measured on slope.'],
+ ['cw','CURTAIN WALLING, CLADDING AND LOUVRES','Measured by area of the finished face. Rates include for frames, brackets, sealants, fixings, flashings and specialist design and testing.'],
+ ['win','WINDOWS','Windows are enumerated complete. Rates include for frames, glazing, ironmongery, sills, fixing lugs, mastic pointing and protection.'],
+ ['door','DOORS','Door sets are enumerated complete. Rates include for leaves, frames, architraves, ironmongery, finishing and fixing.'],
+ ['metal','METALWORK','Rates include for fabrication, shop and site priming, painting or coating as stated, fixings, and bedding or grouting of posts and brackets.'],
+ ['plas','PLASTERING, RENDERING AND SCREEDS','Measured net on the surface finished. Rates include for preparation, dubbing out, angle beads, arrises and working around services.'],
+ ['tile','WALL TILING','Measured net on the area covered. Rates include for adhesive, cutting, grouting, trims and sealant at abutments.'],
+ ['floor','FLOOR FINISHES','Floor finishes are measured net on the area covered. Rates include for bedding, adhesives, cutting, grouting, trims at thresholds and protection until handover.'],
+ ['ceil','CEILINGS','Ceilings are measured net on plan. Rates include for suspension systems, framing, boards, jointing, access panels and working around light fittings.'],
+ ['paint','PAINTING AND DECORATION','Painting is measured on the surface treated. Rates include for preparation, making good, priming and all coats stated.'],
+ ['sanit','SANITARY FITTINGS','Sanitary fittings are enumerated complete. Rates include for supports, brackets, jointing to supplies and wastes, sealing and testing.'],
+ ['pipe','PIPEWORK, FITTINGS AND VALVES','Pipework is measured along the centre line over all fittings. Rates include for brackets, clips, sleeves, jointing and testing; fittings and valves are measured separately where stated.'],
+ ['equip','EQUIPMENT AND STORAGE','Equipment is enumerated complete with valves, supports, connections and commissioning.'],
+ ['eldist','SUPPLY, DISTRIBUTION AND STANDBY POWER','Equipment is enumerated complete, including delivery, positioning, fixings, connections, labelling and commissioning.'],
+ ['ellight','LIGHTING','Light fittings are enumerated complete with lamps, drivers, fixings and connection to the lighting point.'],
+ ['elacc','SWITCHES, SOCKETS AND ACCESSORIES','Accessories are enumerated complete with back boxes, faceplates, fixings and connection.'],
+ ['elpt','FINAL CIRCUIT WIRING','Wiring is measured per point from the distribution board to the outlet, including cables, conduit, draw boxes and connections.'],
+ ['elcab','CABLES AND CONTAINMENT','Cables and containment are measured along their route. Rates include for supports, bends, tees, cleats and fixings; terminations are measured separately where stated.'],
+ ['fire','FIRE DETECTION AND ALARM','Devices are enumerated complete with bases, back boxes and connection; the system is to be commissioned and certified.'],
+ ['ffight','FIRE FIGHTING','Fire-fighting equipment is enumerated complete with brackets, cabinets, signage and connections.'],
+ ['lp','LIGHTNING PROTECTION','The system is to be installed, tested and certified. Conductors are measured along their length, including clips and test clamps.'],
+ ['comms','DATA, TV AND SECURITY','Items are enumerated complete, including termination, labelling, testing and commissioning.'],
+ ['drain','UNDERGROUND DRAINAGE','Drain runs are measured along the centre line between chambers. Rates include for excavation, earthwork support, bedding, surround, backfilling, testing and disposal.'],
+ ['chamb','MANHOLES, CHAMBERS AND TANKS','Enumerated complete, including excavation, bases, benching, covers, frames and connections.'],
+ ['pave','ROADS, PAVINGS AND PARKING','Pavings are measured net on plan. Rates include for compaction, edge restraints, falls and cambers.'],
+ ['land','LANDSCAPING','Rates include for supplying, spreading, cultivating, planting, staking, watering and maintenance until established.'],
+ ['fence','FENCING, WALLS AND GATES','Rates include for posts, foundations, fixings, gates, ironmongery and finishes as stated.'],
+ ['test',"TESTING, COMMISSIONING AND BUILDER'S WORK",'Include for labour, instruments, certificates and attendance; builder\'s work includes forming and making good holes, chases and sleeves.'],
+ ['gen','SUNDRIES','']];
+const WGI=Object.fromEntries(WG.map((g,i)=>[g[0],i]));
+function workGroup(it){const k=it.key||'',d=(it.desc||'').toLowerCase();
+  if(/^(elt_test|elt_bwic|plt_)/.test(k))return'test';
+  if(/^ef_(smoke|heat|mcp|sounder|facp)/.test(k)||k.startsWith('ew_F'))return'fire';
+  if(/^ef_ext/.test(k)||/^(pp|pf|pv)_\w+?_?fire|^p[pfv]_[a-z]+_fire|hosereel|hydrant|landing_fire/.test(k)||/_fire_/.test(k))return'ffight';
+  if(/^ef_lpt/.test(k)||k==='cb_earth')return'lp';
+  if(/^ef_(data|tel|tv|wap|rack|cctv|nvr|acc|intc|intm|bell)/.test(k)||/^ew_[DTV]/.test(k))return'comms';
+  if(/^ef_(db|mdb|meter|tx|gen|ats|ups|pv|inv|spd|earth)/.test(k))return'eldist';
+  if(/^ef_(dl|panel|ceil|batten|pend|wall|bulk|flood|bollard|pole|emerg|exit)/.test(k))return'ellight';
+  if(k.startsWith('ef_'))return'elacc';if(k.startsWith('ew_'))return'elpt';if(k.startsWith('cb_')||k==='elt_term')return'elcab';
+  if(/^san_(heater|tank|solar|inst)/.test(k))return'equip';if(/^(san_|sacc_)/.test(k))return'sanit';
+  if(/^(pp|pf|pv)_/.test(k)&&/_ud_/.test(k))return'drain';if(/^mh/.test(k))return'chamb';if(/^(pp|pf|pv)_/.test(k))return'pipe';
+  if(/pile/.test(d))return'pile';
+  if(/imported topsoil|turf|tree|planting|landscap/.test(d))return'land';
+  if(/^(fn_|gt_|fpost)/.test(k)||/fence|gate\b/.test(d))return'fence';
+  if(/asphalt|paving|kerb|parking bay|wheel stop|sub-base|reduce levels for pavings/.test(d))return'pave';
+  if(/clear site|topsoil/.test(d))return'site';
+  if(/^formwork|formwork to/.test(d))return'fw';
+  if(/reinforcement|fabric/.test(d))return'reb';
+  if(/damp-proof|tanking|polythene/.test(d)&&!/\broof/.test(d))return'dpc';
+  if(/excavat|earthwork support|working space|disposal|backfill|\bfill\b|hardcore|termite|murram/.test(d))return'exc';
+  if(/concrete|blinding/.test(d)&&!/lintel|kerb|coping|block|sill|paving|wheel stop|precast/.test(d))return'conc';
+  if(/\broof|mineral cap|upstand|pir insulation/.test(d))return'roof';
+  if(/curtain wall|spandrel|louvre|mesh behind|cladding/.test(d))return'cw';
+  if(/stud partition|plasterboard partition|drylin/.test(d))return'dry';
+  if(/blockwork|brick|lintel|pier|coping|stone/.test(d))return'mas';
+  if(/window/.test(d))return'win';if(/door/.test(d))return'door';
+  if(/balustrade|handrail|railing|nosing|steel/.test(d))return'metal';
+  if(/ceiling/.test(d))return'ceil';
+  if(/wall tiles|wall tiling/.test(d))return'tile';
+  if(/paint/.test(d))return'paint';
+  if(/plaster|render|screed|skim/.test(d))return'plas';
+  if(/floor|skirting|terrazzo|tiles|carpet|vinyl|timber flooring/.test(d))return'floor';
+  return'gen';}
+const preOn=()=>!P||P.pre!=='no';
+function genPre(){const cur=P.currency||'',v=+P.vat||0;return[
+ ['GENERALLY','These Bills of Quantities have been prepared generally in accordance with the RICS New Rules of Measurement (NRM2) except where otherwise stated. Quantities are measured net from the drawings and the model, and are to be read together with the drawings and specification.'],
+ ['DESCRIPTIONS','Item descriptions are brief. The drawings and specification take precedence over the descriptions, and each item is to be read with the preamble under its trade heading.'],
+ ['RATES','Rates shall include for labour, materials, plant, transport, waste, overheads, profit, insurances and all taxes other than VAT, and for all incidental work needed to complete the item whether or not described.'],
+ ['QUANTITIES','Quantities are the Employer\'s best estimate of the work. Where described as provisional they will be remeasured. The Contractor shall check all quantities on site before ordering materials.'],
+ ['MATERIALS AND WORKMANSHIP','Materials shall be new and comply with the relevant standards. Workmanship shall be in accordance with the specification, manufacturers\' instructions and good building practice.'],
+ ['PRELIMINARIES AND CONTINGENCY','Preliminaries and the contingency allowance are priced as percentages in the Summary unless itemised separately in the bills.'],
+ ['PROVISIONAL AND PRIME COST SUMS','Provisional and PC sums are to be spent as directed by the Architect / Engineer. Profit and attendance are priced separately where stated.'],
+ ['ITEMS NOT PRICED','Items left unpriced will be deemed to be included elsewhere in the rates.'],
+ ['ARITHMETIC ERRORS','Where the extended amount does not equal the quantity multiplied by the rate, the rate shall prevail and the amount will be corrected.'],
+ ['CURRENCY AND VAT',`All rates and amounts are in ${cur}, excluding VAT. VAT at ${v}% is added in the Summary.`]];}
 const ILET='ABCDEFGHJKLMNPQRSTUVWXYZ';function itemLetter(i){return i<24?ILET[i]:ILET[Math.floor(i/24)-1]+ILET[i%24];}
 function takeoff(){
   AUTO=new Map();const map=new Map();
@@ -1422,7 +1508,7 @@ function takeoff(){
   const secs=SEC.map(([code,name])=>({code,name,items:[],total:0}));
   for(const it of map.values())secs.find(s=>s.code===it.sec).items.push(it);
   let works=0;
-  for(const s of secs){s.items.sort((a,b)=>a.o-b.o||a.key.localeCompare(b.key,undefined,{numeric:true}));
+  for(const s of secs){s.items.forEach(it=>it.grp=workGroup(it));s.items.sort((a,b)=>(preOn()?WGI[a.grp]-WGI[b.grp]:0)||a.o-b.o||a.key.localeCompare(b.key,undefined,{numeric:true}));
     s.items.forEach((it,i)=>{it.ref=s.code+'.'+String(i+1).padStart(2,'0');it.let=itemLetter(i);it.q=roundQ(it.qty,it.unit);it.r=rateOf(it);it.amt=it.q*it.r;s.total+=it.amt;});works+=s.total;}
   const prelims=works*(+P.prelims||0)/100,cont=(works+prelims)*(+P.contingency||0)/100,net=works+prelims+cont,vat=net*(+P.vat||0)/100;
   const roofOnly=new Set(P.levels.filter(l=>P.elements.some(e=>e.level===l.id&&e.type==='roof')&&!P.elements.some(e=>e.level===l.id&&e.type==='room')).map(l=>l.id));const gfa=P.elements.filter(e=>(e.type==='slab'||e.type==='raft')&&lvl(e.level)&&!roofOnly.has(e.level)).reduce((s,e)=>s+area(e.pts)-voidsIn(e).filter(v=>v.p.vkind==='atrium').reduce((a,v)=>a+area(v.pts),0),0);
@@ -3134,8 +3220,8 @@ function renderBoQ(){
   else if(S.boqTab==='bom')body=bomHTML();
   else if(S.boqTab==='bill'){
     const CM=cmOn(),NC=CM?7:6;
-    body=`<div class="sheet">${billBar()}<table class="bill boq${CM?' has-cm':''}"><thead><tr><th>Item</th><th>Description</th><th>Unit</th><th class="r">Quantity</th><th class="r">Rate</th><th class="r">Amount</th>${CM?`<th class="r cm">${P.currency}/m² ${esc(cmLabel())}</th>`:''}</tr></thead><tbody>`+
-    (nItems?t.secs.filter(s=>s.items.length).map(s=>`<tr class="sec"><td colspan="${NC}"><span class="code">${s.code}</span>${esc(s.name)}</td></tr>`+s.items.map(it=>billRow(it)).join('')+`<tr class="addrow"><td></td><td colspan="${NC-1}"><button class="linkbtn" data-addsec="${s.code}">+ Add an item to ${s.code}</button></td></tr>`+
+    body=`<div class="sheet">${billBar()}${preOn()?`<details class="gen-pre"><summary><b class="pre-h">PREAMBLES</b> <span class="hint" style="margin:0">general notes to the bills · click to open</span></summary><ol>${genPre().map(([h,t])=>`<li><b class="pre-h">${esc(h)}</b><p>${esc(t)}</p></li>`).join('')}</ol></details>`:''}<table class="bill boq${CM?' has-cm':''}"><thead><tr><th>Item</th><th>Description</th><th>Unit</th><th class="r">Quantity</th><th class="r">Rate</th><th class="r">Amount</th>${CM?`<th class="r cm">${P.currency}/m² ${esc(cmLabel())}</th>`:''}</tr></thead><tbody>`+
+    (nItems?t.secs.filter(s=>s.items.length).map(s=>`<tr class="sec"><td colspan="${NC}"><span class="code">${s.code}</span>${esc(s.name)}</td></tr>`+s.items.map((it,i)=>(preOn()&&(i===0||s.items[i-1].grp!==it.grp)&&WG[WGI[it.grp]][0]!=='gen'?preRow(it.grp,NC):'')+billRow(it)).join('')+`<tr class="addrow"><td></td><td colspan="${NC-1}"><button class="linkbtn" data-addsec="${s.code}">+ Add an item to ${s.code}</button></td></tr>`+
       `<tr class="sub"><td></td><td colspan="4">Total carried to collection · ${esc(s.name)}</td><td class="amt r">${fmtN(s.total)}</td>${CM?`<td class="cm r">${cmV(s.total)}</td>`:''}</tr>`).join('')
       +(CM?`<tr class="sub cm-tot"><td></td><td colspan="4">Building works · cost per m² ${esc(cmLabel())} (${fmtN(cmArea())} m²)</td><td class="amt r">${fmtN(t.works)}</td><td class="cm r">${cmV(t.works)}</td></tr><tr class="sub cm-tot"><td></td><td colspan="4">Total excl. VAT, with preliminaries and contingency</td><td class="amt r">${fmtN(t.net)}</td><td class="cm r">${cmV(t.net)}</td></tr>`:'')
       :`<tr><td colspan="${NC}" class="empty">No quantities yet. Model some elements on the plan and the bill fills in here.</td></tr>`)+`</tbody></table></div>`;
@@ -3400,12 +3486,13 @@ function cmLabel(){const c=P.cm2||{};return c.basis==='custom'?(String(c.label||
 function cmV(v){const A=cmArea();return A>0?fmtN(v/A):'–';}
 function cmCtl(){const c=P.cm2||{};const on=cmOn();
   return`<span class="cm-ctl"><label class="cm-tog"><input type="checkbox" id="cmOn" ${on?'checked':''}> Cost per m²</label>${on?`<select id="cmBasis" aria-label="Area basis"><option value="gfa" ${c.basis!=='custom'?'selected':''}>of GFA (${fmtN(TO.gfa)} m²)</option><option value="custom" ${c.basis==='custom'?'selected':''}>of another area…</option></select>${c.basis==='custom'?`<input id="cmArea" type="number" step="0.01" min="0" value="${+c.area||''}" placeholder="m²" aria-label="Area in m²"><input id="cmLab" value="${esc(c.label||'')}" placeholder="name, e.g. NLA" aria-label="Area name">`:''}`:''}</span>`;}
-function wireCm(pane){const v=id=>pane.querySelector('#'+id);if(!v('cmOn'))return;
+function wireCm(pane){const v=id=>pane.querySelector('#'+id);if(v('preOn'))v('preOn').onchange=e=>mutate(()=>{P.pre=e.target.checked?'yes':'no';});if(!v('cmOn'))return;
   v('cmOn').onchange=e=>mutate(()=>{P.cm2={...(P.cm2||{basis:'gfa'}),on:e.target.checked};});
   v('cmBasis')?.addEventListener('change',e=>mutate(()=>{P.cm2.basis=e.target.value;if(e.target.value==='custom'&&!(+P.cm2.area>0))P.cm2.area=+TO.gfa.toFixed(2);}));
   v('cmArea')?.addEventListener('change',e=>mutate(()=>{P.cm2.area=Math.max(0,parseFloat(e.target.value)||0);}));
   v('cmLab')?.addEventListener('change',e=>mutate(()=>{P.cm2.label=e.target.value.trim().slice(0,24);}));}
-function billBar(){const M=missedChecks();return`<div class="bom-bar"><button class="btn sm primary" id="addItem">+ Add item</button><button class="btn sm" id="chkMissed">Check for missed items${M.sugg.length?` <span class="cnt2">${M.sugg.length}</span>`:''}</button>${M.zero.length?`<span class="warnchip">${M.zero.length} item${M.zero.length>1?'s have':' has'} no rate</span>`:''}${cmCtl()}<span class="hint" style="margin:0 0 0 auto">ƒx opens the rate analysis for an item</span></div>`;}
+function preRow(g,NC){const G=WG[WGI[g]];return`<tr class="pre"><td></td><td><b class="pre-h">${esc(G[1])}</b>${G[2]?`<div class="pre-n">${esc(G[2])}</div>`:''}</td>${'<td></td>'.repeat(NC-2)}</tr>`;}
+function billBar(){const M=missedChecks();return`<div class="bom-bar"><button class="btn sm primary" id="addItem">+ Add item</button><button class="btn sm" id="chkMissed">Check for missed items${M.sugg.length?` <span class="cnt2">${M.sugg.length}</span>`:''}</button>${M.zero.length?`<span class="warnchip">${M.zero.length} item${M.zero.length>1?'s have':' has'} no rate</span>`:''}<label class="cm-tog"><input type="checkbox" id="preOn" ${preOn()?'checked':''}> Preambles &amp; trade headings</label>${cmCtl()}<span class="hint" style="margin:0 0 0 auto">ƒx opens the rate analysis for an item</span></div>`;}
 function billRow(it){
   const a=P.ra[it.key],raOn=a&&a.use&&a.lines&&a.lines.length;
   const cls=[raOn?'ra-on':(!it.manual&&P.rates[it.key]!=null?'edited':''),it.r>0?'':'zero'].join(' ');
@@ -3658,7 +3745,7 @@ function applyDL(){$$('.needs-dl').forEach(b=>b.hidden=!DL);}
 async function saveFile(name,data){if(!DL){toast('Saving files is not available in this view. Use Copy instead.');return;}
   try{await DL.save({filename:name,data});toast('Saved '+name);}catch(e){if(e?.code==='declined')return;if(e?.code==='rate_limited'){toast('A save prompt is already open.');return;}toast('The file could not be saved here.');}}
 const slug=()=>(P.name||'project').replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').slice(0,60);
-function boqRows(){const rows=[['Item','Description','Unit','Quantity','Rate','Amount']];for(const s of TO.secs){if(!s.items.length)continue;rows.push([s.code,s.name.toUpperCase(),'','','','']);for(const it of s.items)rows.push([it.let,it.desc,it.unit,it.q,it.r,+it.amt.toFixed(2)]);rows.push(['','Total carried to collection','','','',+s.total.toFixed(2)]);rows.push([]);}return rows;}
+function boqRows(){const rows=[['Item','Description','Unit','Quantity','Rate','Amount']];for(const s of TO.secs){if(!s.items.length)continue;rows.push([s.code,s.name.toUpperCase(),'','','','']);s.items.forEach((it,i)=>{if(preOn()&&(i===0||s.items[i-1].grp!==it.grp)&&it.grp!=='gen'){const G=WG[WGI[it.grp]];rows.push(['',G[1],'','','','']);if(G[2])rows.push(['',G[2],'','','','']);}rows.push([it.let,it.desc,it.unit,it.q,it.r,+it.amt.toFixed(2)]);});rows.push(['','Total carried to collection','','','',+s.total.toFixed(2)]);rows.push([]);}return rows;}
 function copyBoQ(){const rows=boqRows();rows.push(['','Building works','','','',+TO.works.toFixed(2)],['','Preliminaries '+P.prelims+'%','','','',+TO.prelims.toFixed(2)],['','Contingency '+P.contingency+'%','','','',+TO.cont.toFixed(2)],['','Total excl. VAT','','','',+TO.net.toFixed(2)],['','VAT '+P.vat+'%','','','',+TO.vat.toFixed(2)],['','Total incl. VAT','','','',+TO.total.toFixed(2)]);
   const tsv=rows.map(r=>r.map(c=>String(c??'').replace(/\t|\n/g,' ')).join('\t')).join('\n');
   const done=()=>toast('Bill copied. Paste it into Excel or Google Sheets.');
@@ -3680,8 +3767,9 @@ function openPdfDialog(){const o=S.pdf||(S.pdf={cover:true,summary:true,bill:tru
     <div class="pdf-row"><span>Page</span><label><input type="radio" name="pdfOr" value="p" ${o.orient==='p'?'checked':''}> A4 portrait</label><label><input type="radio" name="pdfOr" value="l" ${o.orient==='l'?'checked':''}> A4 landscape</label></div>
     <label class="pdf-row"><input type="checkbox" id="pdfNP" ${o.newPage?'checked':''}> Put each bill on its own page(s) <span class="hint" style="margin:0">(1.1 Substructure, 2.1 Frame … each starts a new page)</span></label>
     <div class="pdf-row"><span>Item codes</span><label><input type="radio" name="pdfIc" value="page" ${o.icode!=='bill'&&o.icode!=='num'?'checked':''}> A, B, C… restarting on each page</label><label><input type="radio" name="pdfIc" value="bill" ${o.icode==='bill'?'checked':''}> A, B, C… through each bill</label><label><input type="radio" name="pdfIc" value="num" ${o.icode==='num'?'checked':''}> Numbers (1.1.01)</label></div>
-    <label class="pdf-row"><input type="checkbox" id="pdfFr" ${o.frame!==false?'checked':''}> Page borders and double vertical lines on the bill</label>`,'Create PDF',()=>{S.pdfTouched=true;
-    document.querySelectorAll('[data-po]').forEach(i=>o[i.dataset.po]=i.checked);o.priced=document.querySelector('[name=pdfPr]:checked').value==='1';o.orient=document.querySelector('[name=pdfOr]:checked').value;o.newPage=document.getElementById('pdfNP').checked;o.icode=(document.querySelector('[name=pdfIc]:checked')||{}).value||'page';o.frame=document.getElementById('pdfFr').checked;
+    <label class="pdf-row"><input type="checkbox" id="pdfFr" ${o.frame!==false?'checked':''}> Page borders and double vertical lines on the bill</label>
+    <label class="pdf-row"><input type="checkbox" id="pdfPre" ${o.pre!==false?'checked':''}> Preambles page and trade headings with preambles in the bill</label>`,'Create PDF',()=>{S.pdfTouched=true;
+    document.querySelectorAll('[data-po]').forEach(i=>o[i.dataset.po]=i.checked);o.priced=document.querySelector('[name=pdfPr]:checked').value==='1';o.orient=document.querySelector('[name=pdfOr]:checked').value;o.newPage=document.getElementById('pdfNP').checked;o.icode=(document.querySelector('[name=pdfIc]:checked')||{}).value||'page';o.frame=document.getElementById('pdfFr').checked;o.pre=document.getElementById('pdfPre').checked;
     if(!['cover','summary','bill','bom','rebar','fin','sched'].some(k=>o[k])){toast('Pick at least one part.');return false;}
     makePdf(o);});wirePresets();}
 async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await pdfLib();}catch(e){toast('The PDF library did not load. Check your internet connection and try again.');return;}
@@ -3722,15 +3810,23 @@ async function makePdf(o){toast('Building the PDF…');let JsPDF;try{JsPDF=await
     body.push(fr('Building works',n2(t.works),bold,t.works),fr(`Preliminaries ${P.prelims}%`,n2(t.prelims),{}),fr(`Contingency ${P.contingency}%`,n2(t.cont),{}),fr('Total excl. VAT',n2(t.net),bold,t.net),fr(`VAT ${P.vat}%`,n2(t.vat),{}),fr('Total incl. VAT',priced?pT(`${cur} ${n2(t.total)}`):'',gr,t.total));
     tbl({startY:y,head,body,columnStyles:{0:{cellWidth:16,textColor:PR,fontStyle:'bold'},2:{halign:'right',cellWidth:(+P.factor||1)>=50?44:32},...(cm?{3:{halign:'right',cellWidth:30},4:{halign:'right',cellWidth:16}}:{3:{halign:'right',cellWidth:16}})}});
     const yy=doc.lastAutoTable.finalY+8;doc.setFontSize(9);doc.setTextColor(...INK2);doc.text(pT(`Gross floor area ${fmtN(t.gfa)} m²${priced&&t.gfa?` · ${cur} ${fmtN(t.net/t.gfa)} per m² GFA excl. VAT`:''}`),M,yy);}
+  // ---- general preambles
+  if(o.bill&&o.pre!==false&&preOn()){newPage('Preambles');let y=heading('Preambles','General notes to the Bills of Quantities · '+coverVal('project'));const lim=H-22;
+    genPre().forEach(([h,t],i)=>{const lines=doc.splitTextToSize(pT(t),CW-8);const need=6+lines.length*4.2+3;if(y+need>lim){newPage('Preambles');y=26;}
+      doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(...INK);const hd=`${i+1}.  ${h}`;doc.text(hd,M,y);const tw=doc.getTextWidth(hd);doc.setDrawColor(...INK);doc.setLineWidth(0.3);doc.line(M,y+1,M+tw,y+1);y+=5.2;
+      doc.setFont('helvetica','normal');doc.setFontSize(8.8);doc.setTextColor(...INK2);doc.text(lines,M+6,y);y+=lines.length*4.2+4;});
+    y+=2;if(y<lim-10){doc.setFont('helvetica','italic');doc.setFontSize(8.4);doc.setTextColor(...INK3);doc.text(doc.splitTextToSize('Particular preambles are given under the trade headings in each bill (for example EXCAVATION AND EARTHWORKS, IN-SITU CONCRETE, FORMWORK).',CW),M,y);}}
   // ---- bill of quantities
   if(o.bill){const secs=TO.secs.filter(x=>x.items.length);const cols=[{content:'Item'},{content:'Description'},{content:'Unit'},{content:'Quantity',styles:R},{content:'Rate',styles:R},{content:'Amount',styles:R},...(cm?[{content:pT(`/m² ${cmLabel()}`),styles:R}]:[])];const NC=cols.length;
     const secRows=x=>{const hs={fillColor:TINT,textColor:PR,fontStyle:'bold',fontSize:9.2};const b=[o.frame===false?[{content:pT(`${x.code}   ${x.name.toUpperCase()}`),colSpan:NC,styles:hs}]:[{content:x.code,styles:{...hs,halign:'center'}},{content:pT(x.name.toUpperCase()),styles:hs},...Array(NC-2).fill(0).map(()=>({content:'',styles:hs}))]];
-      x.items.forEach(it=>b.push([o.icode==='num'?it.ref:{content:o.icode==='bill'?it.let:'',itm:1,styles:{halign:'center',fontStyle:'bold',textColor:INK,fontSize:8.6}},pT(it.desc),pT(it.unit),fmtQ(it.q,it.unit),priced?n2(it.r):'',priced?n2(it.amt):'',...(cm?[cmV(it.amt)]:[])]));
+      x.items.forEach((it,ii)=>{if(o.pre!==false&&preOn()&&(ii===0||x.items[ii-1].grp!==it.grp)&&it.grp!=='gen'){const G=WG[WGI[it.grp]];b.push(['',{content:G[1],ul:1,styles:{fontStyle:'bold',fontSize:8.8,textColor:INK,cellPadding:{top:3.2,bottom:G[2]?0.6:1.6,left:1.6,right:1.6},lineWidth:0}},...Array(NC-2).fill(0).map(()=>({content:'',styles:{lineWidth:0}}))]);if(G[2])b.push(['',{content:pT(G[2]),styles:{fontStyle:'italic',fontSize:7.6,textColor:INK2,cellPadding:{top:0.6,bottom:2,left:1.6,right:1.6}}},...Array(NC-2).fill('')]);}
+        b.push([o.icode==='num'?it.ref:{content:o.icode==='bill'?it.let:'',itm:1,styles:{halign:'center',fontStyle:'bold',textColor:INK,fontSize:8.6}},pT(it.desc),pT(it.unit),fmtQ(it.q,it.unit),priced?n2(it.r):'',priced?n2(it.amt):'',...(cm?[cmV(it.amt)]:[])]);});
       const sty={fontStyle:'bold',fillColor:TINT2,lineColor:PR,lineWidth:{top:0.3,bottom:0.3}};b.push(o.frame===false?[{content:'',styles:sty},{content:pT('Total carried to collection · '+x.name),colSpan:4,styles:sty},{content:priced?n2(x.total):'',styles:{...sty,halign:'right'}},...(cm?[{content:cmV(x.total),styles:{...sty,halign:'right'}}]:[])]
         :[{content:'',styles:sty},{content:pT('Total carried to collection · '+x.name),styles:sty},{content:'',styles:sty},{content:'',styles:sty},{content:'',styles:sty},{content:priced?n2(x.total):'',styles:{...sty,halign:'right'}},...(cm?[{content:cmV(x.total),styles:{...sty,halign:'right'}}]:[])]);return b;};
     const bigN=(+P.factor||1)>=50;const colS={0:{cellWidth:o.icode==='num'?15:11,textColor:INK3,fontSize:7.8},2:{cellWidth:11},3:{halign:'right',cellWidth:19},4:{halign:'right',cellWidth:bigN?22:18},5:{halign:'right',cellWidth:bigN?29:23},...(cm?{6:{halign:'right',cellWidth:17,textColor:INK2}}:{})};
     const pgCnt={},rowLet=new Map();
     const hooks=y0=>({willDrawCell:d=>{if(d.section!=='body'||d.column.index!==0||!d.cell.raw||!d.cell.raw.itm||o.icode!=='page')return;const pg=doc.internal.getCurrentPageInfo().pageNumber,k=d.row.index+'|'+pg;if(!rowLet.has(k)){pgCnt[pg]=pgCnt[pg]||0;rowLet.set(k,itemLetter(pgCnt[pg]++));}d.cell.text=[rowLet.get(k)];},
+      didDrawCell:d=>{if(d.section!=='body'||!d.cell.raw||!d.cell.raw.ul)return;doc.setFont('helvetica','bold');doc.setFontSize(8.8);const tw=doc.getTextWidth(String(d.cell.text[0]||'')),x=d.cell.x+1.6,yb=d.cell.y+3.2+8.8*0.3528*0.95+0.5;doc.setDrawColor(...INK);doc.setLineWidth(0.3);doc.line(x,yb,x+tw,yb);},
       didDrawPage:d=>{mark();const pg=doc.internal.getCurrentPageInfo().pageNumber;if(!billPg[pg]){const xs=[];let x=d.settings.margin.left;xs.push(x);d.table.columns.forEach(c=>{x+=c.width;xs.push(x);});billPg[pg]={top:d.pageNumber===1?y0:d.settings.margin.top,xs};}}});
     if(o.newPage){secs.forEach((x,i)=>{newPage('Bill of Quantities');const y=heading(i?`Bill ${x.code}`:'Bill of Quantities',i?`${x.name} · ${coverVal('project')}`:undefined);tbl({startY:y,head:[cols],body:secRows(x),columnStyles:colS,...hooks(y)});});}
     else{newPage('Bill of Quantities');const y=heading('Bill of Quantities');tbl({startY:y,head:[cols],body:secs.flatMap(secRows),columnStyles:colS,...hooks(y)});}}
@@ -3808,17 +3904,19 @@ function exportXlsx(o){o={...XLALL,...(o||{})};
   const plain=(w,A,hr,lc)=>{sr(w,hr,0,lc,XS.head);rh(w,hr,22);for(let r=hr+1;r<A.length;r++){if(!A[r]||!A[r].length)continue;sr(w,r,0,lc,XS.item);numz(w,r,[...Array(lc+1).keys()]);}};
   // Bill sheet(s) with live formulas — one sheet, or one per bill
   const CM=cmOn();const secsX=TO.secs.filter(x=>x.items.length);let AREA=null;const secTot=[];const billSheets=[];const qn=n=>`'${n}'`;
-  const buildBill=(secs,name,title)=>{const aoa=[[P.name],[title],CM?['',`Area for cost per m² (${cmLabel()}, m²)`,'','','',+cmArea().toFixed(2)]:[],['Item','Description','Unit','Quantity','Rate','Amount',...(CM?[`${P.currency}/m² ${cmLabel()}`]:[])]];
+  const buildBill=(secs,name,title)=>{const preH=new Set(),preN=new Set();const aoa=[[P.name],[title],CM?['',`Area for cost per m² (${cmLabel()}, m²)`,'','','',+cmArea().toFixed(2)]:[],['Item','Description','Unit','Quantity','Rate','Amount',...(CM?[`${P.currency}/m² ${cmLabel()}`]:[])]];
     const aRef=AREA||'$F$3';const cmF=r=>`IF(${aRef}>0,F${r}/${aRef},0)`;const fcells=[];
     for(const s of secs){aoa.push([s.code,s.name.toUpperCase()]);const first=aoa.length+1;
-      for(const it of s.items){aoa.push([it.let,it.desc,it.unit,it.q,it.r,null]);fcells.push([aoa.length-1,5,`D${aoa.length}*E${aoa.length}`,it.amt]);if(CM)fcells.push([aoa.length-1,6,cmF(aoa.length),cmArea()>0?it.amt/cmArea():0]);}
+      for(const [ii,it] of s.items.entries()){if(preOn()&&(ii===0||s.items[ii-1].grp!==it.grp)&&it.grp!=='gen'){const G=WG[WGI[it.grp]];preH.add(aoa.length);aoa.push(['',G[1],'','','','']);if(G[2]){preN.add(aoa.length);aoa.push(['',G[2],'','','','']);}}aoa.push([it.let,it.desc,it.unit,it.q,it.r,null]);fcells.push([aoa.length-1,5,`D${aoa.length}*E${aoa.length}`,it.amt]);if(CM)fcells.push([aoa.length-1,6,cmF(aoa.length),cmArea()>0?it.amt/cmArea():0]);}
       const last=aoa.length;aoa.push(['','Total carried to collection','','','',null]);fcells.push([aoa.length-1,5,`SUM(F${first}:F${last})`,s.total]);if(CM)fcells.push([aoa.length-1,6,cmF(aoa.length),cmArea()>0?s.total/cmArea():0]);secTot.push([s.code,s.name,`${qn(name)}!F${aoa.length}`,s.total]);aoa.push([]);}
     const ws=X.utils.aoa_to_sheet(aoa);for(const [r,c,f,v] of fcells)ws[enc({r,c})]={t:'n',f,v:+v.toFixed(2),z:'#,##0.00'};
     ws['!cols']=[{wch:9},{wch:78},{wch:6},{wch:12},{wch:11},{wch:14},...(CM?[{wch:13}]:[])];
     if(CM){ws['F3']=AREA?{t:'n',f:AREA,v:+cmArea().toFixed(2),z:NUM}:{t:'n',v:+cmArea().toFixed(2),z:NUM};if(!AREA)AREA=`${qn(name)}!$F$3`;}
     const lc=CM?6:5;sr(ws,0,0,lc,XS.title);sr(ws,1,0,lc,XS.sub);if(CM){sc(ws,2,1,XS.label);sc(ws,2,5,AREA===`${qn(name)}!$F$3`?mS(XS.input,{font:{bold:true}}):{font:{bold:true}},NUM);}rh(ws,0,26);sr(ws,3,0,lc,XS.head);rh(ws,3,22);[3,4,5,6].forEach(c=>sc(ws,3,c,XS.r));
     for(let r=4;r<aoa.length;r++){const a=aoa[r];if(!a||!a.length)continue;
-      if(a.length===2){sr(ws,r,0,lc,XS.sec);rh(ws,r,20);}
+      if(preH.has(r)){sr(ws,r,0,lc,XS.item);sc(ws,r,1,{font:{name:'Calibri',sz:11,bold:true,underline:true}});rh(ws,r,18);}
+      else if(preN.has(r)){sr(ws,r,0,lc,XS.item);sc(ws,r,1,mS(XS.wrap,{font:{name:'Calibri',sz:9.5,italic:true,color:{rgb:'4B5752'}}}));const ln=Math.ceil(String(a[1]||'').length/80);rh(ws,r,Math.min(90,ln*12.5+3));}
+      else if(a.length===2){sr(ws,r,0,lc,XS.sec);rh(ws,r,20);}
       else if(a[1]==='Total carried to collection'){sr(ws,r,0,lc,XS.tot);}
       else{sr(ws,r,0,lc,XS.item);sc(ws,r,1,XS.wrap);sc(ws,r,4,XS.input);numz(ws,r,[3,4,5,6]);sc(ws,r,0,{font:{bold:true},alignment:{horizontal:'center',vertical:'top'}});const ln=Math.ceil(String(a[1]||'').length/74);if(ln>1)rh(ws,r,Math.min(90,ln*13+2));}}
     {const DB={style:'double',color:{rgb:'5F6B66'}},last=aoa.length-1;for(let r=3;r<=last;r++)for(let c=0;c<=lc;c++)sc(ws,r,c,{border:{left:DB,right:DB,...(r===3?{top:DB}:{}),...(r===last?{bottom:DB}:{})}});}
@@ -3878,7 +3976,9 @@ function exportXlsx(o){o={...XLALL,...(o||{})};
       if(a.length===2&&String(a[1]).startsWith('Total ·')){sr(wsM,r,0,9,XS.tot);continue;}if(a.length===2){sr(wsM,r,0,9,XS.sec);rh(wsM,r,20);continue;}
       sr(wsM,r,0,9,XS.item);sc(wsM,r,2,XS.wrap);sc(wsM,r,5,XS.input);sc(wsM,r,7,XS.input);numz(wsM,r,[4,5,6,7,8]);}}
   const boqPart=o.bill||o.summary;
-  if(o.cover&&boqPart)X.utils.book_append_sheet(wb,wsC,'Cover');if(o.summary)X.utils.book_append_sheet(wb,ws2,'Summary');billSheets.forEach(([n,w])=>X.utils.book_append_sheet(wb,w,n));
+  let wsPre=null;if(o.bill&&preOn()){const pa=[[P.name],['Preambles · general notes to the Bills of Quantities'],[]];const hr=[];genPre().forEach(([h,t],i)=>{hr.push(pa.length);pa.push([i+1+'.',h]);pa.push(['',t]);pa.push([]);});wsPre=X.utils.aoa_to_sheet(pa);wsPre['!cols']=[{wch:5},{wch:100}];sr(wsPre,0,0,1,XS.title);sr(wsPre,1,0,1,XS.sub);
+    hr.forEach(r=>{sc(wsPre,r,0,{font:{name:'Calibri',sz:11,bold:true}});sc(wsPre,r,1,{font:{name:'Calibri',sz:11,bold:true,underline:true}});sc(wsPre,r+1,1,mS(XS.wrap,{font:{name:'Calibri',sz:10,color:{rgb:'4B5752'}}}));rh(wsPre,r+1,Math.min(80,Math.ceil(String(pa[r+1][1]).length/95)*13+3));});}
+  if(o.cover&&boqPart)X.utils.book_append_sheet(wb,wsC,'Cover');if(o.summary)X.utils.book_append_sheet(wb,ws2,'Summary');if(wsPre)X.utils.book_append_sheet(wb,wsPre,'Preambles');billSheets.forEach(([n,w])=>X.utils.book_append_sheet(wb,w,n));
   if(o.sched)X.utils.book_append_sheet(wb,ws3,'Element schedule');if(o.rebar)X.utils.book_append_sheet(wb,ws4,'Bar schedule');if(o.fin)X.utils.book_append_sheet(wb,ws5,'Room finishes');
   if(o.bom){if(o.cover)X.utils.book_append_sheet(wb,wsCB,'BoM cover');X.utils.book_append_sheet(wb,wsM,'Bill of materials');}
   {const ra=[['Rate analysis · '+coverVal('project')+' · '+P.currency],[],['Ref','Item / resource','Type','Unit','Qty per unit','Unit price','Amount']];const rf=[];
@@ -4369,7 +4469,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-boqborders';
+const APP_VER='2026.09.26-preambles';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;

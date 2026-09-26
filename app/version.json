@@ -1,1 +1,1 @@
-{"version": "2026.09.26-boqborders", "notes": "BOQ: item codes A, B, C (restart on each PDF page), page borders and double vertical lines in PDF, Excel and on screen"}
+{"version": "2026.09.26-preambles", "notes": "BOQ preambles: general preambles page and underlined bold trade headings with particular preambles in each bill (screen, PDF, Excel)"}
