@@ -461,7 +461,6 @@ table.set-lv{min-width:0}.set-lv input{width:100%;border:1px solid var(--line);b
         <hr>
         <button data-act="new">New empty project</button>
         <button data-act="sample">Load sample apartment block</button>
-        <button data-act="sampleHouse">Load sample house</button>
         <hr>
         <button data-act="open">Open project file… <small>.json</small></button>
         <button data-act="save" class="needs-dl">Save project file <small>.json</small></button>
@@ -1198,73 +1197,6 @@ const fmtN=(v,d=2)=>(NFC['n'+d]||(NFC['n'+d]=new Intl.NumberFormat('en-GB',{mini
 const fmtQ=(q,u)=>u==='nr'||u==='kg'?fmtN(q,0):u==='t'?fmtN(q,3):fmtN(q,2);
 
 /* ---------- sample projects ---------- */
-function sampleHouse(){
-  const E=[];const add=(type,level,pts,p,extra)=>{const e={id:uid(),type,level,pts,p:{...TDc(type),...p},...(extra||{})};E.push(e);return e;};
-  const rect=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
-  const ring=[[0,0],[12,0],[12,9],[0,9]];
-  const op=(type,host,at,p)=>add(type,host.level,null,p,{host:host.id,at});
-  // ground floor
-  ring.forEach((a,i)=>add('strip','gf',[a,ring[(i+1)%4]],{w:0.6,d:0.25,exc:1.0}));
-  add('strip','gf',[[6,0],[6,9]],{w:0.45,d:0.25,exc:0.9});
-  ring.forEach((a,i)=>add('fwall','gf',[a,ring[(i+1)%4]],{fmat:'block',t:0.2}));
-  add('fwall','gf',[[6,0],[6,9]],{fmat:'block',t:0.15});
-  add('gbeam','gf',[[6,5],[12,5]],{w:0.23,d:0.4});
-  add('slab','gf',rect(-0.1,-0.1,12.1,9.1),{t:0.15});
-  const gw=ring.map((a,i)=>add('wall','gf',[a,ring[(i+1)%4]],{kind:'external',material:'blockwork',t:0.2,h:2.8}));
-  const gi1=add('wall','gf',[[6,0],[6,9]],{kind:'internal',material:'blockwork',t:0.15,h:2.8});
-  const gi2=add('wall','gf',[[6,5],[12,5]],{kind:'internal',material:'blockwork',t:0.1,h:2.8});
-  for(const x of [0,6,12])for(const y of [0,9])add('column','gf',[[x,y]],{w:0.3,d:0.3,h:2.8,mb:[{n:4,d:16},{n:4,d:12}],lk:[{t:'outer',d:8,s:0.15},{t:'diamond',d:8,s:0.15}]});
-  const BM={w:0.25,d:0.25,mb:[{pos:'top',n:2,d:12},{pos:'bot',n:3,d:16},{pos:'tsup',n:2,d:16}],lk:[{t:'closed',d:8,s:0.1,s2:0.2}]};
-  ring.forEach((a,i)=>add('beam','gf',[a,ring[(i+1)%4]],JSON.parse(JSON.stringify(BM))));
-  add('beam','gf',[[6,0],[6,9]],JSON.parse(JSON.stringify(BM)));
-  add('room','gf',rect(0.1,0.1,5.925,8.9),{name:'Living / Dining',floor:'porcelain',ceiling:'gypsum'});
-  add('room','gf',rect(6.075,0.1,11.9,4.95),{name:'Kitchen',floor:'ceramic',ceiling:'skim',wall:'tilesPart',wt:1.5});
-  add('room','gf',rect(6.075,5.05,11.9,8.9),{name:'Study',floor:'timber',ceiling:'gypsum'});
-  op('door',gw[0],3,{kind:'external',w:1.0,h:2.1});
-  op('window',gw[0],9,{w:1.5,h:1.2,sill:0.9});
-  op('window',gw[1],7,{w:1.2,h:1.2,sill:0.9});
-  op('window',gw[2],3,{w:1.2,h:1.2,sill:0.9});
-  op('window',gw[2],9,{w:1.8,h:1.5,sill:0.6});
-  op('window',gw[3],4.5,{w:2.0,h:1.5,sill:0.6});
-  op('door',gi1,2,{w:0.9,h:2.1});
-  op('door',gi1,7,{w:0.9,h:2.1});
-  op('door',gi2,1.5,{w:0.9,h:2.1});
-  // first floor
-  add('slab','ff',rect(-0.1,-0.1,12.1,9.1),{t:0.2});
-  add('void','ff',rect(4.6,2.8,5.9,5.8),{name:'Stair opening',vkind:'stair',rule:'nrm',vrooms:'yes'});
-  const fw=ring.map((a,i)=>add('wall','ff',[a,ring[(i+1)%4]],{kind:'external',material:'blockwork',t:0.2,h:3.0}));
-  const fi1=add('wall','ff',[[6,0],[6,9]],{kind:'internal',material:'blockwork',t:0.15,h:3.0});
-  const fi2=add('wall','ff',[[6,4.5],[12,4.5]],{kind:'internal',material:'drywall',t:0.1,h:3.0});
-  for(const x of [0,6,12])for(const y of [0,9])add('column','ff',[[x,y]],{w:0.25,d:0.25,h:3.0});
-  add('room','ff',rect(0.1,0.1,5.925,8.9),{name:'Bedroom 1',floor:'timber',ceiling:'gypsum'});
-  add('room','ff',rect(6.075,0.1,11.9,4.45),{name:'Bathroom',floor:'porcelain',ceiling:'mf',wall:'tilesFull'});
-  add('room','ff',rect(6.075,4.55,11.9,8.9),{name:'Bedroom 2',floor:'timber',ceiling:'gypsum'});
-  // plumbing
-  add('sanitary','ff',[[6.6,0.5]],{fx:'wc',rot:'0'});add('sanitary','ff',[[7.6,0.35]],{fx:'basin',rot:'0'});add('sanitary','ff',[[11.4,0.6]],{fx:'shower',rot:'0'});add('sanitary','ff',[[9.5,2.2]],{fx:'gully',conn:'yes'});
-  add('sanitary','gf',[[9.3,0.4]],{fx:'sink',rot:'0'});add('sanitary','gf',[[11.5,0.45]],{fx:'heater',rot:'0'});
-  add('pipe','ff',[[6.35,0.3],[11.4,0.3]],{sys:'cw',mat:'ppr',dia:'20',vert:3.0});add('pipe','ff',[[11.5,0.4],[7.6,0.4]],{sys:'hw',mat:'ppr',dia:'20',vert:0});
-  add('pipe','ff',[[6.35,0.25],[6.6,0.25]],{sys:'sw',mat:'upvc',dia:'110',vert:6.8});
-  add('pipe','gf',[[11.8,0.3],[9.3,0.3]],{sys:'cw',mat:'ppr',dia:'25',vert:0});add('pipe','gf',[[9.3,0.25],[6.35,0.25]],{sys:'w',mat:'upvc',dia:'50',vert:0});
-  add('pipe','gf',[[6.35,0.2],[6.5,-2.5]],{sys:'ud',mat:'upvc',dia:'110'});add('pipe','gf',[[6.5,-2.5],[12.5,-2.5]],{sys:'ud',mat:'upvc',dia:'110'});
-  add('pipe','gf',[[12.5,0.3],[11.8,0.3]],{sys:'cw',mat:'ppr',dia:'25',vert:0});add('pipe','gf',[[11.8,0.3],[11.8,0.45]],{sys:'cw',mat:'ppr',dia:'22',vert:0});
-  add('pfit','gf',[[12.3,0.3]],{pk:'meter',sys:'cw',dia:'25'});add('pfit','gf',[[12.1,0.3]],{pk:'stop',sys:'cw',dia:'25'});add('pfit','ff',[[7.0,0.3]],{pk:'ball',sys:'cw',dia:'20'});
-  add('mh','gf',[[6.5,-2.5]],{mhs:'600x450',dep:0.9});add('mh','gf',[[12.5,-2.5]],{mhs:'600x450',dep:1.2});
-  op('window',fw[0],3,{w:1.5,h:1.2,sill:0.9});
-  op('window',fw[0],9,{w:1.0,h:0.6,sill:1.5});
-  op('window',fw[1],6.5,{w:1.2,h:1.2,sill:0.9});
-  op('window',fw[2],3,{w:1.5,h:1.2,sill:0.9});
-  op('window',fw[2],9,{w:1.5,h:1.2,sill:0.9});
-  op('window',fw[3],4.5,{w:1.5,h:1.2,sill:0.9});
-  op('door',fi1,2,{w:0.9,h:2.1});
-  op('door',fi1,6.5,{w:0.9,h:2.1});
-  op('door',fi2,1.2,{w:0.8,h:2.1});
-  // roof
-  add('roof','rf',rect(-0.6,-0.6,12.6,9.6),{type:'pitched-tiles',pitch:25});
-  var GRIDS=makeGrids([6,6],[9],0,0,1.5);
-  return{name:'Sample · two-storey house, 12 × 9 m',currency:'EUR',factor:1,prelims:12,contingency:5,vat:19,
-    grids:GRIDS,
-    levels:[{id:'gf',name:'Ground Floor',elev:0,h:3.0},{id:'ff',name:'First Floor',elev:3.0,h:3.0},{id:'rf',name:'Roof',elev:6.0,h:1.5}],elements:E,rates:{}};
-}
 /* 12-storey L-shaped apartment block: frame, core, flats with balconies, façades, roof, external works and parking */
 function sampleProject(){
   const E=[];const add=(type,level,pts,p,extra)=>{const e={id:uid(),type,level,pts,p:{...TDc(type),...p},...(extra||{})};E.push(e);return e;};
@@ -3322,7 +3254,6 @@ $('#fileMenu').addEventListener('click',e=>{const b=e.target.closest('button');i
   if(a==='projects')openProjects();
   if(a==='new')newProjectFlow();
   if(a==='sample')libNew(sampleProject(),'Sample 12-storey apartment block opened as a new project.');
-  if(a==='sampleHouse')libNew(sampleHouse(),'Sample house opened as a new project.');
   if(a==='open')$('#fProject').click();
   if(a==='save')saveFile(slug()+'.agileboq.json',JSON.stringify(P,null,1));
   if(a==='xlsx')openXlsxDialog();if(a==='pdf')openPdfDialog();if(a==='csv')exportCsv();if(a==='copy')copyBoQ();});
@@ -3739,7 +3670,7 @@ function settingsBody(id){
   case'prices':return pricesHTML();
   case'team':return card('Team &amp; sharing',`<div class="tm-body">${teamDialogBody()}</div>`);
   case'files':return card('This project',`<div class="file-grid"><button class="btn" data-fact="save">Save project file (.json)</button><button class="btn" data-fact="open">Open project file…</button><button class="btn primary needs-dl" data-fact="xlsx">Export all reports to Excel</button><button class="btn needs-dl" data-fact="csv">Export BoQ as CSV</button><button class="btn" data-fact="copy">Copy BoQ to clipboard</button></div>`,'Project files hold the model, rates, data bank, rate analyses and cover. PDF drawings are not included.')+
-    card('Projects',`<div class="file-grid"><button class="btn primary" data-fact="projects">My projects…</button><button class="btn" data-fact="new">New empty project</button><button class="btn" data-fact="sample">Load sample apartment block</button><button class="btn" data-fact="sampleHouse">Load sample house</button></div>`,'Every project is saved automatically in this browser. New projects never replace old ones; find them all under My projects.');}
+    card('Projects',`<div class="file-grid"><button class="btn primary" data-fact="projects">My projects…</button><button class="btn" data-fact="new">New empty project</button><button class="btn" data-fact="sample">Load sample apartment block</button></div>`,'Every project is saved automatically in this browser. New projects never replace old ones; find them all under My projects.');}
   return'';}
 function renderSettings(){
   const pane=$('#boqPane');const sig=focusSig(document.activeElement);const sc=pane.scrollTop;const id=SETT[S.set]?S.set:'general';S.set=id;
@@ -3783,7 +3714,7 @@ setView(v0);
 new ResizeObserver(()=>drawPlanNow()).observe($('#planPane'));
 initTeam();
 /* ---------- update notice (hosted copies: compares with version.json next to the page) ---------- */
-const APP_VER='2026.09.26-apartments';
+const APP_VER='2026.09.26-apartments2';
 (function(){if(!/^https?:$/.test(location.protocol))return;let shown=false;
   const check=()=>{if(shown)return;fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{if(!v||!v.version||v.version===APP_VER)return;shown=true;
     const b=document.createElement('div');b.className='upd-bar';b.setAttribute('role','status');b.innerHTML=`<span>A new version of AgileBOQ is available${v.notes?': '+esc(v.notes):'.'}</span><button class="btn sm primary" data-r>Reload now</button><button class="btn sm" data-l>Later</button>`;
