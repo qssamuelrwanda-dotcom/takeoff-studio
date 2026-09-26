@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Takeoff Studio · Admin</title>
+<title>AgileBOQ · Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"></script>
@@ -57,7 +57,7 @@ h1{font-family:var(--f-cond);font-size:30px;letter-spacing:.01em;margin:0 0 4px;
 </head>
 <body>
 <header class="top">
-  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9z"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9"/></svg>Takeoff Studio <span>· Admin</span></div>
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9z"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9"/></svg>AgileBOQ <span>· Admin</span></div>
   <div class="sp"></div>
   <span class="who" id="who"></span>
   <a class="btn sm" href="../app/">Open the app</a>
@@ -156,7 +156,7 @@ $('#users tbody').addEventListener('click',async e=>{const rs=e.target.closest('
 $('#q').addEventListener('input',table);$('#refresh').onclick=load;
 $('#csv').onclick=()=>{const head=['Name','Email','Joined','Last active','Projects','Shared with them','Days used','Exports','Cloud saves','Status'];
   const rows=USERS.map(u=>[u.name||'',u.email||'',u.created_at||'',u.last||'',u.projects,u.shared_with,u.sessions,u.exports,u.cloud_saves,u.blocked?'Suspended':'Active']);
-  const csv=[head,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download='takeoff-studio-users.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);};
+  const csv=[head,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download='agileboq-users.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);};
 const say=m=>$('#msg').textContent=/failed to fetch/i.test(m)?'Can\'t reach the sign-in service. Check your connection.':m;
 $('#inBtn').onclick=async()=>{say('Signing in…');const {error}=await sb.auth.signInWithPassword({email:$('#em').value.trim(),password:$('#pw').value});if(error)say(error.message==='Invalid login credentials'?'Wrong email or password.':error.message);};
 $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#inBtn').click();});
